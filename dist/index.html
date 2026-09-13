@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="it">
+<head>
+ <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Sweet Little House · La tua casa in 3D</title>
+ <meta name="description" content="Esplora il modello in scala della tua casa: stanze vuote, pavimenti chiari e spazi da immaginare.">
+ <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23203140'/%3E%3Cpath d='M7 15L16 7l9 8v11h-7v-8h-4v8H7z' fill='%23e9f0ed'/%3E%3C/svg%3E">
+ <link rel="stylesheet" href="./style.css">
+ <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/controls/OrbitControls.js":"./vendor/OrbitControls.js"}}</script>
+</head>
+<body>
+ <header><div class="brand"><span class="brand-mark">⌂</span><div><strong>Sweet Little House</strong><span>SUB. 4 / IL TUO SPAZIO</span></div></div><div class="header-meta"><span class="version">Prima ricostruzione</span><span>01</span></div><button id="panel-toggle" class="mobile-only" aria-label="Apri o chiudi le impostazioni" aria-expanded="false">Impostazioni</button></header>
+ <main>
+  <section id="viewer" aria-label="Modello 3D interattivo dell’appartamento">
+   <div id="scene"></div>
+   <nav class="view-tabs" aria-label="Tipo di vista"><button data-view="orbit" class="active" aria-pressed="true">◈ <span>Panoramica</span></button><button data-view="plan" aria-pressed="false">▦ <span>Pianta</span></button><button data-view="walk" aria-pressed="false">↟ <span>Visita</span></button></nav>
+   <div class="viewer-tools"><button id="reset" title="Ripristina la vista" aria-label="Ripristina la vista">↺</button><button id="measure" title="Misura sul pavimento" aria-label="Misura sul pavimento" aria-pressed="false">↔</button></div>
+   <div id="labels" aria-hidden="true"></div>
+   <div id="crosshair" hidden>+</div>
+   <button id="enter-walk" hidden>Entra nella casa <span>Mouse per guardarti intorno · WASD per muoverti</span></button>
+   <div id="measure-result" role="status" hidden></div>
+   <div class="map-card"><div class="map-heading"><span>ORIENTAMENTO</span><span id="current-room">Intero appartamento</span></div><svg id="minimap" viewBox="0 0 930 1420" role="img" aria-label="Posizione nella planimetria"></svg><div class="map-foot">PIANTA <span>Subalterno 4</span></div></div>
+   <div class="view-caption"><strong id="view-title">Uno spazio tutto da immaginare.</strong><span id="view-help">Trascina per ruotare · Rotella per avvicinarti</span></div>
+   <div class="scale-tag"><span class="scale-line"></span>Modello in metri</div>
+   <div id="touch-controls" hidden><div><button data-move="forward" aria-label="Avanti">↑</button><div><button data-move="left" aria-label="Sinistra">←</button><button data-move="back" aria-label="Indietro">↓</button><button data-move="right" aria-label="Destra">→</button></div></div><span>Trascina per guardarti intorno</span></div>
+   <div id="error" role="alert" hidden></div>
+  </section>
+  <aside id="panel">
+   <div class="panel-intro"><span class="eyebrow">LA CASA, IN SCALA</span><h1>Si parte dallo spazio.</h1><p>Pareti, luce e pavimento.<br>Il resto lo immagineremo qui.</p></div>
+   <div class="facts"><div><strong>2,60 <small>m</small></strong><span>Altezza interna</span></div><div><strong>3</strong><span>Camere</span></div></div>
+   <section class="panel-section"><div class="section-heading"><h2>Esplora gli ambienti</h2><span>09</span></div><div id="room-list"></div></section>
+   <section class="panel-section finish-section"><div class="section-heading"><h2>Il pavimento</h2><span class="small-tag">Provvisorio</span></div><div class="material"><div class="material-sample"></div><div><strong>Gres chiaro</strong><span>Bianco perla · finitura opaca</span></div></div><label class="field">Formato piastrelle<select id="tile-size"><option value=".6">60 × 60 cm</option><option value=".8">80 × 80 cm</option><option value="1.2">120 × 120 cm</option></select></label><label class="field">Tonalità<input id="floor-color" type="color" value="#e5e4df" aria-label="Colore del pavimento"></label></section>
+   <details class="panel-section"><summary>Vista e riferimenti</summary><label class="field">Etichette ambienti<input type="checkbox" id="show-labels" checked></label><label class="field">Altezza occhi <output id="eye-value">1,65 m</output><input id="eye-height" type="range" min="1.2" max="1.9" step=".05" value="1.65"></label><p class="note">Pianta confermata · altezza 2,60 m.<br>Aperture e finiture sono stimate. Il garage è escluso. Le misure del modello non sostituiscono un rilievo.</p></details>
+   <div class="panel-footer"><span class="empty-icon">◇</span><span>Casa vuota<br><strong>Pronta per le tue idee.</strong></span></div>
+  </aside>
+ </main>
+ <script type="module" src="./app.js"></script>
+</body></html>

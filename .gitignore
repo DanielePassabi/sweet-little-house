@@ -1,0 +1,7 @@
+data/
+Data/
+tmp/
+node_modules/
+.sites-runtime/
+*.tar.gz
+*.log
