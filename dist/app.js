@@ -1,15 +1,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { point, SCALE, HEIGHT, rooms, nightRoomIds, nightFloorPolygon, walls, railings, footprint, insidePolygon, canStand, collisionWalls } from './model.js';
-import { wallVolumes, unionSurface } from './wall-geometry.js';
+import { point, SCALE, HEIGHT, rooms, nightRoomIds, nightFloorPolygon, walls, railings, footprint, insidePolygon, canStand, collisionWalls } from './model.js?v=20260914-3';
+import { wallVolumes, unionSurface } from './wall-geometry.js?v=20260914-3';
 
 const $ = s => document.querySelector(s);
 const host = $('#scene');
 const isTouch = matchMedia('(pointer:coarse)').matches;
 let renderer;
-try { renderer = new THREE.WebGLRenderer({antialias:true,alpha:false}); }
+try { renderer = new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'}); }
 catch { $('#error').hidden=false; $('#error').textContent='Il browser non riesce ad avviare la vista 3D. Prova ad attivare l’accelerazione grafica o ad aprire la pagina in un browser aggiornato.'; throw new Error('WebGL unavailable'); }
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+let renderPixelRatio=Math.min(devicePixelRatio,1.75);
+renderer.setPixelRatio(renderPixelRatio);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -100,10 +101,21 @@ const parquetTexture=makeParquetTexture();
 const parquetMaterial=new THREE.MeshStandardMaterial({color:'#fff4df',map:parquetTexture,bumpMap:parquetTexture,bumpScale:.006,roughness:.72});
 polygonMesh(nightFloorPolygon,parquetMaterial,.006);
 const bathroomTileMaterial=new THREE.MeshStandardMaterial({color:'#b8b9b5',map:floorMaterial.map,roughness:.92});
-const bathroomFloors=rooms.filter(room=>['bath1','bath2'].includes(room.id)).map(room=>polygonMesh(room.polygon,bathroomTileMaterial,.009));
+// Extend bathroom finishes beneath the wall centre-lines so no parquet sliver
+// can appear between the room polygons and their partitions.
+const bathroomFloorPolygons={bath1:[[30,320],[270,320],[270,498],[30,498]],bath2:[[529,493],[712,493],[712,742],[529,742]]};
+const bathroomFloors=rooms.filter(room=>['bath1','bath2'].includes(room.id)).map(room=>polygonMesh(bathroomFloorPolygons[room.id],bathroomTileMaterial,.012));
 floorObjects.push(...bathroomFloors);
 const base=polygonMesh(footprint,new THREE.MeshStandardMaterial({color:'#a7b1b7',roughness:1}),-.16);
-const box=(w,h,d,mat,x,y,z,parent=model)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;};
+const unitBoxGeometry=new THREE.BoxGeometry(1,1,1);
+const box=(w,h,d,mat,x,y,z,parent=model)=>{const m=new THREE.Mesh(unitBoxGeometry,mat);m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;};
+const assetDummy=new THREE.Object3D(),staticInstanceGroups=new Map();
+function queueStaticInstance(geometry,material,x,y,z,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0){
+ assetDummy.position.set(x,y,z);assetDummy.rotation.set(rx,ry,rz);assetDummy.scale.set(sx,sy,sz);assetDummy.updateMatrix();
+ const key=geometry.uuid+material.uuid;if(!staticInstanceGroups.has(key))staticInstanceGroups.set(key,{geometry,material,matrices:[]});
+ staticInstanceGroups.get(key).matrices.push(assetDummy.matrix.clone());
+}
+function flushStaticInstances(parent=model){let items=0;for(const {geometry,material,matrices} of staticInstanceGroups.values()){const mesh=new THREE.InstancedMesh(geometry,material,matrices.length);matrices.forEach((matrix,index)=>mesh.setMatrixAt(index,matrix));mesh.castShadow=true;mesh.receiveShadow=true;mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();parent.add(mesh);items+=matrices.length;}return {items,batches:staticInstanceGroups.size};}
 // Foundation edge under the exterior outline.
 footprint.forEach((a,i)=>{const b=footprint[(i+1)%footprint.length];const [x,z]=point(a),[ex,ez]=point(b);const len=Math.hypot(ex-x,ez-z);const m=box(len,.16,.09,cap,(x+ex)/2,-.08,(z+ez)/2);m.rotation.y=-Math.atan2(ez-z,ex-x);});
 
@@ -240,6 +252,104 @@ terraceBox(.16,.52,.70,outdoorFrameMaterial,2.52,.43,14.44);
 });
 [[.08,14.16],[2.47,14.16],[.08,14.70],[2.47,14.70]].forEach(([x,z])=>terraceBox(.055,.12,.055,outdoorFrameMaterial,x,.06,z));
 
+// Three lightweight ornamental plants. Repeated leaves, trunks, pots and lemons
+// share four instanced meshes instead of becoming dozens of individual objects.
+const plantPotMaterial=new THREE.MeshStandardMaterial({color:'#b8a48e',roughness:.92});
+const plantStemMaterial=new THREE.MeshStandardMaterial({color:'#6d4c32',roughness:1});
+const plantLeafMaterials=[new THREE.MeshStandardMaterial({color:'#397943',roughness:.96,flatShading:true}),new THREE.MeshStandardMaterial({color:'#57934d',roughness:.96,flatShading:true})];
+const lemonMaterial=new THREE.MeshStandardMaterial({color:'#f2c62f',roughness:.7});
+const plantPotGeometry=new THREE.CylinderGeometry(.24,.18,.42,14),plantStemGeometry=new THREE.CylinderGeometry(.025,.04,1,7),plantLeafGeometry=new THREE.IcosahedronGeometry(1,1),lemonGeometry=new THREE.SphereGeometry(1,10,7);
+const plantData=[
+ {x:3.47,z:8.34,scale:.86,tone:0,lemon:false},
+ {x:.18,z:10.83,scale:1.00,tone:1,lemon:false}
+];
+const leafOffsets=[[0,1.18,0,.29,.35,.25],[-.20,.98,.03,.24,.28,.20],[.22,1.02,-.04,.25,.30,.21],[-.10,1.39,-.02,.23,.28,.20],[.13,1.34,.04,.22,.25,.19]];
+plantData.forEach((plant,index)=>{
+ const s=plant.scale;queueStaticInstance(plantPotGeometry,plantPotMaterial,plant.x,.21,plant.z,s,s,s);
+ queueStaticInstance(plantStemGeometry,plantStemMaterial,plant.x,.76*s,plant.z,s,s,s,0,index*.7,0);
+ leafOffsets.forEach(([dx,y,dz,sx,sy,sz],leafIndex)=>queueStaticInstance(plantLeafGeometry,plantLeafMaterials[(plant.tone+leafIndex)%2],plant.x+dx*s,y*s,plant.z+dz*s,sx*s,sy*s,sz*s,0,index*.65+leafIndex*.4,0));
+ if(plant.lemon)[[-.18,1.12,.13],[.18,1.24,.10],[.02,1.42,-.13],[-.12,.91,-.15],[.20,.96,-.08]].forEach(([dx,y,dz])=>queueStaticInstance(lemonGeometry,lemonMaterial,plant.x+dx*s,y*s,plant.z+dz*s,.055*s,.07*s,.055*s));
+});
+
+// Bathrooms follow the supplied plans: Bath 1 has the tub on the west side,
+// while Bath 2 has a shower in its south-west corner.
+const bathroomFixtures=new THREE.Group();model.add(bathroomFixtures);
+const bathroomBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,bathroomFixtures);
+const bathroomMetal=new THREE.MeshStandardMaterial({color:'#aeb8bc',roughness:.32,metalness:.68});
+const bathroomMirror=new THREE.MeshStandardMaterial({color:'#bcd0d6',roughness:.12,metalness:.72});
+const bathWater=new THREE.MeshPhysicalMaterial({color:'#b9dce9',transparent:true,opacity:.56,roughness:.16,depthWrite:false});
+const sanitaryBodyGeometry=new THREE.CylinderGeometry(1,1,1,24),sanitaryRingGeometry=new THREE.TorusGeometry(1,.12,9,28),tapGeometry=new THREE.CylinderGeometry(1,1,1,12);
+function addSanitary(x,z,rotation=0,toilet=false){
+ const sideways=Math.abs(Math.sin(rotation))>.5,sx=sideways ? .33 : .23,sz=sideways ? .23 : .33;
+ queueStaticInstance(sanitaryBodyGeometry,ceramicMaterial,x,.22,z,sx,.20,sz);
+ queueStaticInstance(sanitaryRingGeometry,ceramicMaterial,x,.34,z,sx,sz,.045,Math.PI/2,0,0);
+ if(toilet){const tankX=x+Math.sin(rotation)*.31,tankZ=z-Math.cos(rotation)*.31;bathroomBox(rotation ? .20 : .46,.53,rotation ? .46 : .20,ceramicMaterial,tankX,.39,tankZ);}
+ else {const tapX=x+Math.sin(rotation)*.24,tapZ=z-Math.cos(rotation)*.24;queueStaticInstance(tapGeometry,bathroomMetal,tapX,.55,tapZ,.025,.18,.025);}
+}
+// Bath 1: recessed tub, towel warmer, bidet, toilet and vanity.
+bathroomBox(.10,.55,1.90,ceramicMaterial,.12,.285,4.15);bathroomBox(.10,.55,1.90,ceramicMaterial,.81,.285,4.15);
+bathroomBox(.79,.55,.10,ceramicMaterial,.465,.285,3.24);bathroomBox(.79,.55,.10,ceramicMaterial,.465,.285,5.06);
+bathroomBox(.59,.10,1.70,ceramicMaterial,.465,.10,4.15);bathroomBox(.58,.025,1.68,bathWater,.465,.20,4.15);
+queueStaticInstance(tapGeometry,bathroomMetal,.47,.91,3.27,.025,.64,.025);bathroomBox(.08,.08,.06,bathroomMetal,.47,1.31,3.255);bathroomBox(.045,.045,.28,bathroomMetal,.47,1.31,3.39);queueStaticInstance(tapGeometry,bathroomMetal,.47,1.28,3.54,.10,.025,.10);
+for(const x of [.16,.76])bathroomBox(.035,1.08,.035,bathroomMetal,x,1.27,3.30);
+for(let i=0;i<6;i++)bathroomBox(.60,.025,.04,bathroomMetal,.46,.82+i*.18,3.30);
+addSanitary(1.42,3.62,0,false);addSanitary(2.12,3.62,0,true);
+bathroomBox(.86,.67,.42,applianceWhite,1.72,.345,4.87);bathroomBox(.90,.08,.46,ceramicMaterial,1.72,.72,4.87);
+queueStaticInstance(sanitaryRingGeometry,ceramicMaterial,1.72,.79,4.84,.30,.20,.04,Math.PI/2,0,0);
+bathroomBox(.82,.66,.025,bathroomMirror,1.72,1.34,5.055);
+// Bath 2: vanity to the north, sanitary ware on the east wall and glass shower.
+bathroomBox(.82,.67,.42,applianceWhite,6.66,.345,5.40);bathroomBox(.86,.08,.46,ceramicMaterial,6.66,.72,5.40);
+queueStaticInstance(sanitaryRingGeometry,ceramicMaterial,6.66,.79,5.43,.29,.20,.04,Math.PI/2,0,0);
+bathroomBox(.78,.64,.025,bathroomMirror,6.66,1.34,5.205);
+addSanitary(7.29,6.15,Math.PI/2,false);addSanitary(7.29,6.91,Math.PI/2,true);
+bathroomBox(.84,.09,.84,ceramicMaterial,6.16,.055,7.47);
+const showerGlass=new THREE.MeshPhysicalMaterial({color:'#c7e3eb',transparent:true,opacity:.26,roughness:.08,metalness:.05,depthWrite:false});
+bathroomBox(.025,1.82,.90,showerGlass,6.57,.94,7.49);bathroomBox(.91,1.82,.025,showerGlass,6.115,.94,7.055);
+bathroomBox(.035,1.86,.035,bathroomMetal,6.57,.96,7.04);bathroomBox(.035,1.86,.035,bathroomMetal,6.57,.96,7.94);
+queueStaticInstance(tapGeometry,bathroomMetal,5.74,1.37,7.50,.025,.62,.025);bathroomBox(.08,.08,.08,bathroomMetal,5.73,1.68,7.50);bathroomBox(.34,.045,.045,bathroomMetal,5.90,1.68,7.50);queueStaticInstance(tapGeometry,bathroomMetal,6.08,1.64,7.50,.11,.025,.11);
+
+// Main bedroom: a custom full-wall wardrobe and a double bed, leaving the
+// south-west entrance clear. Lilac textiles echo the terrace upholstery.
+const bedroomFurniture=new THREE.Group();model.add(bedroomFurniture);
+const bedroomBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,bedroomFurniture);
+const wardrobeMaterial=new THREE.MeshStandardMaterial({color:'#ded8cd',roughness:.82});
+const wardrobeFrontMaterial=new THREE.MeshStandardMaterial({color:'#ece8df',roughness:.72});
+const lilacBedding=new THREE.MeshStandardMaterial({color:'#c8addb',roughness:1});
+const lilacAccent=new THREE.MeshStandardMaterial({color:'#a98bc1',roughness:1});
+bedroomBox(.56,2.42,4.00,wardrobeMaterial,7.335,1.21,3.03);
+for(let i=0;i<5;i++){const z=1.43+i*.80;bedroomBox(.025,2.22,.78,wardrobeFrontMaterial,7.04,1.18,z);bedroomBox(.025,.20,.025,bathroomMetal,7.02,1.18,z-.12);}
+// The complete wall-to-footboard depth is 2.00 m: the headboard starts on the
+// inner wall face and the shorter frame begins at its front edge.
+const bedroomWallInnerX=point([409,54])[0]+.15/2,bedLength=2,headboardDepth=.18,bedFrameLength=bedLength-headboardDepth,bedFrameCenterX=bedroomWallInnerX+headboardDepth+bedFrameLength/2;
+bedroomBox(headboardDepth,.95,1.88,wardrobeMaterial,bedroomWallInnerX+headboardDepth/2,.49,3.05);
+bedroomBox(bedFrameLength,.25,1.68,wardrobeMaterial,bedFrameCenterX,.17,3.05);
+bedroomBox(1.78,.25,1.60,applianceWhite,bedFrameCenterX,.39,3.05);
+bedroomBox(1.35,.17,1.56,lilacBedding,bedroomWallInnerX+1.283,.59,3.05);
+bedroomBox(.42,.17,.66,wardrobeFrontMaterial,4.76,.60,2.65);bedroomBox(.42,.17,.66,wardrobeFrontMaterial,4.76,.60,3.45);
+bedroomBox(.18,.15,.42,lilacAccent,5.04,.71,2.65);bedroomBox(.18,.15,.42,lilacAccent,5.04,.71,3.45);
+for(const z of [1.96,4.14]){bedroomBox(.43,.47,.43,wardrobeMaterial,4.76,.245,z);bedroomBox(.45,.035,.45,wardrobeFrontMaterial,4.76,.50,z);}
+
+const bathroomFixtureCount=bathroomFixtures.children.length,bedroomObjectCount=bedroomFurniture.children.length,plantCount=plantData.length;
+const assetInstanceStats=flushStaticInstances();
+
+// Most architectural details and furniture share the same cube geometry. Batch
+// opaque boxes by material so they render in a handful of draw calls while
+// keeping transparent panes separate for correct depth sorting.
+const furnitureObjectCount=furniture.children.length,utilityObjectCount=utilityFixtures.children.length,terraceObjectCount=terraceFurniture.children.length;
+function batchStaticBoxes(root=model){
+ root.updateMatrixWorld(true);
+ const boxes=[];root.traverse(object=>{if(object.isMesh&&object.geometry===unitBoxGeometry&&!object.material.transparent)boxes.push(object);});
+ const groups=new Map();for(const mesh of boxes){const key=mesh.material.uuid;if(!groups.has(key))groups.set(key,{material:mesh.material,meshes:[]});groups.get(key).meshes.push(mesh);}
+ const rootInverse=root.matrixWorld.clone().invert(),matrix=new THREE.Matrix4();
+ for(const {material,meshes} of groups.values()){
+  const instances=new THREE.InstancedMesh(unitBoxGeometry,material,meshes.length);instances.name='static-box-batch';instances.castShadow=true;instances.receiveShadow=true;
+  meshes.forEach((mesh,index)=>{matrix.multiplyMatrices(rootInverse,mesh.matrixWorld);instances.setMatrixAt(index,matrix);mesh.parent.remove(mesh);});
+  instances.instanceMatrix.needsUpdate=true;instances.computeBoundingBox();instances.computeBoundingSphere();root.add(instances);
+ }
+ return {boxes:boxes.length,batches:groups.size};
+}
+const batchedBoxes=batchStaticBoxes();
+
 const furnitureColliders=[
  {minX:6.28,maxX:7.55,minZ:8.04,maxZ:10.50},
  {minX:5.62,maxX:7.10,minZ:8.02,maxZ:8.92},
@@ -249,7 +359,17 @@ const furnitureColliders=[
  {minX:.775,maxX:1.775,minZ:11.78,maxZ:12.72},
  {minX:.955,maxX:1.595,minZ:11.10,maxZ:11.76},
  {minX:.955,maxX:1.595,minZ:12.74,maxZ:13.40},
- {minX:-.08,maxX:2.60,minZ:14.05,maxZ:14.88}
+ {minX:-.08,maxX:2.60,minZ:14.05,maxZ:14.88},
+ {minX:3.17,maxX:3.76,minZ:8.04,maxZ:8.64},
+ {minX:-.12,maxX:.48,minZ:10.53,maxZ:11.13},
+ {minX:.02,maxX:.91,minZ:3.15,maxZ:5.15},
+ {minX:1.14,maxX:2.42,minZ:3.28,maxZ:4.05},
+ {minX:1.22,maxX:2.22,minZ:4.60,maxZ:5.10},
+ {minX:6.18,maxX:7.12,minZ:5.16,maxZ:5.70},
+ {minX:6.88,maxX:7.61,minZ:5.84,maxZ:7.24},
+ {minX:5.70,maxX:6.62,minZ:7.00,maxZ:7.91},
+ {minX:4.34,maxX:6.35,minZ:2.12,maxZ:3.98},
+ {minX:7.02,maxX:7.62,minZ:1.02,maxZ:5.04}
 ];
 function canWalk(x,z,radius=.18){
  if(!canStand(x,z,radius))return false;
@@ -270,18 +390,26 @@ const trunkMaterial=new THREE.MeshStandardMaterial({color:'#765033',roughness:1}
 const leafMaterials=[new THREE.MeshStandardMaterial({color:'#4d8d42',roughness:.95,flatShading:true}),new THREE.MeshStandardMaterial({color:'#69a653',roughness:.95,flatShading:true})];
 const trunkGeometry=new THREE.CylinderGeometry(.15,.22,1.5,8);
 const crownGeometry=new THREE.IcosahedronGeometry(1,2);
-function addTree(x,z,scale=1,tone=0){
- const tree=new THREE.Group();tree.position.set(x,GROUND_Y,z);tree.rotation.y=(x*1.7+z*.9)%Math.PI;
- // Scale the trunk around its base so every tree stays planted on the lawn.
- const trunk=new THREE.Mesh(trunkGeometry,trunkMaterial);trunk.position.y=.75*scale;trunk.scale.set(scale,scale,scale);trunk.castShadow=true;tree.add(trunk);
- const crown=new THREE.Mesh(crownGeometry,leafMaterials[tone%leafMaterials.length]);crown.position.y=2.25*scale;crown.scale.set(1.05*scale,1.35*scale,1.05*scale);crown.castShadow=true;crown.receiveShadow=true;tree.add(crown);
- const side=new THREE.Mesh(crownGeometry,leafMaterials[(tone+1)%leafMaterials.length]);side.position.set(.62*scale,1.92*scale,.16*scale);side.scale.set(.68*scale,.78*scale,.68*scale);side.castShadow=true;tree.add(side);
- landscape.add(tree);
-}
-[
+const treeData=[
  [-5,-3,.9,0],[-7,4,1.08,1],[-6,12,.95,0],[-5,20,1.14,1],[2,21,.82,0],
  [16,18,.88,0],[17,10,1.12,1],[16,2,.9,0],[12,-5,1.06,1],[4,-6,.78,0]
-].forEach(args=>addTree(...args));
+];
+const treeCount=treeData.length,instanceDummy=new THREE.Object3D();
+const trunkInstances=new THREE.InstancedMesh(trunkGeometry,trunkMaterial,treeCount);
+const crownInstances=leafMaterials.map(material=>new THREE.InstancedMesh(crownGeometry,material,treeCount));
+const crownCounts=leafMaterials.map(()=>0);
+function setInstance(mesh,index,x,y,z,rotationY,sx,sy,sz){instanceDummy.position.set(x,y,z);instanceDummy.rotation.set(0,rotationY,0);instanceDummy.scale.set(sx,sy,sz);instanceDummy.updateMatrix();mesh.setMatrixAt(index,instanceDummy.matrix);}
+treeData.forEach(([x,z,scale,tone],index)=>{
+ const rotation=(x*1.7+z*.9)%Math.PI;
+ setInstance(trunkInstances,index,x,GROUND_Y+.75*scale,z,rotation,scale,scale,scale);
+ const mainBatch=tone%leafMaterials.length;
+ setInstance(crownInstances[mainBatch],crownCounts[mainBatch]++,x,GROUND_Y+2.25*scale,z,rotation,1.05*scale,1.35*scale,1.05*scale);
+ const sideBatch=(tone+1)%leafMaterials.length,localX=.62*scale,localZ=.16*scale;
+ const sideX=x+Math.cos(rotation)*localX+Math.sin(rotation)*localZ,sideZ=z-Math.sin(rotation)*localX+Math.cos(rotation)*localZ;
+ setInstance(crownInstances[sideBatch],crownCounts[sideBatch]++,sideX,GROUND_Y+1.92*scale,sideZ,rotation,.68*scale,.78*scale,.68*scale);
+});
+trunkInstances.castShadow=true;trunkInstances.instanceMatrix.needsUpdate=true;landscape.add(trunkInstances);
+crownInstances.forEach((mesh,index)=>{mesh.count=crownCounts[index];mesh.castShadow=true;mesh.receiveShadow=true;mesh.instanceMatrix.needsUpdate=true;landscape.add(mesh);});
 
 // A low-poly mountain ring closes the horizon while remaining far outside the walkable garden.
 const mountains=new THREE.Group();scene.add(mountains);
@@ -290,33 +418,32 @@ const snowMaterial=new THREE.MeshStandardMaterial({color:'#e8eeed',roughness:1,f
 let mountainSeed=7143;
 const mountainRandom=()=>{mountainSeed=(mountainSeed*1664525+1013904223)>>>0;return mountainSeed/4294967296;};
 const mountainCount=26,mountainCenter=new THREE.Vector2(4.5,7.5);
+const mountainGeometry=new THREE.ConeGeometry(1,1,7,2),snowGeometry=new THREE.ConeGeometry(1,1,7,1);
+const mountainInstances=mountainMaterials.map(material=>new THREE.InstancedMesh(mountainGeometry,material,mountainCount));
+const mountainCounts=mountainMaterials.map(()=>0),snowMatrices=[];
 for(let i=0;i<mountainCount;i++){
  const angle=i/mountainCount*Math.PI*2+(mountainRandom()-.5)*.06;
  const distance=58+mountainRandom()*9,width=8.5+mountainRandom()*5.5,height=7+mountainRandom()*9;
- const geometry=new THREE.ConeGeometry(width,height,7,2);
- const mountain=new THREE.Mesh(geometry,mountainMaterials[i%mountainMaterials.length]);
- mountain.position.set(mountainCenter.x+Math.cos(angle)*distance,GROUND_Y+height/2,mountainCenter.y+Math.sin(angle)*distance);
- mountain.rotation.y=mountainRandom()*Math.PI;mountains.add(mountain);
+ const x=mountainCenter.x+Math.cos(angle)*distance,z=mountainCenter.y+Math.sin(angle)*distance,rotation=mountainRandom()*Math.PI,batch=i%mountainMaterials.length;
+ setInstance(mountainInstances[batch],mountainCounts[batch]++,x,GROUND_Y+height/2,z,rotation,width,height,width);
  if(height>12){
   // The wider, slightly raised cap sits above the mountain slope instead of sharing
   // the same triangles, preventing the two surfaces from flickering (z-fighting).
   const capHeight=height*.28;
-  const snow=new THREE.Mesh(new THREE.ConeGeometry(width*.32,capHeight,7,1),snowMaterial);
-  snow.position.set(mountain.position.x,GROUND_Y+height-capHeight/2+.025,mountain.position.z);snow.rotation.y=mountain.rotation.y;mountains.add(snow);
+  instanceDummy.position.set(x,GROUND_Y+height-capHeight/2+.025,z);instanceDummy.rotation.set(0,rotation,0);instanceDummy.scale.set(width*.32,capHeight,width*.32);instanceDummy.updateMatrix();snowMatrices.push(instanceDummy.matrix.clone());
  }
 }
+mountainInstances.forEach((mesh,index)=>{mesh.count=mountainCounts[index];mesh.instanceMatrix.needsUpdate=true;mountains.add(mesh);});
+const snowInstances=new THREE.InstancedMesh(snowGeometry,snowMaterial,snowMatrices.length);snowMatrices.forEach((matrix,index)=>snowInstances.setMatrixAt(index,matrix));snowInstances.instanceMatrix.needsUpdate=true;mountains.add(snowInstances);
 
 const clouds=new THREE.Group();scene.add(clouds);
 const cloudGeometry=new THREE.SphereGeometry(1,16,10);
 const cloudMaterial=new THREE.MeshStandardMaterial({color:'#ffffff',emissive:'#dcebf1',emissiveIntensity:.28,roughness:1,transparent:true,opacity:.94,depthWrite:false});
-function addCloud(x,y,z,scale=1){
- const cloud=new THREE.Group();cloud.position.set(x,y,z);
- [[0,0,0,1.35,.72,.8],[-1.05,-.12,.08,.92,.55,.68],[1.08,-.08,.04,1.05,.62,.72],[-.35,.38,0,.85,.72,.7],[.5,.3,-.05,.92,.68,.72]].forEach(([px,py,pz,sx,sy,sz])=>{
-  const puff=new THREE.Mesh(cloudGeometry,cloudMaterial);puff.position.set(px*scale,py*scale,pz*scale);puff.scale.set(sx*scale,sy*scale,sz*scale);cloud.add(puff);
- });
- clouds.add(cloud);
-}
-addCloud(-8,8,-9,1.2);addCloud(-22,11,-15,1.1);addCloud(30,12,-10,1.25);addCloud(-24,13,24,1.05);addCloud(32,15,38,1.3);
+const cloudData=[[-8,8,-9,1.2],[-22,11,-15,1.1],[30,12,-10,1.25],[-24,13,24,1.05],[32,15,38,1.3]];
+const cloudPuffs=[[0,0,0,1.35,.72,.8],[-1.05,-.12,.08,.92,.55,.68],[1.08,-.08,.04,1.05,.62,.72],[-.35,.38,0,.85,.72,.7],[.5,.3,-.05,.92,.68,.72]];
+const cloudCount=cloudData.length,cloudInstances=new THREE.InstancedMesh(cloudGeometry,cloudMaterial,cloudCount*cloudPuffs.length);
+let cloudIndex=0;for(const [x,y,z,scale] of cloudData)for(const [px,py,pz,sx,sy,sz] of cloudPuffs)setInstance(cloudInstances,cloudIndex++,x+px*scale,y+py*scale,z+pz*scale,0,sx*scale,sy*scale,sz*scale);
+cloudInstances.instanceMatrix.needsUpdate=true;clouds.add(cloudInstances);
 
 let view='orbit',selected=null,eyeHeight=1.65,yaw=0,pitch=0,walkActive=false;
 let measuring=false,measurePoints=[],measurementGroup=new THREE.Group();scene.add(measurementGroup);
@@ -334,6 +461,11 @@ function updateSelection(id){selected=id;for(const b of document.querySelectorAl
 function selectRoom(id){const room=rooms.find(r=>r.id===id);if(!room)return;updateSelection(id);const[x,z]=point(room.at);if(view==='walk'){perspective.position.set(x,eyeHeight,z);yaw=0;pitch=0;applyLook();}else if(view==='orbit'){const offset=perspective.position.clone().sub(controls.target).normalize().multiplyScalar(12);controls.target.set(x,0,z);perspective.position.copy(controls.target).add(offset);controls.update();}else{orthographic.position.set(x,24,z+.001);orthographic.lookAt(x,0,z);orthographic.zoom=1.6;orthographic.updateProjectionMatrix();}if(isTouch){$('#panel').classList.remove('open');$('#panel-toggle').setAttribute('aria-expanded','false');}}
 function resize(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h);perspective.aspect=w/h;perspective.updateProjectionMatrix();const half=9;orthographic.left=-half*w/h;orthographic.right=half*w/h;orthographic.top=half;orthographic.bottom=-half;orthographic.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(host);
+function applyRenderProfile(mode){
+ const next=Math.min(devicePixelRatio,mode==='walk'?1.35:1.75);
+ if(Math.abs(next-renderPixelRatio)<.01)return;
+ renderPixelRatio=next;renderer.setPixelRatio(renderPixelRatio);resize();
+}
 function resetOverview(){controls.target.set(4.6,0,7.35);const widthRatio=Math.max(1,1.03/(host.clientWidth/host.clientHeight));perspective.position.set(4.6+12*widthRatio,17*widthRatio,7.35+16*widthRatio);controls.update();}
 function resetPlan(){orthographic.position.set(4.8,24,7.4);orthographic.up.set(0,0,-1);orthographic.lookAt(4.8,0,7.4);orthographic.zoom=Math.min(.80,(host.clientWidth/host.clientHeight)*1.5);orthographic.updateProjectionMatrix();}
 function applyLook(){perspective.rotation.order='YXZ';perspective.rotation.set(pitch,yaw,0);}
@@ -344,6 +476,7 @@ function setView(mode){
  document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-pressed',b.dataset.view===view);});
  ceiling.visible=view==='walk';controls.enabled=view==='orbit';camera=view==='plan'?orthographic:perspective;
  clouds.visible=view!=='plan';mountains.visible=view!=='plan';
+ applyRenderProfile(view);
  perspective.fov=view==='walk'?65:43;perspective.updateProjectionMatrix();
  $('#measure').disabled=view==='walk';$('#touch-controls').hidden=!(view==='walk'&&isTouch);
  $('#enter-walk').hidden=view!=='walk'||isTouch;
@@ -387,16 +520,18 @@ const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();
 renderer.domElement.addEventListener('click',e=>{if(!measuring)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(floorObjects)[0];if(!hit)return;if(measurePoints.length===2)clearMeasurements();const p=hit.point.clone();p.y=.055;measurePoints.push(p);const dot=new THREE.Mesh(new THREE.SphereGeometry(.055,12,8),new THREE.MeshBasicMaterial({color:'#286eaa',depthTest:false}));dot.position.copy(p);dot.renderOrder=10;measurementGroup.add(dot);if(measurePoints.length===1){$('#measure-result').textContent='Seleziona il secondo punto';return;}const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(measurePoints),new THREE.LineBasicMaterial({color:'#286eaa',depthTest:false}));line.renderOrder=10;measurementGroup.add(line);const dist=measurePoints[0].distanceTo(measurePoints[1]);$('#measure-result').textContent=dist.toFixed(2).replace('.',',')+' m · Clicca per una nuova misura';});
 renderer.domElement.addEventListener('wheel',e=>{if(view==='plan'){e.preventDefault();orthographic.zoom=THREE.MathUtils.clamp(orthographic.zoom*Math.exp(-e.deltaY*.001),.45,4);orthographic.updateProjectionMatrix();}},{passive:false});
 
-let last=performance.now(),lastRoomTime=0;
+let last=performance.now(),lastRoomTime=0,perfWindowStart=last,perfFrames=0,currentFps=0;
 const projected=new THREE.Vector3();
 function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.04);last=now;if(view==='orbit'&&controls.enabled)controls.update();move(dt);
- renderer.domElement.dataset.cameraPosition=perspective.position.toArray().map(n=>n.toFixed(4)).join(',');
- renderer.domElement.dataset.cameraAngles=`${yaw.toFixed(4)},${pitch.toFixed(4)}`;
  const showLabels=view!=='walk'&&$('#show-labels').checked;
  for(const room of rooms){const el=labelElements.get(room.id);const compactHidden=host.clientWidth<600&&['hall','bath1','bath2','utility'].includes(room.id)&&selected!==room.id;el.hidden=!showLabels||compactHidden;if(!showLabels||compactHidden)continue;const[x,z]=point(room.label);projected.set(x,.06,z).project(camera);el.hidden=projected.z>1||projected.z< -1;el.style.left=((projected.x*.5+.5)*host.clientWidth)+'px';el.style.top=((-projected.y*.5+.5)*host.clientHeight)+'px';}
  if(view==='walk'){const p=perspective.position;mapMarker.setAttribute('transform',`translate(${p.x*SCALE+42} ${p.z*SCALE+54}) rotate(${-yaw*180/Math.PI})`);if(now-lastRoomTime>300){const room=rooms.find(r=>insidePolygon(p.x,p.z,r.polygon));if(room&&room.id!==selected)updateSelection(room.id);lastRoomTime=now;}}
  renderer.render(scene,camera);
+ perfFrames++;if(now-perfWindowStart>=1000){currentFps=perfFrames*1000/(now-perfWindowStart);perfFrames=0;perfWindowStart=now;renderer.domElement.dataset.fps=currentFps.toFixed(1);renderer.domElement.dataset.drawCalls=String(renderer.info.render.calls);renderer.domElement.dataset.triangles=String(renderer.info.render.triangles);renderer.domElement.dataset.cameraPosition=perspective.position.toArray().map(n=>n.toFixed(4)).join(',');renderer.domElement.dataset.cameraAngles=`${yaw.toFixed(4)},${pitch.toFixed(4)}`;}
 }
-resize();setView('orbit');requestAnimationFrame(animate);
+// The house, landscape and furniture are static: render their shadow map once
+// instead of rebuilding a 2048px map on every frame while walking.
+renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;
+resize();setView('orbit');renderer.compile(scene,perspective);renderer.compile(scene,orthographic);requestAnimationFrame(animate);
 // Small read-only diagnostics and deterministic spatial queries for validation.
-window.houseModel={get state(){return {view,selected,height:HEIGHT,tileSize,eyeHeight,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',nightFloor:'oak-parquet',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-and-terrace',sofaLength:2.25,chaiseLength:1.30,furnitureObjectCount:furniture.children.length,utilityObjectCount:utilityFixtures.children.length,terraceObjectCount:terraceFurniture.children.length,treeCount:landscape.children.length,mountainCount,cloudCount:clouds.children.length};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:point(r.at)}))};
+window.houseModel={get state(){return {view,selected,height:HEIGHT,tileSize,eyeHeight,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',nightFloor:'oak-parquet',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedroom-and-plants',sofaLength:2.25,chaiseLength:1.30,bedLength,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:point(r.at)}))};

@@ -5,14 +5,14 @@ export const point = ([x,z]) => [(x-42)/SCALE,(z-54)/SCALE];
 export const HEIGHT = 2.6;
 export const rooms = [
   {id:'living',name:'Zona giorno',detail:'Soggiorno e cucina',at:[530,1120],polygon:[[306,742],[697,742],[697,982],[860,982],[860,1338],[306,1338]],label:[510,1180]},
-  {id:'bedroom',name:'Camera matrimoniale',detail:'3,19 × 4,025 m da pianta',at:[560,320],polygon:[[424,142],[697,142],[697,487],[424,487]],label:[555,290]},
+  {id:'bedroom',name:'Camera matrimoniale',detail:'3,19 × 4,025 m da pianta',at:[482,437],polygon:[[424,142],[697,142],[697,487],[424,487]],label:[555,290]},
   {id:'room2',name:'Camera 2',detail:'Camera a due letti in planimetria',at:[185,190],polygon:[[42,54],[397,54],[397,142],[416,142],[416,374],[351,374],[351,314],[42,314]],label:[195,190]},
   {id:'room3',name:'Camera 3',detail:'2,97 × 3,055 m da pianta',at:[160,650],polygon:[[42,503],[297,503],[297,763],[42,763]],label:[160,680]},
   {id:'bath1',name:'Bagno 1',detail:'2,56 × 1,96 m da pianta',at:[160,420],polygon:[[42,327],[263,327],[263,494],[42,494]],label:[150,418]},
   {id:'bath2',name:'Bagno 2',detail:'1,91 × 2,83 m da pianta',at:[614,620],polygon:[[534,500],[697,500],[697,737],[534,737]],label:[617,655]},
   {id:'hall',name:'Disimpegno',detail:'Collegamento zona notte',at:[355,585],polygon:[[270,374],[397,374],[397,529],[526,529],[526,632],[526,737],[306,737],[306,494],[270,494]],label:[355,580]},
   {id:'utility',name:'Locale tecnico',detail:'Accesso dalla terrazza',at:[150,920],polygon:[[40,796],[263,796],[263,946],[40,946]],label:[151,870]},
-  {id:'terrace',name:'Terrazza',detail:'Spazio esterno coperto',at:[160,1150],polygon:[[30,958],[277,958],[277,1338],[30,1338]],label:[145,1180]}
+  {id:'terrace',name:'Terrazza',detail:'Spazio esterno coperto',at:[231,1103],polygon:[[30,958],[277,958],[277,1338],[30,1338]],label:[145,1180]}
 ];
 export const nightRoomIds = ['room2','room3','hall','bedroom','bath1','bath2'];
 // One continuous finish beneath the night-area partitions and door openings.
