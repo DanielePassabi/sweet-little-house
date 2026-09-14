@@ -171,7 +171,7 @@ function addTree(x,z,scale=1,tone=0){
 // A low-poly mountain ring closes the horizon while remaining far outside the walkable garden.
 const mountains=new THREE.Group();scene.add(mountains);
 const mountainMaterials=['#78919a','#6e8993','#879da2'].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
-const snowMaterial=new THREE.MeshStandardMaterial({color:'#e8eeed',roughness:1,flatShading:true});
+const snowMaterial=new THREE.MeshStandardMaterial({color:'#e8eeed',roughness:1,flatShading:true,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
 let mountainSeed=7143;
 const mountainRandom=()=>{mountainSeed=(mountainSeed*1664525+1013904223)>>>0;return mountainSeed/4294967296;};
 const mountainCount=26,mountainCenter=new THREE.Vector2(4.5,7.5);
@@ -183,9 +183,11 @@ for(let i=0;i<mountainCount;i++){
  mountain.position.set(mountainCenter.x+Math.cos(angle)*distance,GROUND_Y+height/2,mountainCenter.y+Math.sin(angle)*distance);
  mountain.rotation.y=mountainRandom()*Math.PI;mountains.add(mountain);
  if(height>12){
-  const capHeight=height*.27;
-  const snow=new THREE.Mesh(new THREE.ConeGeometry(width*.27,capHeight,7,1),snowMaterial);
-  snow.position.set(mountain.position.x,GROUND_Y+height-capHeight/2,mountain.position.z);snow.rotation.y=mountain.rotation.y;mountains.add(snow);
+  // The wider, slightly raised cap sits above the mountain slope instead of sharing
+  // the same triangles, preventing the two surfaces from flickering (z-fighting).
+  const capHeight=height*.28;
+  const snow=new THREE.Mesh(new THREE.ConeGeometry(width*.32,capHeight,7,1),snowMaterial);
+  snow.position.set(mountain.position.x,GROUND_Y+height-capHeight/2+.025,mountain.position.z);snow.rotation.y=mountain.rotation.y;mountains.add(snow);
  }
 }
 
