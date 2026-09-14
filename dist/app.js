@@ -36,6 +36,7 @@ const cap=new THREE.MeshStandardMaterial({color:'#9faeb5',roughness:.95});
 const frame=new THREE.MeshStandardMaterial({color:'#526169',roughness:.5,metalness:.25});
 const glass=new THREE.MeshPhysicalMaterial({color:'#c3dfed',transparent:true,opacity:.22,roughness:.12,metalness:.08,depthWrite:false});
 const doorMaterial=new THREE.MeshStandardMaterial({color:'#d2c6b4',roughness:.75});
+const GROUND_Y=-.20;
 let tileSize=.6;
 const floorMaterial=new THREE.MeshStandardMaterial({color:$('#floor-color').value,roughness:.88});
 
@@ -98,6 +99,9 @@ const terraceFloor=polygonMesh(rooms.find(r=>r.id==='terrace').polygon,new THREE
 const parquetTexture=makeParquetTexture();
 const parquetMaterial=new THREE.MeshStandardMaterial({color:'#fff4df',map:parquetTexture,bumpMap:parquetTexture,bumpScale:.006,roughness:.72});
 polygonMesh(nightFloorPolygon,parquetMaterial,.006);
+const bathroomTileMaterial=new THREE.MeshStandardMaterial({color:'#b8b9b5',map:floorMaterial.map,roughness:.92});
+const bathroomFloors=rooms.filter(room=>['bath1','bath2'].includes(room.id)).map(room=>polygonMesh(room.polygon,bathroomTileMaterial,.009));
+floorObjects.push(...bathroomFloors);
 const base=polygonMesh(footprint,new THREE.MeshStandardMaterial({color:'#a7b1b7',roughness:1}),-.16);
 const box=(w,h,d,mat,x,y,z,parent=model)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;};
 // Foundation edge under the exterior outline.
@@ -144,7 +148,7 @@ const sunlight=new THREE.DirectionalLight('#fff6e7',2);sunlight.position.set(-7,
 const interiorLights=new THREE.Group();scene.add(interiorLights);for(const r of rooms){if(r.id==='terrace')continue;const [x,z]=point(r.at);const light=new THREE.PointLight('#fff7eb',7,8,2);light.position.set(x,2.3,z);interiorLights.add(light);}
 const grassTexture=makeGrassTexture();
 const grassMaterial=new THREE.MeshStandardMaterial({color:'#f2f8ec',map:grassTexture,bumpMap:grassTexture,bumpScale:.008,roughness:1});
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),grassMaterial);ground.rotation.x=-Math.PI/2;ground.position.y=-.20;ground.receiveShadow=true;scene.add(ground);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),grassMaterial);ground.rotation.x=-Math.PI/2;ground.position.y=GROUND_Y;ground.receiveShadow=true;scene.add(ground);
 
 const landscape=new THREE.Group();scene.add(landscape);
 const trunkMaterial=new THREE.MeshStandardMaterial({color:'#765033',roughness:1});
@@ -152,8 +156,9 @@ const leafMaterials=[new THREE.MeshStandardMaterial({color:'#4d8d42',roughness:.
 const trunkGeometry=new THREE.CylinderGeometry(.15,.22,1.5,8);
 const crownGeometry=new THREE.IcosahedronGeometry(1,2);
 function addTree(x,z,scale=1,tone=0){
- const tree=new THREE.Group();tree.position.set(x,-.20,z);tree.rotation.y=(x*1.7+z*.9)%Math.PI;
- const trunk=new THREE.Mesh(trunkGeometry,trunkMaterial);trunk.position.y=.75;trunk.scale.set(scale,scale,scale);trunk.castShadow=true;tree.add(trunk);
+ const tree=new THREE.Group();tree.position.set(x,GROUND_Y,z);tree.rotation.y=(x*1.7+z*.9)%Math.PI;
+ // Scale the trunk around its base so every tree stays planted on the lawn.
+ const trunk=new THREE.Mesh(trunkGeometry,trunkMaterial);trunk.position.y=.75*scale;trunk.scale.set(scale,scale,scale);trunk.castShadow=true;tree.add(trunk);
  const crown=new THREE.Mesh(crownGeometry,leafMaterials[tone%leafMaterials.length]);crown.position.y=2.25*scale;crown.scale.set(1.05*scale,1.35*scale,1.05*scale);crown.castShadow=true;crown.receiveShadow=true;tree.add(crown);
  const side=new THREE.Mesh(crownGeometry,leafMaterials[(tone+1)%leafMaterials.length]);side.position.set(.62*scale,1.92*scale,.16*scale);side.scale.set(.68*scale,.78*scale,.68*scale);side.castShadow=true;tree.add(side);
  landscape.add(tree);
@@ -162,6 +167,27 @@ function addTree(x,z,scale=1,tone=0){
  [-5,-3,.9,0],[-7,4,1.08,1],[-6,12,.95,0],[-5,20,1.14,1],[2,21,.82,0],
  [16,18,.88,0],[17,10,1.12,1],[16,2,.9,0],[12,-5,1.06,1],[4,-6,.78,0]
 ].forEach(args=>addTree(...args));
+
+// A low-poly mountain ring closes the horizon while remaining far outside the walkable garden.
+const mountains=new THREE.Group();scene.add(mountains);
+const mountainMaterials=['#78919a','#6e8993','#879da2'].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
+const snowMaterial=new THREE.MeshStandardMaterial({color:'#e8eeed',roughness:1,flatShading:true});
+let mountainSeed=7143;
+const mountainRandom=()=>{mountainSeed=(mountainSeed*1664525+1013904223)>>>0;return mountainSeed/4294967296;};
+const mountainCount=26,mountainCenter=new THREE.Vector2(4.5,7.5);
+for(let i=0;i<mountainCount;i++){
+ const angle=i/mountainCount*Math.PI*2+(mountainRandom()-.5)*.06;
+ const distance=58+mountainRandom()*9,width=8.5+mountainRandom()*5.5,height=7+mountainRandom()*9;
+ const geometry=new THREE.ConeGeometry(width,height,7,2);
+ const mountain=new THREE.Mesh(geometry,mountainMaterials[i%mountainMaterials.length]);
+ mountain.position.set(mountainCenter.x+Math.cos(angle)*distance,GROUND_Y+height/2,mountainCenter.y+Math.sin(angle)*distance);
+ mountain.rotation.y=mountainRandom()*Math.PI;mountains.add(mountain);
+ if(height>12){
+  const capHeight=height*.27;
+  const snow=new THREE.Mesh(new THREE.ConeGeometry(width*.27,capHeight,7,1),snowMaterial);
+  snow.position.set(mountain.position.x,GROUND_Y+height-capHeight/2,mountain.position.z);snow.rotation.y=mountain.rotation.y;mountains.add(snow);
+ }
+}
 
 const clouds=new THREE.Group();scene.add(clouds);
 const cloudGeometry=new THREE.SphereGeometry(1,16,10);
@@ -200,7 +226,7 @@ function setView(mode){
  stopWalk();if(measuring)toggleMeasure(false);view=mode;$('#viewer').classList.toggle('walk-mode',view==='walk');
  document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-pressed',b.dataset.view===view);});
  ceiling.visible=view==='walk';controls.enabled=view==='orbit';camera=view==='plan'?orthographic:perspective;
- clouds.visible=view!=='plan';
+ clouds.visible=view!=='plan';mountains.visible=view!=='plan';
  perspective.fov=view==='walk'?65:43;perspective.updateProjectionMatrix();
  $('#measure').disabled=view==='walk';$('#touch-controls').hidden=!(view==='walk'&&isTouch);
  $('#enter-walk').hidden=view!=='walk'||isTouch;
@@ -256,4 +282,4 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
 }
 resize();setView('orbit');requestAnimationFrame(animate);
 // Small read-only diagnostics and deterministic spatial queries for validation.
-window.houseModel={get state(){return {view,selected,height:HEIGHT,tileSize,eyeHeight,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length,nightRoomIds:[...nightRoomIds],ground:'grass',nightFloor:'oak-parquet',treeCount:landscape.children.length,cloudCount:clouds.children.length};},canStand,rooms:rooms.map(r=>({id:r.id,at:point(r.at)}))};
+window.houseModel={get state(){return {view,selected,height:HEIGHT,tileSize,eyeHeight,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length,nightRoomIds:[...nightRoomIds],ground:'grass',nightFloor:'oak-parquet',bathroomFloor:'dark-stoneware',treeCount:landscape.children.length,mountainCount,cloudCount:clouds.children.length};},canStand,rooms:rooms.map(r=>({id:r.id,at:point(r.at)}))};

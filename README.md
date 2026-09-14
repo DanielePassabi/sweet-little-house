@@ -26,8 +26,8 @@ Il sito è pubblicato su GitHub Pages all'indirizzo https://danielepassabi.githu
 - Quote orizzontali ricostruite mediante tracciamento della pianta rasterizzata, calibrata a circa 86 unità grafiche per metro. La geometria segue le quote ma conserva piccoli errori di tracciamento: non è un rilievo esecutivo o una garanzia di precisione al centimetro.
 - Spessori delle pareti semplificati. Altezze di porte e finestre, davanzali e larghezze non quotate stimate.
 - Porte interne rappresentate come passaggi aperti con cornice; portoncino chiuso. Portafinestra sulla terrazza aperta per metà.
-- Gres chiaro opaco nella zona giorno, tono approssimato dalla foto; formato iniziale **60 × 60 cm stimato**, selezionabile. Camere, disimpegno e bagni della zona notte hanno parquet in rovere naturale a doghe sfalsate. Le finiture sono texture procedurali in scala metrica, non singoli solidi.
-- Prato esterno procedurale con variazioni di tono, microfilamenti e rilievo leggero, circondato da alberelli e visibile in panoramica, pianta e dalle aperture durante la visita. Cielo azzurro e nuvole volumetriche completano le viste esterne.
+- Gres chiaro opaco nella zona giorno e gres grigio caldo leggermente più scuro nei due bagni; formato iniziale **60 × 60 cm stimato**, selezionabile. Camere e disimpegno della zona notte hanno parquet in rovere naturale a doghe sfalsate. Le finiture sono texture procedurali in scala metrica, non singoli solidi.
+- Prato esterno procedurale con variazioni di tono, microfilamenti e rilievo leggero, circondato da alberelli appoggiati al terreno e visibile in panoramica, pianta e dalle aperture durante la visita. Cielo azzurro, nuvole volumetriche e una corona di montagne lontane completano le viste esterne.
 - Terrazza con parapetto e copertura semplificati. Luce illustrativa, non simulazione solare del sito.
 - Dati originali e fotogrammi non fanno parte del sito distribuito.
 
