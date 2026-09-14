@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { point, SCALE, HEIGHT, rooms, walls, railings, footprint, insidePolygon, canStand, collisionWalls } from './model.js';
+import { wallVolumes, unionSurface } from './wall-geometry.js';
 
 const $ = s => document.querySelector(s);
 const host = $('#scene');
@@ -59,16 +60,19 @@ const box=(w,h,d,mat,x,y,z,parent=model)=>{const m=new THREE.Mesh(new THREE.BoxG
 // Foundation edge under the exterior outline.
 footprint.forEach((a,i)=>{const b=footprint[(i+1)%footprint.length];const [x,z]=point(a),[ex,ez]=point(b);const len=Math.hypot(ex-x,ez-z);const m=box(len,.16,.09,cap,(x+ex)/2,-.08,(z+ez)/2);m.rotation.y=-Math.atan2(ez-z,ex-x);});
 
-function buildWall(w){
+const wallSurface=unionSurface(wallVolumes());
+wallSurface.faces.forEach((positions,i)=>{
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ geometry.computeVertexNormals();
+ const mesh=new THREE.Mesh(geometry,[white,trim,cap][i]);
+ mesh.castShadow=true;mesh.receiveShadow=true;model.add(mesh);
+});
+
+function buildOpenings(w){
  const [ax,az]=point(w.a),[bx,bz]=point(w.b);const dx=bx-ax,dz=bz-az;const length=Math.hypot(dx,dz);const group=new THREE.Group();group.position.set(ax,0,az);group.rotation.y=-Math.atan2(dz,dx);model.add(group);
- const add=(start,end,bottom,top,material=white)=>{
-  if(end-start<.001||top-bottom<.001)return;
-  box(end-start,top-bottom,w.t,material,(start+end)/2,(bottom+top)/2,0,group);
-  if(bottom===0){box(end-start,.065,w.t+.015,trim,(start+end)/2,.0325,0,group);}
- };
- let cursor=0;
  for(const o of w.open??[]){
-  const s=o.s/SCALE,e=o.e/SCALE;add(cursor,s,0,HEIGHT);add(s,e,0,o.sill);add(s,e,o.sill+o.h,HEIGHT);
+  const s=o.s/SCALE,e=o.e/SCALE;
   if(o.kind==='window'||o.kind==='glazed'){
    const f=.035;for(const x of [s+f/2,e-f/2])box(f,o.h,.09,frame,x,o.sill+o.h/2,0,group);
    for(const y of [o.sill+f/2,o.sill+o.h-f/2])box(e-s,f,.09,frame,(s+e)/2,y,0,group);
@@ -86,13 +90,9 @@ function buildWall(w){
     box(.035,.17,.09,frame,e-.10,1,.075,group);
    }
   }
-  cursor=e;
  }
- add(cursor,length,0,HEIGHT);
- box(length,.015,w.t+.002,cap,length/2,HEIGHT+.007,0,group);
 }
-walls.forEach(buildWall);
-railings.forEach(w=>{const [ax,az]=point(w.a),[bx,bz]=point(w.b);const length=Math.hypot(bx-ax,bz-az);const g=new THREE.Group();g.position.set(ax,0,az);g.rotation.y=-Math.atan2(bz-az,bx-ax);model.add(g);box(length,1.05,.10,white,length/2,.525,0,g);box(length,.045,.15,cap,length/2,1.07,0,g);});
+walls.forEach(buildOpenings);
 const roof=polygonMesh(footprint,new THREE.MeshStandardMaterial({color:'#faf9f3',side:THREE.DoubleSide,roughness:1}),HEIGHT);
 model.remove(roof);ceiling.add(roof);
 // Daylight plus low-power fill lights keep the enclosed walk-through readable.
