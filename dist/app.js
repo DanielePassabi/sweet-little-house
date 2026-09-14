@@ -140,6 +140,121 @@ function buildOpenings(w){
  }
 }
 walls.forEach(buildOpenings);
+
+// First furniture layout, following the annotated plan: media wall to the west and
+// a generous L-shaped sectional opposite it, while keeping the hall route clear.
+const furniture=new THREE.Group();model.add(furniture);
+const sofaFrameMaterial=new THREE.MeshStandardMaterial({color:'#34383b',roughness:.94});
+const sofaCushionMaterial=new THREE.MeshStandardMaterial({color:'#444a4e',roughness:1});
+const sofaAccentMaterial=new THREE.MeshStandardMaterial({color:'#555c60',roughness:1});
+const furnitureBlack=new THREE.MeshStandardMaterial({color:'#141719',roughness:.72});
+const consoleFrontMaterial=new THREE.MeshStandardMaterial({color:'#222629',roughness:.82});
+const screenMaterial=new THREE.MeshStandardMaterial({color:'#071015',emissive:'#1d323c',emissiveIntensity:.24,roughness:.2,metalness:.18});
+const furnitureBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,furniture);
+
+// Three modules over 2.25 m: a chaise and two seats, facing west toward the TV.
+furnitureBox(1.08,.32,2.25,sofaFrameMaterial,6.91,.20,9.23);
+furnitureBox(.24,.72,2.27,sofaFrameMaterial,7.37,.61,9.23);
+[8.48,9.22,9.96].forEach(z=>{
+ const back=furnitureBox(.25,.52,.76,sofaCushionMaterial,7.19,.75,z);back.rotation.z=-.055;
+});
+[9.22,9.96].forEach(z=>furnitureBox(.84,.17,.68,sofaCushionMaterial,6.77,.45,z));
+// Chaise at the north end creates the L shown in the supplied sketch.
+furnitureBox(1.30,.32,.75,sofaFrameMaterial,6.41,.20,8.48);
+furnitureBox(1.08,.17,.60,sofaCushionMaterial,6.36,.45,8.48);
+furnitureBox(.20,.56,.76,sofaFrameMaterial,5.735,.45,8.48);
+furnitureBox(.88,.56,.20,sofaFrameMaterial,6.91,.45,10.40);
+// A pair of soft accent cushions breaks up the dark upholstery.
+const cushionA=furnitureBox(.18,.44,.46,sofaAccentMaterial,6.76,.73,8.25);cushionA.rotation.z=-.12;cushionA.rotation.y=.12;
+const cushionB=furnitureBox(.18,.42,.42,sofaAccentMaterial,6.69,.72,10.14);cushionB.rotation.z=-.08;cushionB.rotation.y=-.10;
+[[6.53,8.15],[7.27,8.15],[6.53,10.30],[7.27,10.30],[5.84,8.18]].forEach(([x,z])=>furnitureBox(.08,.12,.08,furnitureBlack,x,.06,z));
+
+// Approximately 80-inch 16:9 television and a compact black media console.
+const mediaWallCenterZ=9.72;
+furnitureBox(.38,.42,2.02,furnitureBlack,3.28,.24,mediaWallCenterZ);
+[mediaWallCenterZ-.64,mediaWallCenterZ,mediaWallCenterZ+.64].forEach(z=>furnitureBox(.018,.31,.60,consoleFrontMaterial,3.48,.27,z));
+[[3.20,mediaWallCenterZ-.90],[3.20,mediaWallCenterZ+.90],[3.38,mediaWallCenterZ-.90],[3.38,mediaWallCenterZ+.90]].forEach(([x,z])=>furnitureBox(.055,.12,.055,furnitureBlack,x,.06,z));
+furnitureBox(.075,1.03,1.81,furnitureBlack,3.12,1.47,mediaWallCenterZ);
+furnitureBox(.018,.91,1.67,screenMaterial,3.166,1.47,mediaWallCenterZ);
+
+// Utility room: boiler and meter on the left, sink in the centre, stacked
+// washer/dryer on the right, all facing the entrance from the terrace.
+const utilityFixtures=new THREE.Group();model.add(utilityFixtures);
+const utilityBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,utilityFixtures);
+const applianceWhite=new THREE.MeshStandardMaterial({color:'#ecefea',roughness:.58});
+const applianceTrim=new THREE.MeshStandardMaterial({color:'#aab3b5',roughness:.45,metalness:.25});
+const applianceGlass=new THREE.MeshPhysicalMaterial({color:'#18252b',roughness:.18,metalness:.2,transparent:true,opacity:.88});
+const ceramicMaterial=new THREE.MeshStandardMaterial({color:'#f5f5ef',roughness:.3});
+// Boiler and a small consumption meter.
+utilityBox(.58,.76,.25,applianceWhite,.40,1.76,8.69);
+utilityBox(.30,.13,.018,applianceGlass,.40,1.69,8.825);
+utilityBox(.31,.38,.17,applianceTrim,.40,1.10,8.65);
+utilityBox(.19,.10,.018,applianceGlass,.40,1.14,8.745);
+for(const x of [.31,.49]){const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.34,10),applianceTrim);pipe.position.set(x,.83,8.69);utilityFixtures.add(pipe);}
+// Central utility sink with a compact cabinet and faucet.
+utilityBox(.66,.68,.46,applianceWhite,1.24,.36,8.80);
+utilityBox(.72,.09,.52,ceramicMaterial,1.24,.74,8.82);
+utilityBox(.48,.025,.32,applianceGlass,1.24,.79,8.86);
+const faucetStem=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.28,12),applianceTrim);faucetStem.position.set(1.24,.94,8.61);utilityFixtures.add(faucetStem);
+utilityBox(.05,.05,.22,applianceTrim,1.24,1.07,8.71);
+// Front-loading washer and dryer stacked vertically.
+for(const y of [.45,1.30]){
+ utilityBox(.66,.80,.65,applianceWhite,2.08,y,8.89);
+ const door=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.035,32),applianceGlass);door.rotation.x=Math.PI/2;door.position.set(2.08,y,9.235);utilityFixtures.add(door);
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(.235,.026,10,32),applianceTrim);ring.position.set(2.08,y,9.26);utilityFixtures.add(ring);
+ utilityBox(.30,.09,.025,applianceGlass,1.96,y+.29,9.23);
+}
+
+// Outdoor terrace set: a square table with two opposing chairs and a striped
+// loveseat on the left-hand side when entering through the glazed door.
+const terraceFurniture=new THREE.Group();model.add(terraceFurniture);
+const terraceBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,terraceFurniture);
+const outdoorFrameMaterial=new THREE.MeshStandardMaterial({color:'#303638',roughness:.86,metalness:.18});
+const outdoorWoodMaterial=new THREE.MeshStandardMaterial({color:'#a98258',roughness:.78});
+function makeLilacStripeTexture(){
+ const c=document.createElement('canvas');c.width=c.height=256;const cx=c.getContext('2d');
+ cx.fillStyle='#f5f2ee';cx.fillRect(0,0,256,256);
+ for(let x=0;x<256;x+=64){cx.fillStyle='#d5c1e4';cx.fillRect(x+30,0,34,256);}
+ const texture=new THREE.CanvasTexture(c);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(2.4,1.3);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();return texture;
+}
+const stripedUpholstery=new THREE.MeshStandardMaterial({color:'#ffffff',map:makeLilacStripeTexture(),roughness:1});
+// Central 85 cm square table.
+const terraceSetCenterX=1.275;
+terraceBox(.85,.08,.85,outdoorWoodMaterial,terraceSetCenterX,.72,12.25);
+[[.925,11.90],[1.625,11.90],[.925,12.60],[1.625,12.60]].forEach(([x,z])=>terraceBox(.055,.68,.055,outdoorFrameMaterial,x,.35,z));
+function addTerraceChair(z,facingSouth){
+ terraceBox(.52,.09,.52,outdoorWoodMaterial,terraceSetCenterX,.47,z);
+ const backZ=z+(facingSouth?-.25:.25);
+ terraceBox(.52,.58,.07,outdoorFrameMaterial,terraceSetCenterX,.76,backZ);
+ for(const x of [1.065,1.485])for(const dz of [-.20,.20])terraceBox(.045,.44,.045,outdoorFrameMaterial,x,.23,z+dz);
+}
+addTerraceChair(11.43,true);addTerraceChair(13.07,false);
+// Full-width outdoor sofa, flush with the south parapet (left on entry).
+terraceBox(2.58,.27,.70,outdoorFrameMaterial,1.275,.20,14.44);
+terraceBox(2.60,.66,.16,outdoorFrameMaterial,1.275,.59,14.78);
+terraceBox(.16,.52,.70,outdoorFrameMaterial,.03,.43,14.44);
+terraceBox(.16,.52,.70,outdoorFrameMaterial,2.52,.43,14.44);
+[.42,1.275,2.13].forEach(x=>{
+ terraceBox(.76,.15,.54,stripedUpholstery,x,.43,14.36);
+ const back=terraceBox(.76,.48,.15,stripedUpholstery,x,.72,14.66);back.rotation.x=-.08;
+});
+[[.08,14.16],[2.47,14.16],[.08,14.70],[2.47,14.70]].forEach(([x,z])=>terraceBox(.055,.12,.055,outdoorFrameMaterial,x,.06,z));
+
+const furnitureColliders=[
+ {minX:6.28,maxX:7.55,minZ:8.04,maxZ:10.50},
+ {minX:5.62,maxX:7.10,minZ:8.02,maxZ:8.92},
+ {minX:3.02,maxX:3.52,minZ:8.84,maxZ:11.02},
+ {minX:.86,maxX:1.62,minZ:8.56,maxZ:9.10},
+ {minX:1.70,maxX:2.45,minZ:8.56,maxZ:9.26},
+ {minX:.775,maxX:1.775,minZ:11.78,maxZ:12.72},
+ {minX:.955,maxX:1.595,minZ:11.10,maxZ:11.76},
+ {minX:.955,maxX:1.595,minZ:12.74,maxZ:13.40},
+ {minX:-.08,maxX:2.60,minZ:14.05,maxZ:14.88}
+];
+function canWalk(x,z,radius=.18){
+ if(!canStand(x,z,radius))return false;
+ return !furnitureColliders.some(c=>x>c.minX-radius&&x<c.maxX+radius&&z>c.minZ-radius&&z<c.maxZ+radius);
+}
 const roof=polygonMesh(footprint,new THREE.MeshStandardMaterial({color:'#faf9f3',side:THREE.DoubleSide,roughness:1}),HEIGHT);
 model.remove(roof);ceiling.add(roof);
 // Daylight plus low-power fill lights keep the enclosed walk-through readable.
@@ -258,7 +373,7 @@ const moveCodes={forward:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD'};
 for(const b of document.querySelectorAll('[data-move]')){b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys.add(moveCodes[b.dataset.move]);};b.onpointerup=b.onpointercancel=()=>keys.delete(moveCodes[b.dataset.move]);}
 function move(dt){if(view!=='walk'||!walkActive)return;let forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'));let right=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));const norm=Math.hypot(forward,right);if(!norm)return;forward/=norm;right/=norm;const speed=1.5;const dx=(-Math.sin(yaw)*forward+Math.cos(yaw)*right)*dt*speed,dz=(-Math.cos(yaw)*forward-Math.sin(yaw)*right)*dt*speed;const p=perspective.position;
  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.03)),stepX=dx/steps,stepZ=dz/steps;
- for(let i=0;i<steps;i++){if(canStand(p.x+stepX,p.z))p.x+=stepX;if(canStand(p.x,p.z+stepZ))p.z+=stepZ;}
+ for(let i=0;i<steps;i++){if(canWalk(p.x+stepX,p.z))p.x+=stepX;if(canWalk(p.x,p.z+stepZ))p.z+=stepZ;}
 }
 $('#tile-size').onchange=e=>{tileSize=Number(e.target.value);floorMaterial.map.repeat.set(1/tileSize,1/tileSize);};
 $('#floor-color').oninput=e=>{floorMaterial.color.set(e.target.value);$('.tile-sample').style.backgroundColor=e.target.value;};
@@ -284,4 +399,4 @@ function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last
 }
 resize();setView('orbit');requestAnimationFrame(animate);
 // Small read-only diagnostics and deterministic spatial queries for validation.
-window.houseModel={get state(){return {view,selected,height:HEIGHT,tileSize,eyeHeight,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length,nightRoomIds:[...nightRoomIds],ground:'grass',nightFloor:'oak-parquet',bathroomFloor:'dark-stoneware',treeCount:landscape.children.length,mountainCount,cloudCount:clouds.children.length};},canStand,rooms:rooms.map(r=>({id:r.id,at:point(r.at)}))};
+window.houseModel={get state(){return {view,selected,height:HEIGHT,tileSize,eyeHeight,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',nightFloor:'oak-parquet',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-and-terrace',sofaLength:2.25,chaiseLength:1.30,furnitureObjectCount:furniture.children.length,utilityObjectCount:utilityFixtures.children.length,terraceObjectCount:terraceFurniture.children.length,treeCount:landscape.children.length,mountainCount,cloudCount:clouds.children.length};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:point(r.at)}))};

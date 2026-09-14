@@ -11,7 +11,7 @@ export const rooms = [
   {id:'bath1',name:'Bagno 1',detail:'2,56 × 1,96 m da pianta',at:[160,420],polygon:[[42,327],[263,327],[263,494],[42,494]],label:[150,418]},
   {id:'bath2',name:'Bagno 2',detail:'1,91 × 2,83 m da pianta',at:[614,620],polygon:[[534,500],[697,500],[697,737],[534,737]],label:[617,655]},
   {id:'hall',name:'Disimpegno',detail:'Collegamento zona notte',at:[355,585],polygon:[[270,374],[397,374],[397,529],[526,529],[526,632],[526,737],[306,737],[306,494],[270,494]],label:[355,580]},
-  {id:'utility',name:'Locale tecnico',detail:'Accesso dalla terrazza',at:[145,875],polygon:[[40,796],[263,796],[263,946],[40,946]],label:[151,870]},
+  {id:'utility',name:'Locale tecnico',detail:'Accesso dalla terrazza',at:[150,920],polygon:[[40,796],[263,796],[263,946],[40,946]],label:[151,870]},
   {id:'terrace',name:'Terrazza',detail:'Spazio esterno coperto',at:[160,1150],polygon:[[30,958],[277,958],[277,1338],[30,1338]],label:[145,1180]}
 ];
 export const nightRoomIds = ['room2','room3','hall','bedroom','bath1','bath2'];

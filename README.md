@@ -28,6 +28,7 @@ Il sito è pubblicato su GitHub Pages all'indirizzo https://danielepassabi.githu
 - Porte interne rappresentate come passaggi aperti con cornice; portoncino chiuso. Portafinestra sulla terrazza aperta per metà.
 - Gres chiaro opaco nella zona giorno e gres grigio caldo leggermente più scuro nei due bagni; formato iniziale **60 × 60 cm stimato**, selezionabile. Camere e disimpegno della zona notte hanno parquet in rovere naturale a doghe sfalsate. Le finiture sono texture procedurali in scala metrica, non singoli solidi.
 - Prato esterno procedurale con variazioni di tono, microfilamenti e rilievo leggero, circondato da alberelli appoggiati al terreno e visibile in panoramica, pianta e dalle aperture durante la visita. Cielo azzurro, nuvole volumetriche e una corona di montagne lontane completano le viste esterne.
+- Primo arredo della zona giorno: divano angolare a tre moduli da 2,25 m, con chaise compatta da 1,30 m, in tessuto grigio scuro; televisore da circa 80 pollici e mobile basso nero disposti secondo lo schizzo fornito. Il locale tecnico ospita caldaia, contatore, lavabo e colonna lavatrice-asciugatrice addossati alla parete di fondo. In terrazza trovano posto un tavolino quadrato con due sedie e un divanetto a tutta parete con righe bianche e lilla. Gli ingombri sono inclusi nelle collisioni della modalità Visita.
 - Terrazza con parapetto e copertura semplificati. Luce illustrativa, non simulazione solare del sito.
 - Dati originali e fotogrammi non fanno parte del sito distribuito.
 
