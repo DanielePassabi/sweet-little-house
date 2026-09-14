@@ -8,6 +8,20 @@ const round = n => Math.round(n * 1e6) / 1e6;
 // coplanar overlaps, or open end caps at L/T junctions.
 export function wallVolumes(source = walls, parapets = railings) {
   const volumes = [];
+  const axis = w => w.a[1] === w.b[1] ? 0 : 1;
+  const between = (value, a, b) => value >= Math.min(a, b) && value <= Math.max(a, b);
+  const jointPadding = (wall, endpoint, extra = 0) => {
+    const wallAxis = axis(wall);
+    let padding = 0;
+    for (const other of source) {
+      if (other === wall || axis(other) === wallAxis) continue;
+      const crosses = wallAxis === 0
+        ? between(endpoint[0], other.a[0], other.b[0]) && endpoint[1] === other.a[1]
+        : endpoint[0] === other.a[0] && between(endpoint[1], other.a[1], other.b[1]);
+      if (crosses) padding = Math.max(padding, other.t / 2 + extra);
+    }
+    return padding;
+  };
   function prism(w, s, e, y0, y1, thickness, kind = 'wall') {
     if (e <= s || y1 <= y0) return;
     const [ax, az] = point(w.a), [bx, bz] = point(w.b);
@@ -25,14 +39,23 @@ export function wallVolumes(source = walls, parapets = railings) {
   }
   for (const w of source) {
     const length = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]) / SCALE;
+    const startJoint = jointPadding(w, w.a);
+    const endJoint = jointPadding(w, w.b);
+    const startSkirting = jointPadding(w, w.a, .0075);
+    const endSkirting = jointPadding(w, w.b, .0075);
     const add = (s, e, y0, y1) => {
       if (e <= s || y1 <= y0) return;
-      // Square ends complete the outside quadrant of each corner. Aperture
-      // boundaries remain unchanged, so door/window clearances are preserved.
-      const start = s === 0 ? -w.t / 2 : s;
-      const end = e === length ? length + w.t / 2 : e;
+      // Extend only as far as the perpendicular wall that is actually met.
+      // Using this wall's own half-thickness leaves visible teeth whenever two
+      // differently sized walls meet; free ends must remain true butt ends.
+      const start = s === 0 ? -startJoint : s;
+      const end = e === length ? length + endJoint : e;
       prism(w, start, end, y0, y1, w.t);
-      if (y0 === 0) prism(w, start - (s === 0 ? .0075 : 0), end + (e === length ? .0075 : 0), 0, .065, w.t + .015, 'skirting');
+      if (y0 === 0) {
+        const skirtStart = s === 0 ? -startSkirting : s;
+        const skirtEnd = e === length ? length + endSkirting : e;
+        prism(w, skirtStart, skirtEnd, 0, .065, w.t + .015, 'skirting');
+      }
     };
     let cursor = 0;
     for (const o of w.open ?? []) {

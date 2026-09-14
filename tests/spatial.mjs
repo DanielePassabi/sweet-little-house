@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
-import { rooms, point, canStand, HEIGHT } from '../dist/model.js';
+import { rooms, nightRoomIds, nightFloorPolygon, point, insidePolygon, canStand, HEIGHT } from '../dist/model.js';
 assert.equal(HEIGHT,2.6);
+assert.deepEqual([...nightRoomIds].sort(),['bath1','bath2','bedroom','hall','room2','room3']);
+for(const id of nightRoomIds){const room=rooms.find(r=>r.id===id);assert.ok(insidePolygon(...point(room.at),nightFloorPolygon),`${id}: missing from continuous parquet area`);}
+for(const p of [[400,430],[470,510],[400,690]])assert.ok(insidePolygon(...point(p),nightFloorPolygon),`Parquet infill missing at ${p}`);
+assert.equal(insidePolygon(...point(rooms.find(r=>r.id==='living').at),nightFloorPolygon),false,'Parquet must stop before the living area');
 for(const room of rooms)assert.ok(canStand(...point(room.at)),`${room.id}: spawn inside a wall`);
 assert.equal(canStand(-5,-5),false);
 assert.equal(canStand(...point([712,300])),false,'Exterior wall must block movement');

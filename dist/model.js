@@ -14,6 +14,10 @@ export const rooms = [
   {id:'utility',name:'Locale tecnico',detail:'Accesso dalla terrazza',at:[145,875],polygon:[[40,796],[263,796],[263,946],[40,946]],label:[151,870]},
   {id:'terrace',name:'Terrazza',detail:'Spazio esterno coperto',at:[160,1150],polygon:[[30,958],[277,958],[277,1338],[30,1338]],label:[145,1180]}
 ];
+export const nightRoomIds = ['room2','room3','hall','bedroom','bath1','bath2'];
+// One continuous finish beneath the night-area partitions and door openings.
+// This also covers the small corridor infills that do not belong to a room polygon.
+export const nightFloorPolygon = [[42,54],[397,54],[397,142],[424,142],[697,142],[697,742],[297,742],[297,763],[42,763]];
 // Segment a/b, thickness in metres, openings in drawing units from endpoint a.
 // Opening heights and widths lacking explicit quotes are provisional.
 export const walls = [
