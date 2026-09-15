@@ -16,7 +16,7 @@ Il sito è pubblicato su GitHub Pages all'indirizzo https://danielepassabi.githu
 
 - Panoramica: trascinare per ruotare, rotella/pinch per avvicinarsi, tasto destro per spostare il centro.
 - Pianta: vista dall’alto, rotella per zoom. Selezione ambiente dalla lista.
-- Visita: clic su Entra nella casa, WASD/frecce per camminare, mouse per guardarsi intorno, Esc per liberare il puntatore. Su dispositivi touch, frecce a schermo e trascinamento.
+- Visita: clic su Entra nella casa, WASD/frecce per camminare (1,5 m/s), Shift per correre (3 m/s), Spazio per un salto breve, mouse per guardarsi intorno, Esc per mettere in pausa. Su dispositivi touch: frecce a schermo, Salta, Corri tenuto premuto e trascinamento. Altezza occhi iniziale: 1,75 m. Alla perdita del focus la visita va in pausa; Entra nella casa la riattiva. Se il blocco del mouse non è disponibile, si può trascinare nella scena.
 - Righello: selezionare due punti del pavimento in panoramica o pianta.
 
 ## Riferimenti e approssimazioni
@@ -33,3 +33,15 @@ Il sito è pubblicato su GitHub Pages all'indirizzo https://danielepassabi.githu
 - Dati originali e fotogrammi non fanno parte del sito distribuito.
 
 `dist/model.js` contiene geometria, ambienti e aperture, separati dalla visualizzazione in `dist/app.js` per affinare le misure e aggiungere arredi in futuro.
+
+## Revisione visiva del 15 settembre 2026
+
+Quote e geometria architettonica in `dist/model.js` e `dist/wall-geometry.js` invariate. Il paesaggio è isolato in `dist/landscape.js`: alberi a chioma larga, slanciata e conifere, ciuffi di prato istanziati (ridotti su touch), montagne irregolari con neve nella stessa superficie e nuvole opache illuminate. Le finiture mantengono le altezze esistenti con un bias di profondità; il righello include il parquet. I livelli dell’interfaccia sono espliciti e le etichette vengono nascoste nelle viste quasi orizzontali.
+
+Verifiche: `node tests/spatial.mjs`, `node tests/wall-joints.mjs`, `node tests/landscape.mjs`.
+
+### Movimento
+
+`dist/movement.js` gestisce accelerazione, direzioni normalizzate, collisioni a piccoli passi e salto con gravità. Il salto mantiene i vincoli orizzontali della visita e limita la quota sotto soffitti e architravi; non permette di scavalcare arredi o parapetti. Cambiare stanza o altezza occhi azzera il salto. Nessuna modifica alle misure architettoniche. La tonalità del gres zona giorno è fissa; il formato delle piastrelle resta selezionabile.
+
+`node tests/movement.mjs` verifica equivalenza WASD/frecce, corsa, velocità diagonale, stabilità a diversi frame rate, arresto, scorrimento sulle pareti, ostacoli sottili, salto, atterraggio, altezza libera e reset.

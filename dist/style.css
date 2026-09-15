@@ -6,3 +6,15 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 .material-stack{display:grid;gap:10px;margin:16px 0}.material-stack .material{margin:0}.material-stack .material-sample{flex:0 0 48px}.material-stack .material strong{font-size:13px}.parquet-sample{background-color:#ca9a66;background-image:linear-gradient(90deg,transparent 49%,#70482345 50%,transparent 51%),repeating-linear-gradient(0deg,#d3a66f 0 10px,#c6935f 10px 20px);background-size:28px 20px,100% 100%}
 .bathroom-tile-sample{background-color:#b8b9b5;background-image:linear-gradient(90deg,transparent 48%,#85878366 49%,#85878366 51%,transparent 52%),linear-gradient(transparent 48%,#85878366 49%,#85878366 51%,transparent 52%)}
+
+/* Explicit local stacking keeps room labels below controls and navigation. */
+#viewer{isolation:isolate}
+#scene{z-index:0}
+#labels{z-index:1}
+.map-card,.view-caption,.scale-tag,#crosshair{z-index:2}
+.view-caption{padding:10px 14px;border-radius:10px;background:#f8fafae8;max-width:calc(100% - 220px)}
+.scale-tag{padding:8px;border-radius:6px;background:#f8fafae8;pointer-events:none}
+@media(max-width:700px){.view-caption{max-width:calc(100% - 32px);padding:8px 10px}}
+
+#touch-controls button[data-move="jump"],#touch-controls button[data-move="run"]{width:55px;font-size:13px}
+#scene canvas:focus-visible{outline:2px solid #315c78;outline-offset:-2px}

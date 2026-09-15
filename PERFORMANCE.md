@@ -47,3 +47,9 @@ Obiettivo iniziale: almeno 55 FPS medi e 40 FPS all’1% low su desktop, senza s
 2. Applicare un profilo adattivo che abbassi temporaneamente il pixel ratio quando gli FPS scendono sotto il target.
 3. Sospendere rendering e aggiornamenti nelle viste statiche quando camera e interfaccia sono ferme.
 4. Misurare separatamente CPU, GPU e garbage collection prima di ridurre ulteriormente texture o geometrie.
+
+## Revisione paesaggio del 15 settembre 2026
+
+Nella stessa anteprima desktop a 1280 × 720, panoramica iniziale: **82 → 76 draw call**. La nuova panoramica usa circa **113.365 triangoli**: i ciuffi aumentano il lavoro geometrico, quindi la riduzione di draw call non implica automaticamente un aumento degli FPS. La pianta nasconde ciuffi, nuvole e montagne (73 draw call osservate). Nessun benchmark FPS su hardware dell’utente è stato eseguito.
+
+Tre batch per gli alberi, uno per il prato, uno per montagne e neve, uno per le nuvole. Nessuna ombra proiettata dai ciuffi o dalle nuvole; profilo touch con metà dei candidati per il prato. Nessuna texture o libreria esterna aggiunta. Verifica visiva locale di panoramica, pianta, interno e orizzonte; console senza errori o avvisi durante i controlli.
