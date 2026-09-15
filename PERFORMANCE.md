@@ -28,6 +28,10 @@ Il contatore FPS dell'ambiente di test non è limitato al refresh del monitor, q
 
 Piante, sanitari, vasca, doccia, letto e armadio sono stati aggiunti mantenendo le primitive ripetute in batch. Vasi, fusti, foglie, limoni, corpi ovali e rubinetteria condividono geometrie istanziate; gli elementi cubici confluiscono nel batching per materiale già esistente. I nuovi asset portano Panoramica da 53 a 70 draw call e Visita a circa 32 draw call nella camera matrimoniale, restando molto sotto il valore iniziale di circa 200.
 
+## Cucina e postazioni Camera 3
+
+Anche la cucina ad angolo, l'isola, le due scrivanie, i portatili e le sedie da gaming riutilizzano il batching delle primitive cubiche e le geometrie istanziate per i dettagli ripetuti. Sgabelli, tavolo, tovaglia e quattro sedie confluiscono nello stesso sistema. Dopo il perfezionamento della cucina, l'inquadratura di controllo in Visita registra 31 draw call e 44.800 triangoli, senza errori console.
+
 ## Protocollo per la prossima sessione
 
 1. Registrare 60 secondi in Visita lungo lo stesso percorso: zona giorno, disimpegno, camera matrimoniale, ritorno e terrazza.
