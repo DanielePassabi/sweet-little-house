@@ -33,6 +33,11 @@ jobs:
           node --check dist/app.js
           node --check dist/landscape.js
           node --check dist/movement.js
+          node --check dist/render-state.js
+          node --check dist/furniture-collisions.js
+          node --check dist/material-details.js
+          node --check dist/solar.js
+          node --check dist/vendor/suncalc.js
           node --check dist/model.js
           node --check dist/wall-geometry.js
 
@@ -41,6 +46,9 @@ jobs:
           node tests/spatial.mjs
           node tests/landscape.mjs
           node tests/movement.mjs
+          node tests/render-state.mjs
+          node tests/furniture-collisions.mjs
+          node tests/solar.mjs
           node tests/wall-joints.mjs
 
   deploy:

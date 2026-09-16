@@ -29,7 +29,7 @@ Il sito è pubblicato su GitHub Pages all'indirizzo https://danielepassabi.githu
 - Gres chiaro opaco nella zona giorno e gres grigio caldo leggermente più scuro nei due bagni; formato iniziale **60 × 60 cm stimato**, selezionabile. Camere e disimpegno della zona notte hanno parquet in rovere naturale a doghe sfalsate. Le finiture sono texture procedurali in scala metrica, non singoli solidi.
 - Prato esterno procedurale con variazioni di tono, microfilamenti e rilievo leggero, circondato da alberelli appoggiati al terreno e visibile in panoramica, pianta e dalle aperture durante la visita. Cielo azzurro, nuvole volumetriche e una corona di montagne lontane completano le viste esterne.
 - Primo arredo della zona giorno: divano angolare a tre moduli da 2,25 m, con chaise compatta da 1,30 m, in tessuto grigio scuro; televisore da circa 80 pollici e mobile basso nero disposti secondo lo schizzo fornito. Il locale tecnico ospita caldaia, contatore, lavabo e colonna lavatrice-asciugatrice addossati alla parete di fondo. In terrazza trovano posto un tavolino quadrato con due sedie e un divanetto a tutta parete con righe bianche e lilla. Gli ingombri sono inclusi nelle collisioni della modalità Visita.
-- Terrazza con parapetto e copertura semplificati. Luce illustrativa, non simulazione solare del sito.
+- Terrazza con parapetto e copertura semplificati. Sole direzionale fisso dall’alto a sinistra della pianta, a circa 34° sull’orizzonte; luce illustrativa, non calcolo astronomico del sito.
 - Dati originali e fotogrammi non fanno parte del sito distribuito.
 
 `dist/model.js` contiene geometria, ambienti e aperture, separati dalla visualizzazione in `dist/app.js` per affinare le misure e aggiungere arredi in futuro.
@@ -45,3 +45,22 @@ Verifiche: `node tests/spatial.mjs`, `node tests/wall-joints.mjs`, `node tests/l
 `dist/movement.js` gestisce accelerazione, direzioni normalizzate, collisioni a piccoli passi e salto con gravità. Il salto mantiene i vincoli orizzontali della visita e limita la quota sotto soffitti e architravi; non permette di scavalcare arredi o parapetti. Cambiare stanza o altezza occhi azzera il salto. Nessuna modifica alle misure architettoniche. La tonalità del gres zona giorno è fissa; il formato delle piastrelle resta selezionabile.
 
 `node tests/movement.mjs` verifica equivalenza WASD/frecce, corsa, velocità diagonale, stabilità a diversi frame rate, arresto, scorrimento sulle pareti, ostacoli sottili, salto, atterraggio, altezza libera e reset.
+
+### Prestazioni
+
+Nelle impostazioni a destra, **Mostra FPS** attiva un piccolo overlay. A scena ferma appare **A riposo**: l’ultimo fotogramma resta visibile e viene ridisegnato solo quando necessario. Durante le interazioni sono mostrati gli FPS effettivamente renderizzati, le draw call, i triangoli e il tempo CPU di invio (non il tempo GPU). Materiali, luci, ombre e qualità visiva restano invariati. Ulteriori verifiche: `node tests/render-state.mjs`.
+
+### Luce solare
+
+Il sole mantiene una direzione fissa nel mondo: sinistra e parte alta della pianta. In Visita il soffitto proietta ombra e i vetri lasciano passare la luce diretta, mentre telai, muri e arredi la interrompono. In Pianta/Panoramica il soffitto e la sua ombra vengono rimossi. La mappa delle ombre si aggiorna solo quando cambia questa visibilità, non durante ogni movimento. Una luce diffusa più contenuta approssima i rimbalzi interni: non è una simulazione fisica completa né un calcolo basato su località, data e ora.
+
+## Arredi, materiali e sole geografico — 16 settembre 2026
+
+- Collisioni: tavoli, sedie e scrivanie separati, vasi/sgabelli circolari e sanitari a profilo ellittico. Distanza dal corpo del visitatore calcolata sui bordi e sugli angoli, con indice spaziale. Incluse caldaia e comodini. Gli arredi restano solidi durante il salto; la doccia e la vasca conservano ingombri cautelativi. Test di raggiungibilità di tutte le nove stanze con arredi presenti.
+- Materiali: tre mappe procedurali condivise per trama del tessuto, venature del legno e satinatura dei metalli; vetri meno azzurri e meno opachi. Nessuna geometria o dimensione modificata.
+- L’orientamento fornito prevale sui vecchi commenti cardinali del codice: **Nord = +X (destra), Est = +Z (basso), Sud = -X (sinistra), Ovest = -Z (alto)**.
+- Il precedente sole fisso è sostituito da data e ora locale di Fiume Veneto, selezionabili da **Luce e orientamento**. Conversione `Europe/Rome` con ora legale/solare automatica. Calcolo offline con [SunCalc 1.9.0](https://github.com/mourner/suncalc/tree/v1.9.0), incluso con licenza BSD a due clausole; unica modifica al pacchetto: esportazione come modulo ES.
+- Coordinate indicative del comune: 45,93333 N, 12,73333 E, da [OpenStreetMap](https://wiki.openstreetmap.org/wiki/Fiume_Veneto). La direzione solare è astronomica; luce diffusa, riflessioni, atmosfera e ostacoli esterni restano illustrativi. Nessun indirizzo o dato geografico viene inviato durante l’uso.
+- Interruttore per accendere/spegnere il riempimento delle luci interne. Di notte il contributo diretto del sole è nullo. Le ombre vengono aggiornate solo cambiando sole o modalità, mantenendo il riposo a camera ferma.
+
+Nuovi controlli automatici: `node tests/furniture-collisions.mjs` e `node tests/solar.mjs`.

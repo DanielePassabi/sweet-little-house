@@ -18,3 +18,11 @@
 
 #touch-controls button[data-move="jump"],#touch-controls button[data-move="run"]{width:55px;font-size:13px}
 #scene canvas:focus-visible{outline:2px solid #315c78;outline-offset:-2px}
+
+.performance-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
+#performance-toggle{padding:7px 10px;border:1px solid #cdd6da;border-radius:7px;background:#fff;color:#315c78;font:inherit;font-size:12px;cursor:pointer}
+#performance-toggle[aria-pressed=true]{background:#203140;color:white}
+#performance-overlay{position:absolute;top:86px;left:16px;z-index:3;max-width:calc(100% - 88px);padding:10px 12px;border:1px solid #ffffff40;border-radius:9px;background:#203140ed;color:#f7fafc;pointer-events:none;font:12px/1.6 ui-monospace,monospace;font-variant-numeric:tabular-nums}
+#performance-overlay[hidden]{display:none}
+#performance-overlay strong{font:600 12px 'DM Sans',sans-serif}
+#performance-values{white-space:pre-line}

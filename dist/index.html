@@ -5,7 +5,7 @@
  <title>Sweet Little House · La tua casa in 3D</title>
  <meta name="description" content="Esplora il modello in scala della tua casa: ambienti arredati, materiali e giardino.">
  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23203140'/%3E%3Cpath d='M7 15L16 7l9 8v11h-7v-8h-4v8H7z' fill='%23e9f0ed'/%3E%3C/svg%3E">
- <link rel="stylesheet" href="./style.css?v=20260915-3">
+ <link rel="stylesheet" href="./style.css?v=20260916-1">
  <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/controls/OrbitControls.js":"./vendor/OrbitControls.js"}}</script>
 </head>
 <body>
@@ -16,6 +16,7 @@
    <nav class="view-tabs" aria-label="Tipo di vista"><button data-view="orbit" class="active" aria-pressed="true">◈ <span>Panoramica</span></button><button data-view="plan" aria-pressed="false">▦ <span>Pianta</span></button><button data-view="walk" aria-pressed="false">↟ <span>Visita</span></button></nav>
    <div class="viewer-tools"><button id="reset" title="Ripristina la vista" aria-label="Ripristina la vista">↺</button><button id="measure" title="Misura sul pavimento" aria-label="Misura sul pavimento" aria-pressed="false">↔</button></div>
    <div id="labels" aria-hidden="true"></div>
+   <div id="performance-overlay" hidden aria-label="Prestazioni della scena"><strong>Prestazioni</strong><div id="performance-values"></div></div>
    <div id="crosshair" hidden>+</div>
    <button id="enter-walk" hidden>Entra nella casa <span>WASD / frecce · Shift per correre<br>Spazio per saltare · Esc per pausa</span></button>
    <div id="measure-result" role="status" hidden></div>
@@ -30,9 +31,11 @@
    <div class="facts"><div><strong>2,60 <small>m</small></strong><span>Altezza interna</span></div><div><strong>3</strong><span>Camere</span></div></div>
    <section class="panel-section"><div class="section-heading"><h2>Esplora gli ambienti</h2><span>09</span></div><div id="room-list"></div></section>
    <section class="panel-section finish-section"><div class="section-heading"><h2>I pavimenti</h2><span class="small-tag">Tre finiture</span></div><div class="material-stack"><div class="material"><div class="material-sample tile-sample"></div><div><strong>Zona giorno · Gres chiaro</strong><span>Bianco perla · finitura opaca</span></div></div><div class="material"><div class="material-sample parquet-sample"></div><div><strong>Zona notte · Rovere naturale</strong><span>Doghe sfalsate · finitura opaca</span></div></div><div class="material"><div class="material-sample bathroom-tile-sample"></div><div><strong>Bagni · Gres medio</strong><span>Grigio caldo · finitura opaca</span></div></div></div><label class="field">Formato piastrelle<select id="tile-size"><option value=".6">60 × 60 cm</option><option value=".8">80 × 80 cm</option><option value="1.2">120 × 120 cm</option></select></label></section>
+   <section class="panel-section sunlight-settings"><h2>Luce e orientamento</h2><p class="note">Fiume Veneto · ora italiana<br>Ovest ↑ · Nord → · Est ↓ · Sud ←</p><label class="field">Data<input id="sun-date" type="date" min="2000-01-01" max="2100-12-31" aria-label="Data della simulazione solare"></label><label class="field">Ora <output id="sun-time-value">14:30</output><input id="sun-time" type="range" min="300" max="1320" step="10" value="870" aria-label="Ora italiana del sole"></label><p id="sun-status" class="note"></p><label class="field">Luci interne<input id="interior-lights" type="checkbox" checked></label></section>
+   <section class="panel-section performance-setting"><span>Prestazioni</span><button id="performance-toggle" type="button" aria-pressed="false" aria-controls="performance-overlay">Mostra FPS</button></section>
    <details class="panel-section"><summary>Vista e riferimenti</summary><label class="field">Etichette ambienti<input type="checkbox" id="show-labels" checked></label><label class="field">Altezza occhi <output id="eye-value">1,75 m</output><input id="eye-height" type="range" min="1.2" max="1.9" step=".05" value="1.75"></label><p class="note">Pianta confermata · altezza 2,60 m.<br>Aperture e finiture sono stimate. Il garage è escluso. Le misure del modello non sostituiscono un rilievo.</p></details>
     <div class="panel-footer"><span class="empty-icon">◇</span><span>Arredo in corso<br><strong>Zona giorno, terrazza, locale tecnico, bagni e camere.</strong></span></div>
   </aside>
  </main>
- <script type="module" src="./app.js?v=20260915-7"></script>
+ <script type="module" src="./app.js?v=20260916-4"></script>
 </body></html>

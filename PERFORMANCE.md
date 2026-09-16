@@ -53,3 +53,22 @@ Obiettivo iniziale: almeno 55 FPS medi e 40 FPS all’1% low su desktop, senza s
 Nella stessa anteprima desktop a 1280 × 720, panoramica iniziale: **82 → 76 draw call**. La nuova panoramica usa circa **113.365 triangoli**: i ciuffi aumentano il lavoro geometrico, quindi la riduzione di draw call non implica automaticamente un aumento degli FPS. La pianta nasconde ciuffi, nuvole e montagne (73 draw call osservate). Nessun benchmark FPS su hardware dell’utente è stato eseguito.
 
 Tre batch per gli alberi, uno per il prato, uno per montagne e neve, uno per le nuvole. Nessuna ombra proiettata dai ciuffi o dalle nuvole; profilo touch con metà dei candidati per il prato. Nessuna texture o libreria esterna aggiunta. Verifica visiva locale di panoramica, pianta, interno e orizzonte; console senza errori o avvisi durante i controlli.
+
+## Ottimizzazione senza riduzione visiva — 16 settembre 2026
+
+- Pulsante **Mostra FPS** nelle impostazioni: overlay disattivabile con fotogrammi effettivamente disegnati al secondo, draw call, triangoli e tempo CPU medio di aggiornamento etichette/invio del frame. Non è una misura del tempo GPU. Campionamento ogni secondo; a scena ferma compare **A riposo**. Interazioni isolate possono produrre pochi FPS perché il rendering è su richiesta.
+- Rendering saltato quando camera, proiezione e contenuto sono invariati; ripresa automatica con movimento, zoom, cambio vista, righello, materiali, etichette e ridimensionamento. Scheda nascosta: nessun rendering.
+- Trasformazioni statiche precalcolate; il righello resta dinamico. Etichette e minimappa si aggiornano solo al ridisegno; dimensioni del viewport e riferimenti DOM sono memorizzati.
+- Pareti indicizzate unendo solo vertici con posizione e normale esattamente uguali: **80.520 → 18.732 vertici (-76,7%)**. Stessi triangoli, superfici, spigoli e illuminazione. Il test verifica che gli indici ricostruiscano gli stessi dati.
+- Movimento fermo: nessuna scansione delle collisioni. Architravi filtrati una volta; meno allocazioni durante i passi fisici. Test di movimento invariati e superati.
+- Nessuna riduzione di pixel ratio, texture, ombre, luci, vegetazione o geometria visibile. Panoramica: **76 draw call e 113.365 triangoli** invariati. In anteprima il contatore dei render è rimasto a 3 durante due letture separate da oltre 10 secondi, prima di riprendere alle interazioni. Verificati overlay, panoramica, pianta, interno e modifica delle piastrelle; nessun errore console.
+
+Il risparmio principale si verifica a scena ferma. Nessuna percentuale di aumento FPS durante il movimento è dichiarata senza un benchmark comparabile sull’hardware di destinazione.
+
+## Illuminazione solare — 16 settembre 2026
+
+Direzione fissa (-24, 19, -14) rispetto al centro casa: provenienza alto-sinistra in pianta, elevazione circa 34°. Riutilizzati il singolo sole con ombre 2048 × 2048 e i punti luce esistenti, riducendo il riempimento interno. Il soffitto ora proietta ombra in Visita; i materiali trasparenti non proiettano ombre opache. La shadow map resta statica durante il movimento e viene invalidata una volta entrando/uscendo dalla Visita. Nessun ricalcolo continuo o effetto volumetrico aggiunto. Verificati luce della finestra sul pavimento di Camera 3 e ritorno alla Pianta con ombre verso il basso a destra, senza errori console.
+
+## Materiali e collisioni dettagliate
+
+Tre texture procedurali condivise (due 256 × 256, una 512 × 512), senza mesh aggiuntive. Bump/roughness aggiungono campionamenti agli shader dei materiali interessati: il costo non è nullo, ma resta contenuto e non richiede texture esterne né riflessioni renderizzate a ogni frame. Collisioni suddivise per oggetto e filtrate con celle metriche; test del filtro rispetto a scansione completa e raggiungibilità delle stanze. Il sole viene calcolato localmente soltanto al cambio di data/ora; input ravvicinati vengono accorpati nel frame successivo. Nessuna animazione solare continua.

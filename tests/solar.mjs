@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {solarPosition,localInstant} from '../dist/solar.js';
+assert.equal(localInstant('2026-06-21',720).toISOString(),'2026-06-21T10:00:00.000Z','Summer Rome time');
+assert.equal(localInstant('2026-12-21',720).toISOString(),'2026-12-21T11:00:00.000Z','Winter Rome time');
+assert.equal(localInstant('2026-03-29',720).getUTCHours(),10,'DST begins');
+assert.equal(localInstant('2026-10-25',720).getUTCHours(),11,'DST ends');
+const morning=solarPosition('2026-06-21',480),noon=solarPosition('2026-06-21',780),evening=solarPosition('2026-06-21',1080);
+assert.ok(morning.direction[2]>.8,'East is down in plan');
+assert.ok(noon.direction[0]<0&&Math.abs(noon.direction[2])<.1,'South is left in plan');
+assert.ok(evening.direction[2]<-.8,'West is up in plan');
+assert.ok(noon.altitude>solarPosition('2026-12-21',780).altitude,'Summer sun is higher');
+assert.ok(solarPosition('2026-12-21',1320).altitude<0,'Night has no direct sun');
+for(const p of [morning,noon,evening])assert.ok(Math.abs(Math.hypot(...p.direction)-1)<1e-12);
+console.log('PASS: Rome timezone and DST, cardinal mapping, seasons and night.');
