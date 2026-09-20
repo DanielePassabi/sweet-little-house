@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 
-// Three small shared maps; no extra meshes, draw calls or external assets.
+// Small shared procedural maps; no extra meshes, draw calls or external assets.
 export function applyMaterialDetails(materials,renderer){
  let seed=512;const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
  function texture(size,pixel,repeat,color=false){
@@ -13,6 +13,12 @@ export function applyMaterialDetails(materials,renderer){
  }
  const weave=texture(256,(x,y)=>185+22*Math.sin(x*Math.PI/2)*Math.cos(y*Math.PI/2)+random()*10,[12,12]);
  for(const m of [...materials.fabric,materials.striped]){m.bumpMap=weave;m.bumpScale=.00065;m.roughnessMap=weave;m.roughness=1;}
+ // Matte woven upholstery: visible warp/weft and subtle fibre variation in the colour.
+ const linen=texture(256,(x,y)=>{
+  const warp=Math.sin(x*Math.PI/4),weft=Math.cos(y*Math.PI/4);
+  return 226+12*warp*weft+6*Math.sin(x*Math.PI/2)+random()*9;
+ },[6,6],true);
+ for(const m of materials.upholstery??[]){m.map=linen;m.bumpMap=linen;m.bumpScale=.0012;m.roughnessMap=null;m.roughness=1;m.metalness=0;}
  const wood=texture(512,(x,y)=>235+8*Math.sin(x*.18+Math.sin(y*.012)*1.4)+4*Math.sin(x*.6+y*.015)+random()*5,[1,1],true);
  for(const m of materials.wood){m.map=wood;m.bumpMap=wood;m.bumpScale=.001;m.roughness=.65;}
  const brushed=texture(256,(x,y)=>195+18*Math.sin(y*1.3)+random()*12,[1,3]);

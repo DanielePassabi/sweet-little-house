@@ -1,3 +1,4 @@
+import {kitchenColliders,diningColliders} from './kitchen-layout.js?v=20260920-2';
 import {canStand,point,insidePolygon} from './model.js';
 
 
@@ -10,22 +11,18 @@ export const furnitureColliders=[
  {minX:1.70,maxX:2.45,minZ:8.56,maxZ:9.26},
  {minX:-.08,maxX:2.60,minZ:14.05,maxZ:14.88},
  {minX:.02,maxX:.91,minZ:3.15,maxZ:5.15},
- {minX:1.22,maxX:2.22,minZ:4.60,maxZ:5.10},
- {minX:6.18,maxX:7.12,minZ:5.16,maxZ:5.70},
+ {minX:1.12,maxX:2.32,minZ:4.58,maxZ:5.08},
+ {minX:6.11,maxX:7.21,minZ:5.175,maxZ:5.675},
  {minX:5.70,maxX:6.62,minZ:7.00,maxZ:7.91},
  {minX:4.34,maxX:6.35,minZ:2.12,maxZ:3.98},
  {minX:7.02,maxX:7.62,minZ:1.02,maxZ:5.04},
- {minX:7.60,maxX:9.54,minZ:12.34,maxZ:13.03},
- {minX:8.86,maxX:9.54,minZ:12.96,maxZ:15.03},
- {minX:5.94,maxX:6.96,minZ:13.06,maxZ:14.76},
  {minX:5.00,maxX:5.63,minZ:6.63,maxZ:7.97},
 ];
+furnitureColliders.push(...kitchenColliders,...diningColliders);
 furnitureColliders.push(rect(6.37,7.49,8.095,10.5),rect(5.635,7.06,8.105,8.855));
-furnitureColliders.push(rect(.85,1.70,11.825,12.675));
-for(const z of [11.43,13.07])furnitureColliders.push(rect(1.015,1.535,z-.285,z+.285));
-for(const [x,z,r] of [[3.47,8.34,.24*.86],[.18,10.83,.24],[6.08,13.45,.21],[6.08,14.37,.21]])furnitureColliders.push(circle(x,z,r));
-furnitureColliders.push(rect(3.88,4.84,12.97,14.47));
-for(const x of [3.92,4.80])for(const z of [13.34,14.10])furnitureColliders.push(rect(x-.23,x+.23,z-.23,z+.23));
+furnitureColliders.push(circle(1.275,12.25,.425));
+for(const z of [11.76,12.74])furnitureColliders.push(circle(1.275,z,.275));
+for(const [x,z,r] of [[3.47,8.34,.24*.86],[.18,10.83,.24]])furnitureColliders.push(circle(x,z,r));
 for(const z of [5.68,7.72]){
  furnitureColliders.push(rect(.01,.65,z-.51,z+.51));
  furnitureColliders.push(rect(.92,1.536,z-.32,z+.32));
@@ -33,11 +30,11 @@ for(const z of [5.68,7.72]){
 for(const z of [1.96,4.14])furnitureColliders.push(rect(4.535,4.985,z-.225,z+.225));
 furnitureColliders.push(rect(.11,.69,8.565,8.815));
 // Elliptical sanitary rims, represented by a convex perimeter, including tanks.
-for(const [x,z,rx,rz] of [[1.42,3.62,.258,.37],[2.12,3.62,.258,.37],[7.29,6.15,.37,.258],[7.29,6.91,.37,.258]]){
+for(const [x,z,rx,rz] of [[1.42,3.62,.19,.29],[2.12,3.62,.19,.29],[7.29,6.15,.29,.19],[7.29,6.91,.29,.19]]){
  const points=Array.from({length:24},(_,i)=>[x+Math.cos(i*Math.PI/12)*rx,z+Math.sin(i*Math.PI/12)*rz]);
  furnitureColliders.push({points,minX:x-rx,maxX:x+rx,minZ:z-rz,maxZ:z+rz});
 }
-furnitureColliders.push(rect(1.89,2.35,3.21,3.41),rect(7.50,7.70,6.68,7.14));
+furnitureColliders.push(rect(1.9425,2.2975,3.295,3.485),rect(7.425,7.615,6.7325,7.0875));
 export function intersects(c,x,z,r){
  if(x+r<c.minX||x-r>c.maxX||z+r<c.minZ||z-r>c.maxZ)return false;
  if(c.r!==undefined)return (x-c.x)**2+(z-c.z)**2<(r+c.r)**2;

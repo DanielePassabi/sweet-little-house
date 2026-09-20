@@ -9,8 +9,9 @@ import { createMovement, DEFAULT_EYE_HEIGHT, movementCodes } from './movement.js
 
 import { createRenderState, freezeStaticTransforms, indexStaticSurface } from './render-state.js?v=20260916-3';
 
-import {canWalk,furnitureColliders,safeRoomPosition} from './furniture-collisions.js?v=20260916-2';
-import {applyMaterialDetails} from './material-details.js?v=20260916-1';
+import {kitchenModules,diningLayout,diningChairs} from './kitchen-layout.js?v=20260920-2';
+import {canWalk,furnitureColliders,safeRoomPosition} from './furniture-collisions.js?v=20260920-7';
+import {applyMaterialDetails} from './material-details.js?v=20260920-8';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
 const renderState=createRenderState();
@@ -171,29 +172,45 @@ walls.forEach(buildOpenings);
 // First furniture layout, following the annotated plan: media wall to the west and
 // a generous L-shaped sectional opposite it, while keeping the hall route clear.
 const furniture=new THREE.Group();model.add(furniture);
-const sofaFrameMaterial=new THREE.MeshStandardMaterial({color:'#34383b',roughness:.94});
-const sofaCushionMaterial=new THREE.MeshStandardMaterial({color:'#444a4e',roughness:1});
-const sofaAccentMaterial=new THREE.MeshStandardMaterial({color:'#555c60',roughness:1});
+const sofaFrameMaterial=new THREE.MeshStandardMaterial({color:'#c9beab',roughness:1});
+const sofaCushionMaterial=new THREE.MeshStandardMaterial({color:'#e4d9c5',roughness:1});
+const sofaAccentMaterial=new THREE.MeshStandardMaterial({color:'#b3a58e',roughness:1});
 const furnitureBlack=new THREE.MeshStandardMaterial({color:'#141719',roughness:.72});
 const consoleFrontMaterial=new THREE.MeshStandardMaterial({color:'#222629',roughness:.82});
 const screenMaterial=new THREE.MeshStandardMaterial({color:'#071015',emissive:'#1d323c',emissiveIntensity:.24,roughness:.2,metalness:.18});
 const furnitureBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,furniture);
 
+// Round inward from the original bounding boxes: every outer dimension stays unchanged.
+const sofaGeometryCache=new Map();
+function sofaSoftBox(w,h,d,material,x,y,z){
+ const key=[w,h,d].join(',');let geometry=sofaGeometryCache.get(key);
+ if(!geometry){
+  geometry=new THREE.BoxGeometry(w,h,d,8,8,8);
+  const radius=Math.min(.055,Math.min(w,h,d)*.28),position=geometry.attributes.position,normal=geometry.attributes.normal;
+  const half=new THREE.Vector3(w/2-radius,h/2-radius,d/2-radius),v=new THREE.Vector3(),inner=new THREE.Vector3();
+  for(let i=0;i<position.count;i++){
+   v.fromBufferAttribute(position,i);inner.copy(v).clamp(half.clone().negate(),half);v.sub(inner).normalize();
+   normal.setXYZ(i,v.x,v.y,v.z);v.multiplyScalar(radius).add(inner);position.setXYZ(i,v.x,v.y,v.z);
+  }
+  geometry.computeBoundingBox();geometry.computeBoundingSphere();sofaGeometryCache.set(key,geometry);
+ }
+ const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;furniture.add(mesh);return mesh;
+}
 // Three modules over 2.25 m: a chaise and two seats, facing west toward the TV.
-furnitureBox(1.08,.32,2.25,sofaFrameMaterial,6.91,.20,9.23);
-furnitureBox(.24,.72,2.27,sofaFrameMaterial,7.37,.61,9.23);
+sofaSoftBox(1.08,.32,2.25,sofaFrameMaterial,6.91,.20,9.23);
+sofaSoftBox(.24,.72,2.27,sofaFrameMaterial,7.37,.61,9.23);
 [8.48,9.22,9.96].forEach(z=>{
- const back=furnitureBox(.25,.52,.76,sofaCushionMaterial,7.19,.75,z);back.rotation.z=-.055;
+ const back=sofaSoftBox(.25,.52,.76,sofaCushionMaterial,7.19,.75,z);back.rotation.z=-.055;
 });
-[9.22,9.96].forEach(z=>furnitureBox(.84,.17,.68,sofaCushionMaterial,6.77,.45,z));
+[9.22,9.96].forEach(z=>sofaSoftBox(.84,.17,.68,sofaCushionMaterial,6.77,.45,z));
 // Chaise at the north end creates the L shown in the supplied sketch.
-furnitureBox(1.30,.32,.75,sofaFrameMaterial,6.41,.20,8.48);
-furnitureBox(1.08,.17,.60,sofaCushionMaterial,6.36,.45,8.48);
-furnitureBox(.20,.56,.76,sofaFrameMaterial,5.735,.45,8.48);
-furnitureBox(.88,.56,.20,sofaFrameMaterial,6.91,.45,10.40);
-// A pair of soft accent cushions breaks up the dark upholstery.
-const cushionA=furnitureBox(.18,.44,.46,sofaAccentMaterial,6.76,.73,8.25);cushionA.rotation.z=-.12;cushionA.rotation.y=.12;
-const cushionB=furnitureBox(.18,.42,.42,sofaAccentMaterial,6.69,.72,10.14);cushionB.rotation.z=-.08;cushionB.rotation.y=-.10;
+sofaSoftBox(1.30,.32,.75,sofaFrameMaterial,6.41,.20,8.48);
+sofaSoftBox(1.08,.17,.60,sofaCushionMaterial,6.36,.45,8.48);
+sofaSoftBox(.20,.56,.76,sofaFrameMaterial,5.735,.45,8.48);
+sofaSoftBox(.88,.56,.20,sofaFrameMaterial,6.91,.45,10.40);
+// Accent pillows rest on the seat and lean against the back, centered on the end modules.
+const cushionA=sofaSoftBox(.18,.44,.46,sofaAccentMaterial,6.96,.75,8.48);cushionA.rotation.z=-.14;cushionA.rotation.y=.035;
+const cushionB=sofaSoftBox(.18,.44,.46,sofaAccentMaterial,6.96,.75,9.96);cushionB.rotation.z=-.14;cushionB.rotation.y=-.035;
 [[6.53,8.15],[7.27,8.15],[6.53,10.30],[7.27,10.30],[5.84,8.18]].forEach(([x,z])=>furnitureBox(.08,.12,.08,furnitureBlack,x,.06,z));
 
 // Approximately 80-inch 16:9 television and a compact black media console.
@@ -232,7 +249,7 @@ for(const y of [.45,1.30]){
  utilityBox(.30,.09,.025,applianceGlass,1.96,y+.29,9.23);
 }
 
-// Outdoor terrace set: a square table with two opposing chairs and a striped
+// Outdoor terrace set: a round table with two tucked-in curved chairs and a striped
 // loveseat on the left-hand side when entering through the glazed door.
 const terraceFurniture=new THREE.Group();model.add(terraceFurniture);
 const terraceBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,terraceFurniture);
@@ -245,17 +262,25 @@ function makeLilacStripeTexture(){
  const texture=new THREE.CanvasTexture(c);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(2.4,1.3);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();return texture;
 }
 const stripedUpholstery=new THREE.MeshStandardMaterial({color:'#ffffff',map:makeLilacStripeTexture(),roughness:1});
-// Central 85 cm square table.
-const terraceSetCenterX=1.275;
-terraceBox(.85,.08,.85,outdoorWoodMaterial,terraceSetCenterX,.72,12.25);
-[[.925,11.90],[1.625,11.90],[.925,12.60],[1.625,12.60]].forEach(([x,z])=>terraceBox(.055,.68,.055,outdoorFrameMaterial,x,.35,z));
+// Round 85 cm table: central pedestal frees space beneath the top for seats.
+const terraceSetCenterX=1.275,terraceSetCenterZ=12.25;
+const terraceRoundGeometry=new THREE.CylinderGeometry(1,1,1,32);
+queueStaticInstance(terraceRoundGeometry,outdoorWoodMaterial,terraceSetCenterX,.72,terraceSetCenterZ,.425,.08,.425);
+queueStaticInstance(terraceRoundGeometry,outdoorFrameMaterial,terraceSetCenterX,.35,terraceSetCenterZ,.045,.66,.045);
+queueStaticInstance(terraceRoundGeometry,outdoorFrameMaterial,terraceSetCenterX,.025,terraceSetCenterZ,.22,.04,.22);
+// Closed rounded profile gives the curved back thickness on both sides.
+const terraceBackGeometry=new THREE.LatheGeometry([
+ new THREE.Vector2(.235,-.18),new THREE.Vector2(.255,-.18),
+ new THREE.Vector2(.275,.16),new THREE.Vector2(.265,.19),
+ new THREE.Vector2(.25,.19),new THREE.Vector2(.235,-.18)
+],24,Math.PI/2,Math.PI);
 function addTerraceChair(z,facingSouth){
- terraceBox(.52,.09,.52,outdoorWoodMaterial,terraceSetCenterX,.47,z);
- const backZ=z+(facingSouth?-.25:.25);
- terraceBox(.52,.58,.07,outdoorFrameMaterial,terraceSetCenterX,.76,backZ);
- for(const x of [1.065,1.485])for(const dz of [-.20,.20])terraceBox(.045,.44,.045,outdoorFrameMaterial,x,.23,z+dz);
+ queueStaticInstance(terraceRoundGeometry,outdoorWoodMaterial,terraceSetCenterX,.47,z,.24,.07,.24);
+ queueStaticInstance(terraceBackGeometry,outdoorFrameMaterial,terraceSetCenterX,.69,z,1,1,1,0,facingSouth?0:Math.PI,0);
+ for(const dx of [-.16,.16])for(const dz of [-.16,.16])queueStaticInstance(terraceRoundGeometry,outdoorFrameMaterial,terraceSetCenterX+dx,.225,z+dz,.022,.43,.022);
 }
-addTerraceChair(11.43,true);addTerraceChair(13.07,false);
+// 33 cm closer than the previous chairs, with seat fronts beneath the tabletop.
+addTerraceChair(terraceSetCenterZ-.49,true);addTerraceChair(terraceSetCenterZ+.49,false);
 // Full-width outdoor sofa, flush with the south parapet (left on entry).
 terraceBox(2.58,.27,.70,outdoorFrameMaterial,1.275,.20,14.44);
 terraceBox(2.60,.66,.16,outdoorFrameMaterial,1.275,.59,14.78);
@@ -294,12 +319,30 @@ const bathroomMetal=new THREE.MeshStandardMaterial({color:'#aeb8bc',roughness:.3
 const bathroomMirror=new THREE.MeshStandardMaterial({color:'#bcd0d6',roughness:.12,metalness:.72});
 const bathWater=new THREE.MeshPhysicalMaterial({color:'#b9dce9',transparent:true,opacity:.56,roughness:.16,depthWrite:false});
 const sanitaryBodyGeometry=new THREE.CylinderGeometry(1,1,1,24),sanitaryRingGeometry=new THREE.TorusGeometry(1,.12,9,28),tapGeometry=new THREE.CylinderGeometry(1,1,1,12);
+// Continuous ceramic profile: floor, pedestal, bowl, lip and inner basin share edges.
+const sanitaryProfile=[[0,.012],[.56,.012],[.62,.045],[.60,.16],[.78,.24],[.97,.32],[1,.385],[.98,.415],[.84,.415],[.79,.36],[.52,.27],[0,.26]];
+const connectedSanitaryGeometry=new THREE.LatheGeometry(sanitaryProfile.map(([r,y])=>new THREE.Vector2(r,y)),40);
+const toiletSeatGeometry=new THREE.LatheGeometry([[.85,0],[1,0],[1,.022],[.98,.032],[.85,.032],[.85,0]].map(([r,y])=>new THREE.Vector2(r,y)),40);
 function addSanitary(x,z,rotation=0,toilet=false){
- const sideways=Math.abs(Math.sin(rotation))>.5,sx=sideways ? .33 : .23,sz=sideways ? .23 : .33;
- queueStaticInstance(sanitaryBodyGeometry,ceramicMaterial,x,.22,z,sx,.20,sz);
- queueStaticInstance(sanitaryRingGeometry,ceramicMaterial,x,.34,z,sx,sz,.045,Math.PI/2,0,0);
- if(toilet){const tankX=x+Math.sin(rotation)*.31,tankZ=z-Math.cos(rotation)*.31;bathroomBox(rotation ? .20 : .46,.53,rotation ? .46 : .20,ceramicMaterial,tankX,.39,tankZ);}
- else {const tapX=x+Math.sin(rotation)*.24,tapZ=z-Math.cos(rotation)*.24;queueStaticInstance(tapGeometry,bathroomMetal,tapX,.55,tapZ,.025,.18,.025);}
+ const sx=.19,sz=.29;
+ queueStaticInstance(connectedSanitaryGeometry,ceramicMaterial,x,0,z,sx,1,sz,0,-rotation,0);
+ const place=(dx,dz)=>[x+Math.cos(rotation)*dx-Math.sin(rotation)*dz,z+Math.sin(rotation)*dx+Math.cos(rotation)*dz];
+ const fixtureBox=(w,h,d,mat,dx,y,dz)=>{const [px,pz]=place(dx,dz);const mesh=bathroomBox(w,h,d,mat,px,y,pz);mesh.rotation.y=-rotation;};
+ if(toilet){
+  queueStaticInstance(toiletSeatGeometry,applianceWhite,x,.413,z,sx,1,sz,0,-rotation,0);
+  fixtureBox(.34,.40,.18,ceramicMaterial,0,.59,-.23);
+  fixtureBox(.355,.025,.19,applianceWhite,0,.802,-.23);
+  fixtureBox(.075,.008,.04,bathroomMetal,0,.818,-.23);
+ }else{
+  const [deckX,deckZ]=place(0,-.19);
+  queueStaticInstance(sanitaryBodyGeometry,ceramicMaterial,deckX,.400,deckZ,.12,.032,.085,0,-rotation,0);
+  queueStaticInstance(tapGeometry,bathroomMetal,x,.264,z,.023,.004,.023);
+  const [tx,tz]=place(0,-.22);
+  queueStaticInstance(tapGeometry,bathroomMetal,tx,.491,tz,.017,.16,.017);
+  fixtureBox(.028,.024,.12,bathroomMetal,0,.567,-.172);
+  const [px,pz]=place(0,-.12);
+  queueStaticInstance(tapGeometry,bathroomMetal,px,.548,pz,.016,.035,.016);
+ }
 }
 // Bath 1: recessed tub, towel warmer, bidet, toilet and vanity.
 bathroomBox(.10,.55,1.90,ceramicMaterial,.12,.285,4.15);bathroomBox(.10,.55,1.90,ceramicMaterial,.81,.285,4.15);
@@ -309,13 +352,67 @@ queueStaticInstance(tapGeometry,bathroomMetal,.47,.91,3.27,.025,.64,.025);bathro
 for(const x of [.16,.76])bathroomBox(.035,1.08,.035,bathroomMetal,x,1.27,3.30);
 for(let i=0;i<6;i++)bathroomBox(.60,.025,.04,bathroomMetal,.46,.82+i*.18,3.30);
 addSanitary(1.42,3.62,0,false);addSanitary(2.12,3.62,0,true);
-bathroomBox(.86,.67,.42,applianceWhite,1.72,.345,4.87);bathroomBox(.90,.08,.46,ceramicMaterial,1.72,.72,4.87);
-queueStaticInstance(sanitaryRingGeometry,ceramicMaterial,1.72,.79,4.84,.30,.20,.04,Math.PI/2,0,0);
-bathroomBox(.82,.66,.025,bathroomMirror,1.72,1.34,5.055);
+// Bath 1 reference vanity: 120 x 48 cm, opposite the sanitary fixtures.
+const vanityOak=new THREE.MeshStandardMaterial({color:'#ba925b',roughness:.7});
+const vanityDark=new THREE.MeshStandardMaterial({color:'#393c38',roughness:.86});
+const vanityBlack=new THREE.MeshStandardMaterial({color:'#222725',roughness:.48});
+const vanityIvory=new THREE.MeshStandardMaterial({color:'#eee9d8',roughness:.24});
+const vanityTowel=new THREE.MeshStandardMaterial({color:'#a65b39',roughness:1});
+const vanityPrototype=new THREE.Group();bathroomFixtures.add(vanityPrototype);
+const vanityBox=(w,h,d,mat,x,y,z)=>box(w,h,d,mat,x,y,z,vanityPrototype);
+function vanityPart(geometry,material,x,y,z,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0){
+ const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.rotation.set(rx,ry,rz);mesh.castShadow=mesh.receiveShadow=true;vanityPrototype.add(mesh);
+}
+// Floating lower drawer and two open cubbies; clear shelf beneath the oak top.
+vanityBox(1.18,.045,.45,vanityDark,1.72,.20,4.85);
+vanityBox(1.18,.045,.45,vanityDark,1.72,.57,4.85);
+vanityBox(1.18,.35,.025,vanityDark,1.72,.385,5.06);
+for(const x of [1.14,1.94,2.12,2.30])vanityBox(.025,.35,.45,vanityDark,x,.385,4.85);
+vanityBox(.76,.32,.025,vanityDark,1.535,.385,4.615);
+vanityBox(1.20,.065,.48,vanityOak,1.72,.81,4.84);
+// Small rear supports keep the open shelf visually light.
+for(const x of [1.20,2.24])vanityBox(.035,.21,.035,vanityBlack,x,.69,5.04);
+vanityBox(.34,.055,.26,vanityTowel,1.36,.62,4.81);
+// Hollow oval vessel, dark exterior and ivory interior; shared low-resolution profiles.
+const vesselOuter=new THREE.LatheGeometry([
+ new THREE.Vector2(0,0),new THREE.Vector2(.70,0),new THREE.Vector2(.93,.20),
+ new THREE.Vector2(1,.65),new THREE.Vector2(.98,1),new THREE.Vector2(.94,1)
+],40);
+const vesselInner=new THREE.LatheGeometry([
+ new THREE.Vector2(.94,1),new THREE.Vector2(.93,.66),new THREE.Vector2(.78,.27),
+ new THREE.Vector2(0,.24)
+],40);
+vanityPart(vesselOuter,vanityBlack,1.72,.842,4.78,.30,.14,.195);
+vanityPart(vesselInner,vanityIvory,1.72,.842,4.78,.30,.14,.195);
+
+vanityPart(tapGeometry,vanityBlack,1.72,.985,5.025,.018,.285,.018);
+vanityBox(.035,.025,.22,vanityBlack,1.72,1.12,4.935);
+vanityPart(tapGeometry,vanityBlack,1.72,1.093,4.84,.017,.05,.017);
+// Side towel rail, kept inside the cabinet footprint.
+vanityBox(.22,.02,.025,vanityBlack,2.16,.765,4.595);
+vanityBox(.025,.065,.11,vanityBlack,2.26,.788,4.64);
+// 110 cm mirror, lower edge at 79 cm behind the oak top.
+// Circular mirror and soft blue halo: no extra shadow map or per-frame reflection pass.
+const mirrorHaloCanvas=document.createElement('canvas');mirrorHaloCanvas.width=mirrorHaloCanvas.height=128;
+const haloCtx=mirrorHaloCanvas.getContext('2d'),haloGradient=haloCtx.createRadialGradient(64,64,46,64,64,64);
+haloGradient.addColorStop(0,'rgba(105,185,255,.65)');haloGradient.addColorStop(.35,'rgba(105,185,255,.30)');haloGradient.addColorStop(1,'rgba(105,185,255,0)');
+haloCtx.fillStyle=haloGradient;haloCtx.fillRect(0,0,128,128);
+const haloMap=new THREE.CanvasTexture(mirrorHaloCanvas);haloMap.colorSpace=THREE.SRGBColorSpace;
+const mirrorHalo=new THREE.Mesh(new THREE.PlaneGeometry(1.39,1.39),new THREE.MeshBasicMaterial({map:haloMap,transparent:true,depthWrite:false}));
+mirrorHalo.position.set(1.72,1.34,5.097);mirrorHalo.rotation.y=Math.PI;vanityPrototype.add(mirrorHalo);
+const mirrorEdge=new THREE.Mesh(new THREE.CircleGeometry(.565,64),new THREE.MeshBasicMaterial({color:'#91d5ff'}));
+mirrorEdge.position.set(1.72,1.34,5.082);mirrorEdge.rotation.y=Math.PI;vanityPrototype.add(mirrorEdge);
+const roundMirror=new THREE.Mesh(new THREE.CircleGeometry(.55,64),bathroomMirror);
+roundMirror.position.set(1.72,1.34,5.076);roundMirror.rotation.y=Math.PI;vanityPrototype.add(roundMirror);
 // Bath 2: vanity to the north, sanitary ware on the east wall and glass shower.
-bathroomBox(.82,.67,.42,applianceWhite,6.66,.345,5.40);bathroomBox(.86,.08,.46,ceramicMaterial,6.66,.72,5.40);
-queueStaticInstance(sanitaryRingGeometry,ceramicMaterial,6.66,.79,5.43,.29,.20,.04,Math.PI/2,0,0);
-bathroomBox(.78,.64,.025,bathroomMirror,6.66,1.34,5.205);
+// Same vanity, rotated toward the room; 110 cm wide, unchanged 48 cm depth.
+const bath2Vanity=vanityPrototype.clone(true);
+const bath2WidthScale=1.10/1.20;
+bath2Vanity.scale.x=bath2WidthScale;bath2Vanity.rotation.y=Math.PI;
+bath2Vanity.position.set(6.66+1.72*bath2WidthScale,0,5.415+4.84);
+// Keep the mirror perfectly circular when narrowing the cabinet.
+for(const child of bath2Vanity.children)if(child.geometry===roundMirror.geometry||child.geometry===mirrorEdge.geometry||child.geometry===mirrorHalo.geometry)child.scale.x/=bath2WidthScale;
+bathroomFixtures.add(bath2Vanity);
 addSanitary(7.29,6.15,Math.PI/2,false);addSanitary(7.29,6.91,Math.PI/2,true);
 bathroomBox(.84,.09,.84,ceramicMaterial,6.16,.055,7.47);
 const showerGlass=new THREE.MeshPhysicalMaterial({color:'#c7e3eb',transparent:true,opacity:.26,roughness:.08,metalness:.05,depthWrite:false});
@@ -343,80 +440,107 @@ bedroomBox(1.35,.17,1.56,lilacBedding,bedroomWallInnerX+1.283,.59,3.05);
 bedroomBox(.42,.17,.66,wardrobeFrontMaterial,4.76,.60,2.65);bedroomBox(.42,.17,.66,wardrobeFrontMaterial,4.76,.60,3.45);
 bedroomBox(.18,.15,.42,lilacAccent,5.04,.71,2.65);bedroomBox(.18,.15,.42,lilacAccent,5.04,.71,3.45);
 for(const z of [1.96,4.14]){bedroomBox(.43,.47,.43,wardrobeMaterial,4.76,.245,z);bedroomBox(.45,.035,.45,wardrobeFrontMaterial,4.76,.50,z);}
+// Walnut fluted wall behind the unchanged headboard: texture relief, no slat meshes.
+const bedroomPanelCanvas=document.createElement('canvas');bedroomPanelCanvas.width=512;bedroomPanelCanvas.height=256;
+const panelCtx=bedroomPanelCanvas.getContext('2d');
+panelCtx.fillStyle='#624530';panelCtx.fillRect(0,0,512,256);
+for(let x=0;x<512;x++){
+ const groove=x%8,shade=groove<2?-.32:groove===2?.20:Math.sin(x*1.7)*.055;
+ panelCtx.fillStyle=`rgba(${shade>0?'225,184,134':'18,11,7'},${Math.abs(shade)})`;panelCtx.fillRect(x,0,1,256);
+ for(let y=0;y<256;y+=4){panelCtx.fillStyle=`rgba(20,12,7,${.035+.025*Math.sin(x*.5+y*.12)})`;panelCtx.fillRect(x,y,1,3);}
+}
+const bedroomPanelMap=new THREE.CanvasTexture(bedroomPanelCanvas);bedroomPanelMap.colorSpace=THREE.SRGBColorSpace;
+bedroomPanelMap.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+const bedroomPanelMaterial=new THREE.MeshStandardMaterial({map:bedroomPanelMap,bumpMap:bedroomPanelMap,bumpScale:.002,roughness:.78});
+bedroomBox(.024,1.68,3.30,bedroomPanelMaterial,bedroomWallInnerX+.012,.84,3.05);
+const bedsideLampMaterial=new THREE.MeshStandardMaterial({color:'#fff1ce',emissive:'#ffd49a',emissiveIntensity:.8,roughness:.5});
+const bedsideLights=[],bedsideHalos=[];
+const bedsideGlowCanvas=document.createElement('canvas');bedsideGlowCanvas.width=bedsideGlowCanvas.height=128;
+const bedsideCtx=bedsideGlowCanvas.getContext('2d'),bedsideGradient=bedsideCtx.createRadialGradient(64,64,5,64,64,64);
+bedsideGradient.addColorStop(0,'rgba(255,195,101,.65)');bedsideGradient.addColorStop(.4,'rgba(255,177,75,.24)');bedsideGradient.addColorStop(1,'rgba(255,165,65,0)');
+bedsideCtx.fillStyle=bedsideGradient;bedsideCtx.fillRect(0,0,128,128);
+const bedsideGlowMap=new THREE.CanvasTexture(bedsideGlowCanvas);bedsideGlowMap.colorSpace=THREE.SRGBColorSpace;
+const bedsideGlowMaterial=new THREE.MeshBasicMaterial({map:bedsideGlowMap,transparent:true,depthWrite:false});
+const bedsideGlowGeometry=new THREE.PlaneGeometry(.62,.82);
+for(const z of [1.96,4.14]){
+ bedroomBox(.07,.065,.34,vanityBlack,bedroomWallInnerX+.062,1.12,z);
+ bedroomBox(.012,.028,.30,bedsideLampMaterial,bedroomWallInnerX+.103,1.125,z);
+ const glow=new THREE.Mesh(bedsideGlowGeometry,bedsideGlowMaterial);glow.rotation.y=Math.PI/2;glow.position.set(bedroomWallInnerX+.027,1.12,z);bedroomFurniture.add(glow);bedsideHalos.push(glow);
+ const light=new THREE.PointLight('#ffd398',.45,1.5,2);light.position.set(bedroomWallInnerX+.20,1.14,z);light.userData.onIntensity=.45;bedsideLights.push(light);
+}
 
-// Dark-brown corner kitchen following the annotated P/L/F layout, with a
-// marble-clad island in front of it.
+
+// Measured double-corner kitchen: dimensions include fronts and worktops.
 const kitchenFurniture=new THREE.Group();model.add(kitchenFurniture);
 const kitchenBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,kitchenFurniture);
-const kitchenBrown=new THREE.MeshStandardMaterial({color:'#3b2b24',roughness:.82});
-const kitchenFront=new THREE.MeshStandardMaterial({color:'#4d372c',roughness:.78});
-const kitchenCounter=new THREE.MeshStandardMaterial({color:'#252321',roughness:.38,metalness:.08});
+const kitchenBrown=new THREE.MeshStandardMaterial({color:'#ad7841',roughness:.72});
+const kitchenFront=new THREE.MeshStandardMaterial({color:'#69675b',roughness:.8});
+const kitchenCounter=new THREE.MeshStandardMaterial({color:'#343633',roughness:.48});
 const kitchenSteel=new THREE.MeshStandardMaterial({color:'#aeb5b6',roughness:.28,metalness:.72});
-function makeMarbleTexture(){
- const c=document.createElement('canvas');c.width=c.height=512;const cx=c.getContext('2d');cx.fillStyle='#e9e5df';cx.fillRect(0,0,512,512);
- let seed=4417;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
- for(let i=0;i<18;i++){const y=rnd()*512;cx.beginPath();cx.moveTo(-20,y);for(let x=0;x<=540;x+=24)cx.lineTo(x,y+Math.sin(x*.018+i)*18+(rnd()-.5)*12);cx.strokeStyle=i%4?'rgba(104,100,96,.18)':'rgba(91,81,76,.30)';cx.lineWidth=.8+rnd()*2.2;cx.stroke();}
- const texture=new THREE.CanvasTexture(c);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(1.4,2.1);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();return texture;
+const diningFabric=new THREE.MeshStandardMaterial({color:'#85817c',roughness:1,side:THREE.DoubleSide});
+// All cabinets share their exact footprints with the movement system.
+for(const m of kitchenModules){
+ const {x,z,w,d,tall,face}=m,h=tall?2.30:.90;
+ kitchenBox(w-.012,h-.12,d-.012,kitchenFront,x,.12+(h-.12)/2,z);
+ kitchenBox(w-.08,.10,d-.08,furnitureBlack,x,.05,z);
+ if(!tall)kitchenBox(w,.035,d,kitchenCounter,x,.9175,z);
+ const front=(y,height,material=kitchenFront)=>face==='west'
+  ?kitchenBox(.018,height,d-.026,material,x-w/2+.009,y,z)
+  :kitchenBox(w-.026,height,.018,material,x,y,z+(face==='south'?1:-1)*(d/2-.009));
+ if(m.id==='oven'){
+  front(.36,.46);front(1.02,.57,screenMaterial);front(1.59,.38,screenMaterial);front(2.075,.42);
+  for(const y of [1.23,1.71])kitchenBox(w-.12,.025,.035,kitchenSteel,x,y,z-d/2-.005);
+ }else if(tall){front(.51,.75);front(1.64,1.26);}
+ else if(m.id==='window-return'){
+  for(let i=0;i<3;i++)for(const y of [.27,.53,.79])kitchenBox(w/3-.018,.235,.018,kitchenFront,x-w/3+i*w/3,y,z-d/2+.009);
+ }else if(m.id==='dishwasher'||m.id==='sink')front(.50,.75);
+ else for(const y of [.27,.53,.79])front(y,.235);
 }
-const marbleMaterial=new THREE.MeshStandardMaterial({color:'#f2efea',map:makeMarbleTexture(),roughness:.32});
-// Horizontal run (P): all bodies remain beyond the inner face of the entrance
-// wall, so neither base nor wall units can protrude outdoors.
-kitchenBox(1.85,.86,.60,kitchenBrown,8.57,.43,12.68);kitchenBox(1.91,.06,.64,kitchenCounter,8.57,.89,12.69);
-for(const x of [7.97,8.57,9.17])kitchenBox(.56,.70,.025,kitchenFront,x,.45,12.995);
-kitchenBox(.76,.025,.50,screenMaterial,8.18,.94,12.69);
-for(const [dx,dz,r] of [[-.18,-.12,.10],[.18,-.12,.10],[-.18,.13,.13],[.18,.13,.13]])queueStaticInstance(sanitaryRingGeometry,kitchenSteel,8.18+dx,.958,12.69+dz,r,r,.012,Math.PI/2,0,0);
-kitchenBox(.54,.49,.025,screenMaterial,8.18,.43,13.008);
-// Vertical run (L): a shallower, flush-mounted sink cabinet on the east wall.
-kitchenBox(.58,.86,1.12,kitchenBrown,9.24,.43,13.58);kitchenBox(.62,.06,1.16,kitchenCounter,9.22,.89,13.58);
-for(const z of [13.28,13.88])kitchenBox(.025,.70,.55,kitchenFront,8.938,.45,z);
-queueStaticInstance(sanitaryRingGeometry,kitchenSteel,9.18,.945,13.55,.22,.34,.035,Math.PI/2,0,0);
-queueStaticInstance(tapGeometry,kitchenSteel,9.45,1.12,13.55,.025,.42,.025);kitchenBox(.27,.035,.035,kitchenSteel,9.33,1.30,13.55);
-// The refrigerator is a distinct full-height block, separated from the sink
-// cabinetry by a visible shadow gap and aligned to the same inner wall face.
-kitchenBox(.62,2.15,.82,kitchenBrown,9.22,1.075,14.60);kitchenBox(.035,2.01,.76,kitchenFront,8.892,1.075,14.60);kitchenBox(.025,.78,.035,kitchenSteel,8.868,1.16,14.40);
-// Continuous overhead storage turns the corner above the sink and induction
-// hob. The lower units and range hood remain individually legible.
-kitchenBox(.82,.64,.32,kitchenBrown,8.07,1.78,12.55);
-for(const x of [7.87,8.27])kitchenBox(.37,.57,.025,kitchenFront,x,1.78,12.718);
-kitchenBox(.55,.26,.33,kitchenSteel,8.76,1.61,12.55);
-kitchenBox(.32,.62,1.02,kitchenBrown,9.35,1.77,13.52);
-for(const z of [13.28,13.76])kitchenBox(.025,.55,.45,kitchenFront,9.182,1.77,z);
-kitchenBox(1.52,.36,.32,kitchenBrown,8.41,2.40,12.55);
-// Two clean door fronts terminate before the turn; the solid corner carcass
-// closes the previously empty top-right rectangle without creating a third,
-// overlapping door.
-for(const x of [8.02,8.80])kitchenBox(.70,.30,.025,kitchenFront,x,2.40,12.718);
-kitchenBox(.35,.36,.32,kitchenBrown,9.345,2.40,12.55);
-kitchenBox(.60,.36,2.43,kitchenBrown,9.22,2.40,13.79);
-for(const z of [12.99,13.79,14.59])kitchenBox(.025,.30,.73,kitchenFront,8.908,2.40,z);
-// Marble island (I): the cabinet base is shifted away from the stools, leaving
-// a 39 cm knee recess beneath the unchanged worktop overhang.
-kitchenBox(.58,.86,1.36,marbleMaterial,6.64,.43,13.91);kitchenBox(.98,.08,1.62,marbleMaterial,6.45,.90,13.91);kitchenBox(.04,.66,1.18,kitchenBrown,6.91,.43,13.91);
-
-// Two high stools face the island. Their repeated circular details are
-// instanced, while the footrests share the existing box batch.
-const stoolSeatGeometry=new THREE.CylinderGeometry(1,1,1,16);
-for(const z of [13.45,14.37]){
- queueStaticInstance(stoolSeatGeometry,kitchenFront,6.08,.72,z,.21,.08,.21);
- queueStaticInstance(tapGeometry,furnitureBlack,6.08,.38,z,.045,.62,.045);
- queueStaticInstance(sanitaryRingGeometry,kitchenSteel,6.08,.26,z,.14,.14,.025,Math.PI/2,0,0);
- kitchenBox(.42,.035,.035,furnitureBlack,6.08,.08,z);kitchenBox(.035,.035,.42,furnitureBlack,6.08,.08,z);
+// Induction hob and integrated hood, on the existing partition.
+kitchenBox(.72,.018,.48,screenMaterial,8.10,.947,12.675);
+for(const [dx,dz,r] of [[-.18,-.12,.10],[.18,-.12,.10],[-.18,.12,.12],[.18,.12,.12]])queueStaticInstance(sanitaryRingGeometry,kitchenSteel,8.10+dx,.959,12.675+dz,r,r,.005,Math.PI/2,0,0);
+// Sink inset: dark basin with a narrow metal rim, drainer alongside.
+kitchenBox(.43,.009,.49,kitchenSteel,9.23,.938,13.34);
+kitchenBox(.38,.012,.44,screenMaterial,9.23,.946,13.34);
+for(let i=0;i<6;i++)kitchenBox(.36,.004,.008,kitchenSteel,9.23,.94,13.69+i*.035);
+queueStaticInstance(tapGeometry,kitchenSteel,9.44,1.10,13.36,.018,.32,.018);
+kitchenBox(.22,.025,.025,kitchenSteel,9.34,1.25,13.36);
+queueStaticInstance(tapGeometry,kitchenSteel,9.24,1.22,13.36,.018,.065,.018);
+// Oak backsplash and matte upper cabinets: nothing on the window wall.
+kitchenBox(1.86,.53,.018,kitchenBrown,8.60,1.20,12.395);
+kitchenBox(.018,.53,1.40,kitchenBrown,9.515,1.20,13.69);
+for(const x of [7.96,8.56,9.16]){
+ kitchenBox(.584,.78,.32,kitchenFront,x,1.93,12.55);
+ kitchenBox(.54,.014,.26,kitchenSteel,x,1.53,12.56);
 }
-
-// Four-seat dining table from the annotated plan, with a lilac tablecloth and
-// chairs whose dark wood matches the kitchen cabinetry.
+kitchenBox(.32,.78,.66,kitchenBrown,9.36,1.93,13.36);
+kitchenBox(.32,.78,.66,kitchenBrown,9.36,1.93,14.05);
+kitchenBox(.64,.04,.28,kitchenSteel,8.10,1.515,12.55);
+// Round dark stone table, sculptural crossed pedestal and upholstered shell chairs.
 const diningFurniture=new THREE.Group();model.add(diningFurniture);
 const diningBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,diningFurniture);
-const diningX=4.36,diningZ=13.72;
-diningBox(.88,.10,1.42,kitchenBrown,diningX,.74,diningZ);
-diningBox(.96,.035,1.50,lilacBedding,diningX,.805,diningZ);
-diningBox(.035,.27,1.46,lilacBedding,diningX-.463,.66,diningZ);diningBox(.035,.27,1.46,lilacBedding,diningX+.463,.66,diningZ);
-diningBox(.92,.27,.035,lilacBedding,diningX,.66,diningZ-.733);diningBox(.92,.27,.035,lilacBedding,diningX,.66,diningZ+.733);
-for(const x of [diningX-.36,diningX+.36])for(const z of [diningZ-.62,diningZ+.62])diningBox(.055,.70,.055,kitchenBrown,x,.36,z);
-for(const x of [3.92,4.80])for(const z of [13.34,14.10]){
- diningBox(.42,.08,.42,kitchenFront,x,.46,z);
- const outer=x<diningX?x-.19:x+.19;diningBox(.08,.68,.46,kitchenBrown,outer,.73,z);
- for(const dx of [-.16,.16])for(const dz of [-.16,.16])diningBox(.045,.43,.045,kitchenBrown,x+dx,.225,z+dz);
+const stoneCanvas=document.createElement('canvas');stoneCanvas.width=stoneCanvas.height=512;
+const stoneCtx=stoneCanvas.getContext('2d');stoneCtx.fillStyle='#373a39';stoneCtx.fillRect(0,0,512,512);
+for(let i=0;i<14;i++){stoneCtx.beginPath();for(let j=0;j<=32;j++){const x=j*16,y=i*47+Math.sin(j*.47+i)*14-j*3; j?stoneCtx.lineTo(x,y):stoneCtx.moveTo(x,y);}stoneCtx.strokeStyle='rgba(214,211,199,.24)';stoneCtx.lineWidth=i%3?.7:1.3;stoneCtx.stroke();}
+const stoneMap=new THREE.CanvasTexture(stoneCanvas);stoneMap.colorSpace=THREE.SRGBColorSpace;
+const diningStone=new THREE.MeshStandardMaterial({map:stoneMap,roughness:.48});
+const roundGeometry=new THREE.CylinderGeometry(1,1,1,48);
+queueStaticInstance(roundGeometry,diningStone,diningLayout.x,.76,diningLayout.z,.60,.045,.60);
+queueStaticInstance(roundGeometry,furnitureBlack,diningLayout.x,.725,diningLayout.z,.575,.028,.575);
+for(const angle of [-.62,.62]){
+ const leg=new THREE.Mesh(new THREE.BoxGeometry(.14,.70,.68),furnitureBlack);
+ leg.position.set(diningLayout.x,.36,diningLayout.z);leg.rotation.z=angle;leg.castShadow=leg.receiveShadow=true;diningFurniture.add(leg);
+}
+const seatGeometry=new THREE.SphereGeometry(1,20,12);
+const shellGeometry=new THREE.CylinderGeometry(.285,.255,.40,24,1,true,Math.PI/2,Math.PI);
+for(const chair of diningChairs){
+ const {x,z,angle}=chair;
+ queueStaticInstance(seatGeometry,diningFabric,x,.48,z,.27,.075,.255,0,angle,0);
+ queueStaticInstance(shellGeometry,diningFabric,x,.68,z,1,1,1,0,angle,0);
+ for(const side of [-1,1])for(const end of [-1,1]){
+  const dx=side*.19,dz=end*.17;
+  queueStaticInstance(tapGeometry,furnitureBlack,x+Math.cos(angle)*dx+Math.sin(angle)*dz,.235,z-Math.sin(angle)*dx+Math.cos(angle)*dz,.024,.44,.024,0,angle,side*-.10);
+ }
 }
 
 // Floor-to-ceiling built-in storage fills the dead end of the hall between the
@@ -450,7 +574,7 @@ for(const station of deskStations){
 }
 
 const bathroomFixtureCount=bathroomFixtures.children.length,bedroomObjectCount=bedroomFurniture.children.length,kitchenObjectCount=kitchenFurniture.children.length,diningObjectCount=diningFurniture.children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
-applyMaterialDetails({fabric:[sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[outdoorWoodMaterial,deskWood,kitchenBrown,kitchenFront],metal:[bathroomMetal,kitchenSteel,laptopSilver,applianceTrim],glass:[glass,showerGlass]},renderer);
+applyMaterialDetails({upholstery:[sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],fabric:[vanityTowel,diningFabric,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,laptopSilver,applianceTrim],glass:[glass,showerGlass]},renderer);
 const assetInstanceStats=flushStaticInstances();
 
 // Most architectural details and furniture share the same cube geometry. Batch
@@ -489,6 +613,7 @@ sunlight.shadow.bias=-.00008;sunlight.shadow.normalBias=.012;
 scene.add(sunlight,sunlight.target);
 // Low-cost fill approximates indirect bounce, without washing out window light.
 const interiorLights=new THREE.Group();scene.add(interiorLights);
+interiorLights.add(...bedsideLights);
 for(const r of rooms){if(r.id==='terrace')continue;const [x,z]=point(r.at);const light=new THREE.PointLight('#fff7eb',1.8,8,2);light.position.set(x,2.3,z);interiorLights.add(light);}
 const sunDateInput=$('#sun-date'),sunTimeInput=$('#sun-time'),sunStatus=$('#sun-status');
 sunDateInput.value=romeDate();
@@ -510,7 +635,7 @@ function updateDaylight(){
  renderer.shadowMap.needsUpdate=true;renderState.invalidate();
 }
 sunDateInput.oninput=sunTimeInput.oninput=()=>{solarPending=true;};
-$('#interior-lights').onchange=e=>{for(const light of interiorLights.children)light.intensity=e.target.checked?1.8:0;renderState.invalidate();};
+$('#interior-lights').onchange=e=>{for(const light of interiorLights.children)light.intensity=e.target.checked?(light.userData.onIntensity??1.8):0;bedsideLampMaterial.emissiveIntensity=e.target.checked?.8:0;for(const halo of bedsideHalos)halo.visible=e.target.checked;renderState.invalidate();};
 const grassTexture=makeGrassTexture();
 const grassMaterial=new THREE.MeshStandardMaterial({color:'#f2f8ec',map:grassTexture,bumpMap:grassTexture,bumpScale:.002,roughness:1});
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),grassMaterial);ground.rotation.x=-Math.PI/2;ground.position.y=GROUND_Y;ground.receiveShadow=true;scene.add(ground);

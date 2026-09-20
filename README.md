@@ -64,3 +64,8 @@ Il sole mantiene una direzione fissa nel mondo: sinistra e parte alta della pian
 - Interruttore per accendere/spegnere il riempimento delle luci interne. Di notte il contributo diretto del sole è nullo. Le ombre vengono aggiornate solo cambiando sole o modalità, mantenendo il riposo a camera ferma.
 
 Nuovi controlli automatici: `node tests/furniture-collisions.mjs` e `node tests/solar.mjs`.
+
+
+### Cucina a doppio angolo — 20 settembre 2026
+
+Sostituiti cucina, isola con sgabelli e tavolo con tovaglia. Nuove basi cottura e lavaggio profonde 60 cm, ritorno sotto finestra profondo 45 cm e alto 93,5 cm incluso top (davanzale a 100 cm). Nessun pensile sulla parete della finestra; frigorifero e colonna forno/microonde al suo fianco. Lavastoviglie integrata affiancata al lavello. Finiture opache grigio oliva, rovere e top antracite; tavolo tondo da 120 cm con quattro sedie imbottite. Ingombri condivisi tra modello e collisioni in `dist/kitchen-layout.js`; architettura invariata. Passaggio tra basi contrapposte circa 149 cm. Il modello rappresenta mobili chiusi: non simula l'ingombro di ante e cassetti aperti.

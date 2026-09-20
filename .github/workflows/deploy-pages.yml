@@ -35,6 +35,7 @@ jobs:
           node --check dist/movement.js
           node --check dist/render-state.js
           node --check dist/furniture-collisions.js
+          node --check dist/kitchen-layout.js
           node --check dist/material-details.js
           node --check dist/solar.js
           node --check dist/vendor/suncalc.js
