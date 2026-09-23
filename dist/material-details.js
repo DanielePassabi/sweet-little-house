@@ -25,3 +25,29 @@ export function applyMaterialDetails(materials,renderer){
  for(const m of materials.metal){m.roughnessMap=brushed;m.roughness=.42;m.bumpMap=brushed;m.bumpScale=.00012;}
  for(const m of materials.glass){m.color.set('#dce9eb');m.opacity=.14;m.roughness=.07;m.metalness=0;}
 }
+
+// Kitchen-only, seeded colour detail; no geometry or external texture downloads.
+export function applyKitchenMaterials({wood,stone,front},renderer){
+ let seed=93477;const rnd=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
+ const hash=(x,y)=>{let n=Math.imul(x,374761393)^Math.imul(y,668265263);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295;};
+ const noise=(x,y)=>{const ix=Math.floor(x),iy=Math.floor(y);let u=x-ix,v=y-iy;u=u*u*(3-2*u);v=v*v*(3-2*v);return (hash(ix,iy)*(1-u)+hash(ix+1,iy)*u)*(1-v)+(hash(ix,iy+1)*(1-u)+hash(ix+1,iy+1)*u)*v;};
+ function map(kind){
+  const c=document.createElement('canvas');c.width=c.height=512;const ctx=c.getContext('2d'),data=ctx.createImageData(512,512);
+  for(let y=0;y<512;y++)for(let x=0;x<512;x++){
+   const i=(y*512+x)*4;
+   if(kind==='wood'){
+    const wave=y+3*Math.sin(x*.014)+1.5*Math.sin(x*.039+y*.009);
+    const grain=7*Math.sin(wave*.65)+3*Math.sin(wave*2.3)+4*Math.sin(y*.04)+rnd()*5;
+    data.data[i]=201+grain;data.data[i+1]=169+grain;data.data[i+2]=126+grain;
+   }else{
+    const cloud=14*(noise(x/73,y/73)-.5)+8*(noise(x/21,y/21)-.5)+4*(noise(x/6,y/6)-.5)+rnd()*4;
+    data.data[i]=109+cloud;data.data[i+1]=103+cloud;data.data[i+2]=94+cloud;
+   }
+   data.data[i+3]=255;
+  }
+  ctx.putImageData(data,0,0);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());return t;
+ }
+ wood.map=map('wood');wood.color.set('#ffffff');wood.bumpMap=wood.map;wood.bumpScale=.0006;wood.roughness=.78;
+ stone.map=map('stone');stone.color.set('#ffffff');stone.bumpMap=stone.map;stone.bumpScale=.00035;stone.roughness=.82;stone.metalness=0;
+ front.roughness=1;front.metalness=0;
+}

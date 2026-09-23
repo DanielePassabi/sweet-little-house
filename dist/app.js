@@ -9,9 +9,9 @@ import { createMovement, DEFAULT_EYE_HEIGHT, movementCodes } from './movement.js
 
 import { createRenderState, freezeStaticTransforms, indexStaticSurface } from './render-state.js?v=20260916-3';
 
-import {kitchenModules,diningLayout,diningChairs} from './kitchen-layout.js?v=20260920-2';
-import {canWalk,furnitureColliders,safeRoomPosition} from './furniture-collisions.js?v=20260920-7';
-import {applyMaterialDetails} from './material-details.js?v=20260920-8';
+import {kitchenModules,diningLayout,diningChairs,peninsula,peninsulaStools} from './kitchen-layout.js?v=20260923-4';
+import {canWalk,furnitureColliders,safeRoomPosition} from './furniture-collisions.js?v=20260923-4';
+import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20260923-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
 const renderState=createRenderState();
@@ -473,49 +473,82 @@ for(const z of [1.96,4.14]){
 // Measured double-corner kitchen: dimensions include fronts and worktops.
 const kitchenFurniture=new THREE.Group();model.add(kitchenFurniture);
 const kitchenBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,kitchenFurniture);
-const kitchenBrown=new THREE.MeshStandardMaterial({color:'#ad7841',roughness:.72});
-const kitchenFront=new THREE.MeshStandardMaterial({color:'#69675b',roughness:.8});
-const kitchenCounter=new THREE.MeshStandardMaterial({color:'#343633',roughness:.48});
+const kitchenBrown=new THREE.MeshStandardMaterial({color:'#c4a178',roughness:.74});
+const kitchenFront=new THREE.MeshStandardMaterial({color:'#dad4c8',roughness:.88});
+const kitchenCounter=new THREE.MeshStandardMaterial({color:'#49423a',roughness:.72});
 const kitchenSteel=new THREE.MeshStandardMaterial({color:'#aeb5b6',roughness:.28,metalness:.72});
 const diningFabric=new THREE.MeshStandardMaterial({color:'#85817c',roughness:1,side:THREE.DoubleSide});
 // All cabinets share their exact footprints with the movement system.
 for(const m of kitchenModules){
  const {x,z,w,d,tall,face}=m,h=tall?2.30:.90;
- kitchenBox(w-.012,h-.12,d-.012,kitchenFront,x,.12+(h-.12)/2,z);
+ if(['sink','dishwasher'].includes(m.id)){
+  // Open carcass: no solid block intersecting the inset bowls.
+  kitchenBox(w-.012,.035,d-.012,kitchenFront,x,.15,z);
+  kitchenBox(.018,.72,d-.012,kitchenFront,x+w/2-.015,.51,z);
+  // Only outer end panels; the two bowls straddle the internal module boundary.
+  const endZ=m.id==='sink'?z-d/2+.015:z+d/2-.015;
+  kitchenBox(w-.012,.72,.018,kitchenFront,x,.51,endZ);
+ }else kitchenBox(w-.012,h-.12,d-.012,kitchenFront,x,.12+(h-.12)/2,z);
  kitchenBox(w-.08,.10,d-.08,furnitureBlack,x,.05,z);
- if(!tall)kitchenBox(w,.035,d,kitchenCounter,x,.9175,z);
+ if(!tall&&!['sink','dishwasher'].includes(m.id))kitchenBox(w,.035,d,kitchenCounter,x,.9175,z);
  const front=(y,height,material=kitchenFront)=>face==='west'
   ?kitchenBox(.018,height,d-.026,material,x-w/2+.009,y,z)
   :kitchenBox(w-.026,height,.018,material,x,y,z+(face==='south'?1:-1)*(d/2-.009));
- if(m.id==='oven'){
+ if(m.id==='hob'){
+  front(.22,.15);
+  kitchenBox(.60,.52,.019,screenMaterial,x,.57,z-d/2+.0095);
+  kitchenBox(.57,.025,.032,kitchenSteel,x,.77,z-d/2+.016);
+ }else if(m.id==='oven'){
   front(.36,.46);front(1.02,.57,screenMaterial);front(1.59,.38,screenMaterial);front(2.075,.42);
   for(const y of [1.23,1.71])kitchenBox(w-.12,.025,.035,kitchenSteel,x,y,z-d/2-.005);
- }else if(tall){front(.51,.75);front(1.64,1.26);}
+ }else if(tall){front(.51,.75,kitchenBrown);front(1.64,1.26,kitchenBrown);}
  else if(m.id==='window-return'){
-  for(let i=0;i<3;i++)for(const y of [.27,.53,.79])kitchenBox(w/3-.018,.235,.018,kitchenFront,x-w/3+i*w/3,y,z-d/2+.009);
+  for(let i=0;i<2;i++)for(const y of [.27,.53,.79])kitchenBox(w/2-.018,.235,.018,kitchenFront,x-w/4+i*w/2,y,z-d/2+.009);
  }else if(m.id==='dishwasher'||m.id==='sink')front(.50,.75);
  else for(const y of [.27,.53,.79])front(y,.235);
 }
-// Induction hob and integrated hood, on the existing partition.
-kitchenBox(.72,.018,.48,screenMaterial,8.10,.947,12.675);
-for(const [dx,dz,r] of [[-.18,-.12,.10],[.18,-.12,.10],[-.18,.12,.12],[.18,.12,.12]])queueStaticInstance(sanitaryRingGeometry,kitchenSteel,8.10+dx,.959,12.675+dz,r,r,.005,Math.PI/2,0,0);
-// Sink inset: dark basin with a narrow metal rim, drainer alongside.
-kitchenBox(.43,.009,.49,kitchenSteel,9.23,.938,13.34);
-kitchenBox(.38,.012,.44,screenMaterial,9.23,.946,13.34);
-for(let i=0;i<6;i++)kitchenBox(.36,.004,.008,kitchenSteel,9.23,.94,13.69+i*.035);
-queueStaticInstance(tapGeometry,kitchenSteel,9.44,1.10,13.36,.018,.32,.018);
-kitchenBox(.22,.025,.025,kitchenSteel,9.34,1.25,13.36);
-queueStaticInstance(tapGeometry,kitchenSteel,9.24,1.22,13.36,.018,.065,.018);
-// Oak backsplash and matte upper cabinets: nothing on the window wall.
-kitchenBox(1.86,.53,.018,kitchenBrown,8.60,1.20,12.395);
-kitchenBox(.018,.53,1.40,kitchenBrown,9.515,1.20,13.69);
-for(const x of [7.96,8.56,9.16]){
- kitchenBox(.584,.78,.32,kitchenFront,x,1.93,12.55);
- kitchenBox(.54,.014,.26,kitchenSteel,x,1.53,12.56);
+// Cooking on the solid wall section, oven below; downdraft slot keeps the view open.
+const hobModule=kitchenModules.find(m=>m.id==='hob');
+kitchenBox(.72,.018,.48,screenMaterial,hobModule.x,.947,hobModule.z);
+for(const [dx,dz,r] of [[-.18,-.12,.10],[.18,-.12,.10],[-.18,.12,.12],[.18,.12,.12]])queueStaticInstance(sanitaryRingGeometry,kitchenSteel,hobModule.x+dx,.959,hobModule.z+dz,r,r,.004,Math.PI/2,0,0);
+kitchenBox(.48,.008,.035,furnitureBlack,hobModule.x,.959,hobModule.z+.20);
+// Each basin is centered over one of the full-door cabinets; the drawer worktop is uncut.
+const sinkBowlMaterial=new THREE.MeshStandardMaterial({color:'#69777a',roughness:.33,metalness:.65});
+const sinkBowlGeometry=new THREE.LatheGeometry([[1.035,.006],[1,0],[.86,-.10],[.65,-.15],[0,-.15]].map(([r,y])=>new THREE.Vector2(r,y)),36);
+// Split worktop around the openings, so the basin interiors are not covered by a slab.
+for(const x of [8.9875,9.4825])kitchenBox(.105,.035,1.20,kitchenCounter,x,.9175,13.575);
+for(const [start,end] of [[12.975,13.075],[13.475,13.675],[14.075,14.175]])kitchenBox(.39,.035,end-start,kitchenCounter,9.235,.9175,(start+end)/2);
+const sinkTopShape=new THREE.Shape();sinkTopShape.moveTo(-.30,-.60);sinkTopShape.lineTo(.30,-.60);sinkTopShape.lineTo(.30,.60);sinkTopShape.lineTo(-.30,.60);sinkTopShape.closePath();
+for(const z of [13.275,13.875]){const hole=new THREE.Path();hole.absellipse(0,13.575-z,.195,.20,0,Math.PI*2,true);sinkTopShape.holes.push(hole);}
+const sinkTop=new THREE.Mesh(new THREE.ShapeGeometry(sinkTopShape,36),kitchenCounter);sinkTop.rotation.x=-Math.PI/2;sinkTop.position.set(9.235,.9355,13.575);sinkTop.castShadow=sinkTop.receiveShadow=true;kitchenFurniture.add(sinkTop);
+for(const z of [13.275,13.875]){
+ queueStaticInstance(sinkBowlGeometry,sinkBowlMaterial,9.235,.937,z,.195,1,.20);
+ queueStaticInstance(tapGeometry,kitchenSteel,9.235,.791,z,.028,.006,.028);
 }
-kitchenBox(.32,.78,.66,kitchenBrown,9.36,1.93,13.36);
-kitchenBox(.32,.78,.66,kitchenBrown,9.36,1.93,14.05);
-kitchenBox(.64,.04,.28,kitchenSteel,8.10,1.515,12.55);
+queueStaticInstance(tapGeometry,kitchenSteel,9.46,1.10,13.575,.018,.32,.018);
+kitchenBox(.25,.025,.025,kitchenSteel,9.345,1.25,13.575);
+queueStaticInstance(tapGeometry,kitchenSteel,9.23,1.22,13.575,.018,.065,.018);
+// Three 60 cm deep wall cabinets; recessed carcasses keep doors off coplanar surfaces.
+for(const z of [12.675,13.275,13.875]){
+ kitchenBox(.578,.80,.596,kitchenBrown,9.246,2.00,z);
+ kitchenBox(.018,.772,.574,kitchenFront,8.944,2.00,z);
+ // Handleless fronts, separated from the carcass by a 4 mm shadow gap.
+}
+// No wall units over either window. Warm wood fronts on the solid-wall refrigerator.
+
+// Stone splash protection on the solid cooking and sink walls only.
+kitchenBox(.90,.48,.018,kitchenCounter,hobModule.x,1.19,14.905);
+kitchenBox(.018,.665,2.544,kitchenCounter,9.519,1.2675,13.647);
+// Open-ended dining peninsula, 60 cm wide, with knee space and four tucked stools.
+kitchenBox(peninsula.w,.055,peninsula.d,kitchenBrown,peninsula.x,.9075,peninsula.z);
+kitchenBox(.045,.87,.045,furnitureBlack,peninsula.x,.435,peninsula.z-peninsula.d/2+.045);
+const barRoundGeometry=new THREE.CylinderGeometry(1,1,1,32);
+for(const {x,z} of peninsulaStools){
+ queueStaticInstance(barRoundGeometry,diningFabric,x,.64,z,.22,.07,.22);
+ queueStaticInstance(tapGeometry,furnitureBlack,x,.32,z,.026,.60,.026);
+ queueStaticInstance(barRoundGeometry,furnitureBlack,x,.025,z,.18,.04,.18);
+ queueStaticInstance(sanitaryRingGeometry,kitchenSteel,x,.23,z,.14,.14,.012,Math.PI/2,0,0);
+}
 // Round dark stone table, sculptural crossed pedestal and upholstered shell chairs.
 const diningFurniture=new THREE.Group();model.add(diningFurniture);
 const diningBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,diningFurniture);
@@ -593,6 +626,7 @@ function batchStaticBoxes(root=model){
  }
  return {boxes:boxes.length,batches:groups.size};
 }
+applyKitchenMaterials({wood:kitchenBrown,stone:kitchenCounter,front:kitchenFront},renderer);
 const batchedBoxes=batchStaticBoxes();
 
 const roof=polygonMesh(footprint,new THREE.MeshStandardMaterial({color:'#faf9f3',side:THREE.DoubleSide,roughness:1}),HEIGHT);

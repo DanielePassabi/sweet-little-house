@@ -69,3 +69,8 @@ Nuovi controlli automatici: `node tests/furniture-collisions.mjs` e `node tests/
 ### Cucina a doppio angolo — 20 settembre 2026
 
 Sostituiti cucina, isola con sgabelli e tavolo con tovaglia. Nuove basi cottura e lavaggio profonde 60 cm, ritorno sotto finestra profondo 45 cm e alto 93,5 cm incluso top (davanzale a 100 cm). Nessun pensile sulla parete della finestra; frigorifero e colonna forno/microonde al suo fianco. Lavastoviglie integrata affiancata al lavello. Finiture opache grigio oliva, rovere e top antracite; tavolo tondo da 120 cm con quattro sedie imbottite. Ingombri condivisi tra modello e collisioni in `dist/kitchen-layout.js`; architettura invariata. Passaggio tra basi contrapposte circa 149 cm. Il modello rappresenta mobili chiusi: non simula l'ingombro di ante e cassetti aperti.
+
+
+### Cucina con penisola — 23 settembre 2026
+
+Layout aggiornato: eliminato il precedente tratto cottura in alto. Lavello e lavastoviglie conservano le posizioni; cottura con forno sottostante sul tratto basso, frigorifero sul muro pieno, basi da 60 cm sotto la finestra destra senza pensili o colonne. Ritorno a penisola largo 60 cm, con piano in rovere, spazio per le gambe e quattro sgabelli. Tavolo tondo spostato in alto a sinistra conservando i collegamenti tra ambienti. Profondità di tutti i moduli pari a 60 cm (lunghezza e larghezza delle ante possono differire). Frontali chiari opachi, rovere e pietra con texture condivise procedurali. Il piano cottura rappresenta un modello con aspirazione integrata; gli impianti non sono simulati.
