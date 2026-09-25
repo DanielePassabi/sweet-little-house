@@ -9,7 +9,9 @@ assert.equal(intersects(box,1.1,1.1,.18),true);
 assert.equal(canWalk(3.5,14.2),true,'Free space beside dining table must not be blocked');
 assert.equal(canWalk(4.35,13.10),false,'Round table remains solid');
 assert.equal(canWalk(4.80,11.60),true,'Previous dining location is free');
-assert.equal(canWalk(1.16,5.68),false,'Chair remains solid');
+assert.equal(canWalk(1.6,5.68),true,'Former desk location is clear');
+assert.equal(canWalk(.60,7.40),false,'Relocated desk chair is solid');
+assert.equal(canWalk(.64,5.83),false,'Reading chair is solid');
 for(const room of rooms)assert.ok(canWalk(...safeRoomPosition(room)),`${room.id} spawn`);
 // Compare the bucketed broad phase with a complete scan across the whole house.
 for(let x=-.2;x<10;x+=.13)for(let z=-.2;z<16;z+=.13){
@@ -36,3 +38,8 @@ for(const m of kitchenModules.filter(m=>m.tall))assert.ok(m.x+m.w/2<windowStart|
 assert.ok(seen.has(key(8.4,13.7)),'Working aisle must be accessible');
 for(const c of diningChairs)assert.ok(!kitchenColliders.some(k=>intersects(k,c.x,c.z,.29)),'Chairs must clear cabinets');
 console.log('PASS: kitchen depths, unobstructed window, chair clearance and accessible working aisle.');
+
+assert.ok(seen.has(key(.43,4.14)),'Shower interior reachable through central entrance');
+assert.equal(canWalk(.80,3.55),false,'Fixed shower glass blocks walking');
+assert.equal(canWalk(.80,4.14),true,'Central shower entrance remains clear');
+console.log('PASS: shower glass collision and accessible central entry.');

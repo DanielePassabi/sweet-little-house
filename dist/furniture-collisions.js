@@ -10,23 +10,28 @@ export const furnitureColliders=[
  {minX:.86,maxX:1.62,minZ:8.56,maxZ:9.10},
  {minX:1.70,maxX:2.45,minZ:8.56,maxZ:9.26},
  {minX:-.08,maxX:2.60,minZ:14.05,maxZ:14.88},
- {minX:.02,maxX:.91,minZ:3.15,maxZ:5.15},
+ // Shower glass leaves slide toward the ends; the central entrance stays open.
+ {minX:.754,maxX:.827,minZ:3.1704,maxZ:3.7604},
+ {minX:.754,maxX:.827,minZ:4.5204,maxZ:5.1104},
  {minX:1.12,maxX:2.32,minZ:4.58,maxZ:5.08},
  {minX:6.11,maxX:7.21,minZ:5.175,maxZ:5.675},
  {minX:5.70,maxX:6.62,minZ:7.00,maxZ:7.91},
  {minX:4.34,maxX:6.35,minZ:2.12,maxZ:3.98},
  {minX:7.02,maxX:7.62,minZ:1.02,maxZ:5.04},
- {minX:5.00,maxX:5.63,minZ:6.63,maxZ:7.97},
+ {minX:point([529,632])[0]-.06-.55,maxX:point([529,632])[0]-.06,minZ:point([529,632])[1]+.06,maxZ:point([529,742])[1]-.06},
 ];
 furnitureColliders.push(...kitchenColliders,...diningColliders);
 furnitureColliders.push(rect(6.37,7.49,8.095,10.5),rect(5.635,7.06,8.105,8.855));
+furnitureColliders.push(circle(5.72,9.55,.30));
 furnitureColliders.push(circle(1.275,12.25,.425));
 for(const z of [11.76,12.74])furnitureColliders.push(circle(1.275,z,.275));
 for(const [x,z,r] of [[3.47,8.34,.24*.86],[.18,10.83,.24]])furnitureColliders.push(circle(x,z,r));
-for(const z of [5.68,7.72]){
- furnitureColliders.push(rect(.01,.65,z-.51,z+.51));
- furnitureColliders.push(rect(.92,1.536,z-.32,z+.32));
+for(const x of [.60,2.36]){
+ furnitureColliders.push(rect(x-.51,x+.51,7.56,8.20));
+ furnitureColliders.push(rect(x-.32,x+.32,7.04,7.67));
 }
+const readingChairPoints=[[-.40,-.45],[.40,-.45],[.40,.39],[-.40,.39]].map(([x,z])=>[.64+Math.cos(Math.PI/3)*x+Math.sin(Math.PI/3)*z,5.83-Math.sin(Math.PI/3)*x+Math.cos(Math.PI/3)*z]);
+furnitureColliders.push({points:readingChairPoints,minX:Math.min(...readingChairPoints.map(p=>p[0])),maxX:Math.max(...readingChairPoints.map(p=>p[0])),minZ:Math.min(...readingChairPoints.map(p=>p[1])),maxZ:Math.max(...readingChairPoints.map(p=>p[1]))});
 for(const z of [1.96,4.14])furnitureColliders.push(rect(4.535,4.985,z-.225,z+.225));
 furnitureColliders.push(rect(.11,.69,8.565,8.815));
 // Elliptical sanitary rims, represented by a convex perimeter, including tanks.

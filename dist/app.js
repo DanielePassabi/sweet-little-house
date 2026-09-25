@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { point, SCALE, HEIGHT, rooms, nightRoomIds, nightFloorPolygon, walls, railings, footprint, insidePolygon, canStand, collisionWalls } from './model.js?v=20260915-1';
+import { point, SCALE, HEIGHT, rooms, nightRoomIds, walls, railings, footprint, insidePolygon, canStand, collisionWalls } from './model.js?v=20260915-1';
 import { wallVolumes, unionSurface } from './wall-geometry.js?v=20260915-1';
 
 import { createLandscape } from './landscape.js?v=20260915-3';
@@ -10,7 +10,7 @@ import { createMovement, DEFAULT_EYE_HEIGHT, movementCodes } from './movement.js
 import { createRenderState, freezeStaticTransforms, indexStaticSurface } from './render-state.js?v=20260916-3';
 
 import {kitchenModules,diningLayout,diningChairs,peninsula,peninsulaStools} from './kitchen-layout.js?v=20260923-4';
-import {canWalk,furnitureColliders,safeRoomPosition} from './furniture-collisions.js?v=20260923-4';
+import {canWalk,furnitureColliders,safeRoomPosition} from './furniture-collisions.js?v=20260925-7';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20260923-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -51,7 +51,7 @@ const glass=new THREE.MeshPhysicalMaterial({color:'#c3dfed',transparent:true,opa
 const doorMaterial=new THREE.MeshStandardMaterial({color:'#d2c6b4',roughness:.75});
 const GROUND_Y=-.20;
 let tileSize=.6;
-const floorMaterial=new THREE.MeshStandardMaterial({color:'#e5e4df',roughness:.88});
+const floorMaterial=new THREE.MeshStandardMaterial({color:'#b8b9b5',roughness:.92});
 
 function makeTileTexture(){
  const c=document.createElement('canvas');c.width=c.height=512;const cx=c.getContext('2d');
@@ -81,7 +81,7 @@ function makeParquetTexture(){
    }
   }
  }
- const texture=new THREE.CanvasTexture(c);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(1/3.2,1/3.2);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();return texture;
+ const texture=new THREE.CanvasTexture(c);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(1/2.7,1/2.7);texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();return texture;
 }
 function makeGrassTexture(){
  const size=768,c=document.createElement('canvas');c.width=c.height=size;const cx=c.getContext('2d'),image=cx.createImageData(size,size);
@@ -111,14 +111,15 @@ const floor=polygonMesh(footprint,floorMaterial);floorObjects.push(floor);
 const terraceFloor=polygonMesh(rooms.find(r=>r.id==='terrace').polygon,new THREE.MeshStandardMaterial({color:'#d7d8d3',map:floorMaterial.map,roughness:.95}),.003);floorObjects.push(terraceFloor);
 const parquetTexture=makeParquetTexture();
 const parquetMaterial=new THREE.MeshStandardMaterial({color:'#fff4df',map:parquetTexture,bumpMap:parquetTexture,bumpScale:.006,roughness:.72});
-const parquetFloor=polygonMesh(nightFloorPolygon,parquetMaterial,.006);floorObjects.push(parquetFloor);
-const bathroomTileMaterial=new THREE.MeshStandardMaterial({color:'#b8b9b5',map:floorMaterial.map,roughness:.92});
-// Extend bathroom finishes beneath the wall centre-lines so no parquet sliver
-// can appear between the room polygons and their partitions.
-const bathroomFloorPolygons={bath1:[[30,320],[270,320],[270,498],[30,498]],bath2:[[529,493],[712,493],[712,742],[529,742]]};
-const bathroomFloors=rooms.filter(room=>['bath1','bath2'].includes(room.id)).map(room=>polygonMesh(bathroomFloorPolygons[room.id],bathroomTileMaterial,.012));
-floorObjects.push(...bathroomFloors);
-for(const [material,layer] of [[terraceFloor.material,1],[parquetMaterial,2],[bathroomTileMaterial,3]]){material.polygonOffset=true;material.polygonOffsetFactor=-layer;material.polygonOffsetUnits=-layer;}
+// Finishes meet at partition centre-lines, including the bedroom door thresholds.
+const parquetRoomIds=['room2','room3','bedroom'];
+const parquetPolygons=[
+ [[30,43],[409,43],[409,374],[270,374],[270,320],[30,320]],
+ [[30,498],[300.32,498],[300.32,775],[30,775]],
+ [[409,125],[712,125],[712,493],[529,493],[529,529],[409,529]]
+];
+for(const polygon of parquetPolygons)floorObjects.push(polygonMesh(polygon,parquetMaterial,.006));
+for(const [material,layer] of [[terraceFloor.material,1],[parquetMaterial,2]]){material.polygonOffset=true;material.polygonOffsetFactor=-layer;material.polygonOffsetUnits=-layer;}
 const base=polygonMesh(footprint,new THREE.MeshStandardMaterial({color:'#a7b1b7',roughness:1}),-.16);
 const unitBoxGeometry=new THREE.BoxGeometry(1,1,1);
 const box=(w,h,d,mat,x,y,z,parent=model)=>{const m=new THREE.Mesh(unitBoxGeometry,mat);m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;};
@@ -172,9 +173,9 @@ walls.forEach(buildOpenings);
 // First furniture layout, following the annotated plan: media wall to the west and
 // a generous L-shaped sectional opposite it, while keeping the hall route clear.
 const furniture=new THREE.Group();model.add(furniture);
-const sofaFrameMaterial=new THREE.MeshStandardMaterial({color:'#c9beab',roughness:1});
-const sofaCushionMaterial=new THREE.MeshStandardMaterial({color:'#e4d9c5',roughness:1});
-const sofaAccentMaterial=new THREE.MeshStandardMaterial({color:'#b3a58e',roughness:1});
+const sofaFrameMaterial=new THREE.MeshStandardMaterial({color:'#cbb38e',roughness:1});
+const sofaCushionMaterial=new THREE.MeshStandardMaterial({color:'#ddc6a2',roughness:1});
+const sofaAccentMaterial=new THREE.MeshStandardMaterial({color:'#bfa27b',roughness:1});
 const furnitureBlack=new THREE.MeshStandardMaterial({color:'#141719',roughness:.72});
 const consoleFrontMaterial=new THREE.MeshStandardMaterial({color:'#222629',roughness:.82});
 const screenMaterial=new THREE.MeshStandardMaterial({color:'#071015',emissive:'#1d323c',emissiveIntensity:.24,roughness:.2,metalness:.18});
@@ -212,6 +213,10 @@ sofaSoftBox(.88,.56,.20,sofaFrameMaterial,6.91,.45,10.40);
 const cushionA=sofaSoftBox(.18,.44,.46,sofaAccentMaterial,6.96,.75,8.48);cushionA.rotation.z=-.14;cushionA.rotation.y=.035;
 const cushionB=sofaSoftBox(.18,.44,.46,sofaAccentMaterial,6.96,.75,9.96);cushionB.rotation.z=-.14;cushionB.rotation.y=-.035;
 [[6.53,8.15],[7.27,8.15],[6.53,10.30],[7.27,10.30],[5.84,8.18]].forEach(([x,z])=>furnitureBox(.08,.12,.08,furnitureBlack,x,.06,z));
+
+// Rectangular ivory rug: tucked beneath the seating, inside both sofa back edges.
+const livingRugMaterial=new THREE.MeshStandardMaterial({color:'#e6ddcc',roughness:1});
+furnitureBox(2.50,.014,2.62,livingRugMaterial,6.10,.014,9.53);
 
 // Approximately 80-inch 16:9 television and a compact black media console.
 const mediaWallCenterZ=9.72;
@@ -311,13 +316,14 @@ plantData.forEach((plant,index)=>{
  if(plant.lemon)[[-.18,1.12,.13],[.18,1.24,.10],[.02,1.42,-.13],[-.12,.91,-.15],[.20,.96,-.08]].forEach(([dx,y,dz])=>queueStaticInstance(lemonGeometry,lemonMaterial,plant.x+dx*s,y*s,plant.z+dz*s,.055*s,.07*s,.055*s));
 });
 
-// Bathrooms follow the supplied plans: Bath 1 has the tub on the west side,
+// Bathrooms follow the supplied plans: Bath 1 has the full-width shower on the west side,
 // while Bath 2 has a shower in its south-west corner.
 const bathroomFixtures=new THREE.Group();model.add(bathroomFixtures);
 const bathroomBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,bathroomFixtures);
 const bathroomMetal=new THREE.MeshStandardMaterial({color:'#aeb8bc',roughness:.32,metalness:.68});
 const bathroomMirror=new THREE.MeshStandardMaterial({color:'#bcd0d6',roughness:.12,metalness:.72});
-const bathWater=new THREE.MeshPhysicalMaterial({color:'#b9dce9',transparent:true,opacity:.56,roughness:.16,depthWrite:false});
+const showerDrainMaterial=new THREE.MeshStandardMaterial({color:"#272d30",roughness:.55});
+const showerGlass=new THREE.MeshPhysicalMaterial({color:'#c7e3eb',transparent:true,opacity:.26,roughness:.08,metalness:.05,depthWrite:false});
 const sanitaryBodyGeometry=new THREE.CylinderGeometry(1,1,1,24),sanitaryRingGeometry=new THREE.TorusGeometry(1,.12,9,28),tapGeometry=new THREE.CylinderGeometry(1,1,1,12);
 // Continuous ceramic profile: floor, pedestal, bowl, lip and inner basin share edges.
 const sanitaryProfile=[[0,.012],[.56,.012],[.62,.045],[.60,.16],[.78,.24],[.97,.32],[1,.385],[.98,.415],[.84,.415],[.79,.36],[.52,.27],[0,.26]];
@@ -345,12 +351,32 @@ function addSanitary(x,z,rotation=0,toilet=false){
  }
 }
 // Bath 1: recessed tub, towel warmer, bidet, toilet and vanity.
-bathroomBox(.10,.55,1.90,ceramicMaterial,.12,.285,4.15);bathroomBox(.10,.55,1.90,ceramicMaterial,.81,.285,4.15);
-bathroomBox(.79,.55,.10,ceramicMaterial,.465,.285,3.24);bathroomBox(.79,.55,.10,ceramicMaterial,.465,.285,5.06);
-bathroomBox(.59,.10,1.70,ceramicMaterial,.465,.10,4.15);bathroomBox(.58,.025,1.68,bathWater,.465,.20,4.15);
-queueStaticInstance(tapGeometry,bathroomMetal,.47,.91,3.27,.025,.64,.025);bathroomBox(.08,.08,.06,bathroomMetal,.47,1.31,3.255);bathroomBox(.045,.045,.28,bathroomMetal,.47,1.31,3.39);queueStaticInstance(tapGeometry,bathroomMetal,.47,1.28,3.54,.10,.025,.10);
-for(const x of [.16,.76])bathroomBox(.035,1.08,.035,bathroomMetal,x,1.27,3.30);
-for(let i=0;i<6;i++)bathroomBox(.60,.025,.04,bathroomMetal,.46,.82+i*.18,3.30);
+// Bath 1: 80 × 194 cm tray, fitted between the existing walls.
+const showerStart=3.1704,showerEnd=5.1104,showerCenter=(showerStart+showerEnd)/2;
+const showerBack=.012,showerFront=showerBack+.80;
+bathroomBox(.80,.045,1.94,ceramicMaterial,showerBack+.40,.0285,showerCenter);
+// Shallow perimeter lip and linear drain, all contained inside the tray footprint.
+bathroomBox(.022,.012,1.94,ceramicMaterial,showerFront-.011,.057,showerCenter);
+bathroomBox(.07,.003,.54,bathroomMetal,showerBack+.12,.052,showerCenter);
+for(let i=0;i<9;i++)bathroomBox(.048,.0015,.006,showerDrainMaterial,showerBack+.12,.054,showerCenter-.23+i*.0575);
+// Fixed end panels and sliding leaves shown open: 76 cm clear central entry.
+for(const side of [-1,1]){
+ const panelZ=showerCenter+side*.675;
+ bathroomBox(.008,1.98,.574,showerGlass,showerFront-.025,1.055,panelZ);
+ bathroomBox(.008,1.94,.48,showerGlass,showerFront-.044,1.055,showerCenter+side*.632);
+ bathroomBox(.020,2.03,.024,bathroomMetal,showerFront-.025,1.065,side<0?showerStart+.012:showerEnd-.012);
+ const handleZ=showerCenter+side*.402;
+ bathroomBox(.015,.25,.015,bathroomMetal,showerFront+.012,1.05,handleZ);
+ for(const y of [.932,1.168])bathroomBox(.038,.014,.014,bathroomMetal,showerFront-.003,y,handleZ);
+}
+for(const y of [.067,2.075])bathroomBox(.055,.026,1.94,bathroomMetal,showerFront-.028,y,showerCenter);
+// Looking toward the window wall, its left side is toward increasing z.
+const showerTapZ=4.70;
+bathroomBox(.025,.18,.12,bathroomMetal,showerBack+.018,1.10,showerTapZ);
+queueStaticInstance(tapGeometry,bathroomMetal,showerBack+.067,1.59,showerTapZ,.014,1.02,.014);
+bathroomBox(.37,.022,.022,bathroomMetal,showerBack+.235,2.11,showerTapZ);
+queueStaticInstance(tapGeometry,bathroomMetal,showerBack+.40,2.08,showerTapZ,.115,.022,.115);
+queueStaticInstance(tapGeometry,showerDrainMaterial,showerBack+.40,2.067,showerTapZ,.106,.003,.106);
 addSanitary(1.42,3.62,0,false);addSanitary(2.12,3.62,0,true);
 // Bath 1 reference vanity: 120 x 48 cm, opposite the sanitary fixtures.
 const vanityOak=new THREE.MeshStandardMaterial({color:'#ba925b',roughness:.7});
@@ -415,7 +441,7 @@ for(const child of bath2Vanity.children)if(child.geometry===roundMirror.geometry
 bathroomFixtures.add(bath2Vanity);
 addSanitary(7.29,6.15,Math.PI/2,false);addSanitary(7.29,6.91,Math.PI/2,true);
 bathroomBox(.84,.09,.84,ceramicMaterial,6.16,.055,7.47);
-const showerGlass=new THREE.MeshPhysicalMaterial({color:'#c7e3eb',transparent:true,opacity:.26,roughness:.08,metalness:.05,depthWrite:false});
+
 bathroomBox(.025,1.82,.90,showerGlass,6.57,.94,7.49);bathroomBox(.91,1.82,.025,showerGlass,6.115,.94,7.055);
 bathroomBox(.035,1.86,.035,bathroomMetal,6.57,.96,7.04);bathroomBox(.035,1.86,.035,bathroomMetal,6.57,.96,7.94);
 queueStaticInstance(tapGeometry,bathroomMetal,5.74,1.37,7.50,.025,.62,.025);bathroomBox(.08,.08,.08,bathroomMetal,5.73,1.68,7.50);bathroomBox(.34,.045,.045,bathroomMetal,5.90,1.68,7.50);queueStaticInstance(tapGeometry,bathroomMetal,6.08,1.64,7.50,.11,.025,.11);
@@ -564,6 +590,15 @@ for(const angle of [-.62,.62]){
  const leg=new THREE.Mesh(new THREE.BoxGeometry(.14,.70,.68),furnitureBlack);
  leg.position.set(diningLayout.x,.36,diningLayout.z);leg.rotation.z=angle;leg.castShadow=leg.receiveShadow=true;diningFurniture.add(leg);
 }
+// Compact companion to the dining table: 60 cm diameter, 36 cm high.
+const coffeeTableX=5.72,coffeeTableZ=9.55;
+queueStaticInstance(roundGeometry,diningStone,coffeeTableX,.342,coffeeTableZ,.30,.036,.30);
+queueStaticInstance(roundGeometry,furnitureBlack,coffeeTableX,.316,coffeeTableZ,.28,.018,.28);
+for(const angle of [-.48,.48]){
+ const leg=furnitureBox(.065,.295,.34,furnitureBlack,coffeeTableX,.168,coffeeTableZ);
+ leg.rotation.z=angle;
+}
+
 const seatGeometry=new THREE.SphereGeometry(1,20,12);
 const shellGeometry=new THREE.CylinderGeometry(.285,.255,.40,24,1,true,Math.PI/2,Math.PI);
 for(const chair of diningChairs){
@@ -580,34 +615,50 @@ for(const chair of diningChairs){
 // bathroom door jamb and the south partition. It stays clear of both openings.
 const hallWardrobe=new THREE.Group();model.add(hallWardrobe);
 const hallWardrobeBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,hallWardrobe);
-const hallWardrobeMinZ=6.66,hallWardrobeMaxZ=7.94,hallWardrobeDepth=.55,hallWardrobeCenterZ=(hallWardrobeMinZ+hallWardrobeMaxZ)/2;
-hallWardrobeBox(hallWardrobeDepth,2.48,hallWardrobeMaxZ-hallWardrobeMinZ,wardrobeMaterial,5.325,1.24,hallWardrobeCenterZ);
-for(const z of [6.985,7.625]){
- hallWardrobeBox(.025,2.30,.60,wardrobeFrontMaterial,5.038,1.20,z);
- hallWardrobeBox(.025,.22,.025,bathroomMetal,5.018,1.20,z+.16);
+// Fit every component inside the finished wall faces, with a 1 cm clearance.
+const hallWardrobeMinZ=point([529,632])[1]+.05+.01,hallWardrobeMaxZ=point([529,742])[1]-.05-.01;
+const hallWardrobeBack=point([529,632])[0]-.05-.01,hallWardrobeDepth=.55;
+const hallWardrobeFront=hallWardrobeBack-hallWardrobeDepth,hallWardrobeCenterZ=(hallWardrobeMinZ+hallWardrobeMaxZ)/2;
+const hallWardrobeWidth=hallWardrobeMaxZ-hallWardrobeMinZ;
+hallWardrobeBox(hallWardrobeDepth-.04,2.48,hallWardrobeWidth,wardrobeMaterial,(hallWardrobeFront+.04+hallWardrobeBack)/2,1.24,hallWardrobeCenterZ);
+for(const side of [-1,1]){
+ const z=hallWardrobeCenterZ+side*hallWardrobeWidth/4;
+ hallWardrobeBox(.025,2.30,hallWardrobeWidth/2-.008,wardrobeFrontMaterial,hallWardrobeFront+.0275,1.20,z);
+ hallWardrobeBox(.015,.22,.025,bathroomMetal,hallWardrobeFront+.0075,1.20,z+.16);
 }
-hallWardrobeBox(.59,.08,1.32,wardrobeFrontMaterial,5.305,2.52,hallWardrobeCenterZ);
+hallWardrobeBox(hallWardrobeDepth,.08,hallWardrobeWidth,wardrobeFrontMaterial,(hallWardrobeFront+hallWardrobeBack)/2,2.52,hallWardrobeCenterZ);
 
-// Two study/gaming stations in Camera 3, placed above and below the west-wall
-// window as shown in the supplied plan.
+// Two unchanged 102 × 64 cm stations facing the south wall.
 const room3Furniture=new THREE.Group();model.add(room3Furniture);
 const room3Box=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,room3Furniture);
 const deskWood=new THREE.MeshStandardMaterial({color:'#d5ad78',roughness:.76});
 const gamingUpholstery=new THREE.MeshStandardMaterial({color:'#252a2f',roughness:.9});
 const gamingAccent=new THREE.MeshStandardMaterial({color:'#555c65',roughness:.88});
 const laptopSilver=new THREE.MeshStandardMaterial({color:'#bfc5c7',roughness:.34,metalness:.68});
-const deskStations=[{z:5.68,laptop:laptopSilver},{z:7.72,laptop:furnitureBlack}];
-for(const station of deskStations){
- const z=station.z;room3Box(.64,.065,1.02,deskWood,.33,.75,z);
- for(const x of [.08,.58])for(const dz of [-.43,.43])room3Box(.045,.72,.045,furnitureBlack,x,.37,z+dz);
- room3Box(.38,.025,.50,station.laptop,.43,.795,z);const screen=room3Box(.035,.32,.48,station.laptop,.25,.96,z);screen.rotation.z=-.12;room3Box(.012,.25,.40,screenMaterial,.228,.96,z).rotation.z=-.12;
- room3Box(.48,.12,.50,gamingUpholstery,1.16,.46,z);const back=room3Box(.16,.72,.56,gamingUpholstery,1.42,.84,z);back.rotation.z=-.10;
- room3Box(.38,.08,.06,gamingAccent,1.18,.67,z-.29);room3Box(.38,.08,.06,gamingAccent,1.18,.67,z+.29);
- queueStaticInstance(tapGeometry,furnitureBlack,1.20,.25,z,.05,.34,.05);room3Box(.62,.045,.07,furnitureBlack,1.20,.09,z);room3Box(.07,.045,.62,furnitureBlack,1.20,.09,z);
+for(const [x,laptop] of [[.60,laptopSilver],[2.36,furnitureBlack]]){
+ room3Box(1.02,.065,.64,deskWood,x,.75,7.88);
+ for(const dx of [-.43,.43])for(const z of [7.63,8.13])room3Box(.045,.72,.045,furnitureBlack,x+dx,.37,z);
+ room3Box(.50,.025,.38,laptop,x,.795,7.78);
+ const screen=room3Box(.48,.32,.035,laptop,x,.96,7.96);screen.rotation.x=-.12;
+ room3Box(.40,.25,.012,screenMaterial,x,.96,7.938).rotation.x=-.12;
+ room3Box(.50,.12,.48,gamingUpholstery,x,.46,7.40);
+ const back=room3Box(.56,.72,.16,gamingUpholstery,x,.84,7.14);back.rotation.x=.10;
+ for(const dx of [-.29,.29])room3Box(.06,.08,.38,gamingAccent,x+dx,.67,7.38);
+ queueStaticInstance(tapGeometry,furnitureBlack,x,.25,7.36,.05,.34,.05);
+ room3Box(.07,.045,.62,furnitureBlack,x,.09,7.36);room3Box(.62,.045,.07,furnitureBlack,x,.09,7.36);
 }
+// Reading chair beside the west window, angled toward the east doorway.
+const readingFabric=new THREE.MeshStandardMaterial({color:'#c8b599',roughness:1});
+const readingChair=new THREE.Group();readingChair.position.set(.64,0,5.83);readingChair.rotation.y=Math.PI/3;room3Furniture.add(readingChair);
+function readingCushion(w,h,d,x,y,z){const mesh=sofaSoftBox(w,h,d,readingFabric,x,y,z);readingChair.add(mesh);return mesh;}
+readingCushion(.78,.24,.78,0,.27,0);
+readingCushion(.60,.17,.61,0,.45,.05);
+const readingBack=readingCushion(.76,.67,.18,0,.68,-.32);readingBack.rotation.x=-.10;
+for(const x of [-.32,.32])readingCushion(.16,.38,.73,x,.49,.02);
+for(const x of [-.27,.27])for(const z of [-.25,.27])box(.045,.18,.045,furnitureBlack,x,.10,z,readingChair);
 
 const bathroomFixtureCount=bathroomFixtures.children.length,bedroomObjectCount=bedroomFurniture.children.length,kitchenObjectCount=kitchenFurniture.children.length,diningObjectCount=diningFurniture.children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
-applyMaterialDetails({upholstery:[sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],fabric:[vanityTowel,diningFabric,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,laptopSilver,applianceTrim],glass:[glass,showerGlass]},renderer);
+applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],fabric:[livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,laptopSilver,applianceTrim],glass:[glass,showerGlass]},renderer);
 const assetInstanceStats=flushStaticInstances();
 
 // Most architectural details and furniture share the same cube geometry. Batch
@@ -692,7 +743,7 @@ for(const w of walls){let cursor=0;const len=Math.hypot(w.b[0]-w.a[0],w.b[1]-w.a
 const mapMarker=svg('g',{});mapMarker.append(svg('path',{d:'M 0 -62 L -35 -10 L 35 -10 Z',fill:'#3a7fad',opacity:.3}));mapMarker.append(svg('circle',{r:18,fill:'#315c78',stroke:'white','stroke-width':7}));map.append(mapMarker);mapMarker.style.display='none';
 for(const room of rooms){
  const button=document.createElement('button');button.className='room-button';button.textContent=room.name;button.title=room.detail;button.dataset.room=room.id;button.onclick=()=>selectRoom(room.id);$('#room-list').append(button);
- const label=document.createElement('span');label.className='room-label';label.textContent=room.name==='Camera matrimoniale'?'Matrimoniale':room.name;$('#labels').append(label);labelElements.set(room.id,label);
+ const label=document.createElement('button');label.type='button';label.className='room-label';label.setAttribute('aria-label',`Inquadra ${room.name}`);label.onclick=()=>selectRoom(room.id);label.textContent=room.name==='Camera matrimoniale'?'Matrimoniale':room.name;$('#labels').append(label);labelElements.set(room.id,label);
 }
 function updateSelection(id){selected=id;for(const b of document.querySelectorAll('.room-button'))b.classList.toggle('selected',b.dataset.room===id);for(const [key,p]of mapRooms)p.setAttribute('fill',key===id?'#b6d1e2':'#f7f8f7');for(const[key,l]of labelElements)l.classList.toggle('selected',key===id);$('#current-room').textContent=rooms.find(r=>r.id===id)?.name??'Intero appartamento';}
 function selectRoom(id){const room=rooms.find(r=>r.id===id);if(!room)return;updateSelection(id);const[x,z]=view==='walk'?safeRoomPosition(room):point(room.at);if(view==='walk'){resetMovement();perspective.position.set(x,eyeHeight,z);yaw=0;pitch=0;applyLook();}else if(view==='orbit'){const offset=perspective.position.clone().sub(controls.target).normalize().multiplyScalar(12);controls.target.set(x,0,z);perspective.position.copy(controls.target).add(offset);controls.update();}else{orthographic.position.set(x,24,z+.001);orthographic.lookAt(x,0,z);orthographic.zoom=1.6;orthographic.updateProjectionMatrix();}if(isTouch){$('#panel').classList.remove('open');$('#panel-toggle').setAttribute('aria-expanded','false');}}
@@ -773,7 +824,7 @@ function move(dt){
  activeKeys.clear();for(const key of keys)activeKeys.add(key);for(const key of touchKeys)activeKeys.add(key);
  movement.update(dt,activeKeys,yaw,perspective.position,eyeHeight);
 }
-$('#tile-size').onchange=e=>{tileSize=Number(e.target.value);floorMaterial.map.repeat.set(1/tileSize,1/tileSize);};
+$('#tile-size').onchange=e=>{tileSize=Number(e.target.value);floorMaterial.map.repeat.set(1/tileSize,1/tileSize);renderState.invalidate();};
 $('#eye-height').oninput=e=>{eyeHeight=Number(e.target.value);$('#eye-value').textContent=eyeHeight.toFixed(2).replace('.',',')+' m';resetMovement();};
 $('#panel-toggle').onclick=()=>{const open=$('#panel').classList.toggle('open');$('#panel-toggle').setAttribute('aria-expanded',open);};
 
@@ -844,4 +895,4 @@ for(const root of scene.children)if(root!==measurementGroup)frozenTransformCount
 scene.updateMatrix();scene.matrixAutoUpdate=false;
 updateDaylight();resize();setView('orbit');renderer.compile(scene,perspective);renderer.compile(scene,orthographic);requestAnimationFrame(animate);
 // Small read-only diagnostics and deterministic spatial queries for validation.
-window.houseModel={get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',nightFloor:'oak-parquet',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:2.25,chaiseLength:1.30,bedLength,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount,kitchenObjectCount,diningObjectCount,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};
+window.houseModel={get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',parquetRoomIds:[...parquetRoomIds],nightFloor:'stoneware-with-bedroom-parquet',livingFloor:'dark-stoneware',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:2.25,chaiseLength:1.30,bedLength,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount,kitchenObjectCount,diningObjectCount,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};
