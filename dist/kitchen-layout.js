@@ -4,8 +4,8 @@ export const kitchenModules=[
  {id:'oven',x:9.235,z:12.675,w:.60,d:.60,face:'west',tall:true,h:2.20},
  {id:'sink',x:9.235,z:13.275,w:.60,d:.60,face:'west'},
  {id:'dishwasher',x:9.235,z:13.875,w:.60,d:.60,face:'west'},
- {id:'right-filler',x:9.235,z:14.247,w:.60,d:.144,face:'west'},
- {id:'right-corner',x:9.235,z:14.619,w:.60,d:.60,face:'north'},
+ // One blind corner closes the 14.4 cm remainder without a miniature drawer unit.
+ {id:'right-corner',x:9.235,z:14.547,w:.60,d:.744,face:'north',blindCorner:true},
  // Only low bases below the right window (x 7.977 to 8.791 m).
  {id:'window-return',x:8.1575,z:14.619,w:1.555,d:.60,face:'north'},
  {id:'left-corner',x:6.99,z:14.619,w:.78,d:.60,face:'north'},

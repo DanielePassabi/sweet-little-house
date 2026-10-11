@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {kitchenModules,kitchenWorktop,kitchenSink,kitchenHob,breakfastTop,kitchenWallCabinets} from './kitchen-layout.js?v=20261011-2';
+import {kitchenModules,kitchenWorktop,kitchenSink,kitchenHob,breakfastTop,kitchenWallCabinets} from './kitchen-layout.js?v=20261011-3';
 
 // The same module dimensions drive the rendered kitchen and walking collisions.
 export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
@@ -25,6 +25,13 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
   }else{
    for(const sign of [-1,1])block(.018,h-.16,d-.028,front,x+sign*(w/2-.022),(h+.16)/2,z);
    block(w-.028,h-.16,.018,front,x,(h+.16)/2,z+d/2-.022);
+  }
+  if(m.blindCorner){
+   // Flush returns meet the neighbouring fronts, with one continuous recessed plinth.
+   const side=face({...m,face:'west'},.515,.75);side.name='corner-side-panel';
+   const end=face({...m,d:.60,z:14.619},.515,.75);end.name='corner-return-panel';
+   block(w-.08,.10,d,dark,x,.055,z).name='corner-plinth';
+   continue;
   }
   block(w-.08,.10,d-.08,dark,x,.055,z);
   if(m.id==='oven'){

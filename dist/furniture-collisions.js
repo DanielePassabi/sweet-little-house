@@ -1,4 +1,5 @@
-import {kitchenColliders,diningColliders} from './kitchen-layout.js?v=20261011-2';
+import {kitchenColliders,diningColliders} from './kitchen-layout.js?v=20261011-3';
+import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261011-1';
 import {canStand,point,insidePolygon} from './model.js';
 
 
@@ -21,8 +22,8 @@ export const furnitureColliders=[
  {minX:point([529,632])[0]-.06-.55,maxX:point([529,632])[0]-.06,minZ:point([529,632])[1]+.06,maxZ:point([529,742])[1]-.06},
 ];
 furnitureColliders.push(...kitchenColliders,...diningColliders);
-furnitureColliders.push(rect(6.37,7.49,8.095,10.5),rect(5.635,7.06,8.105,8.855));
-furnitureColliders.push(circle(5.72,9.55,.30));
+furnitureColliders.push(...sofaColliders);
+furnitureColliders.push(circle(sofaCoffeeTable.x,sofaCoffeeTable.z,sofaCoffeeTable.r));
 furnitureColliders.push(circle(1.275,12.25,.425));
 for(const z of [11.76,12.74])furnitureColliders.push(circle(1.275,z,.275));
 for(const [x,z,r] of [[3.47,8.34,.24*.86],[.18,10.83,.24]])furnitureColliders.push(circle(x,z,r));

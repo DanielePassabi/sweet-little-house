@@ -10,6 +10,11 @@ const box=(w,h,d,material,x,y,z,parent)=>{
 };
 const materials=Object.fromEntries(['front','wood','ceramic','steel','dark','glass'].map(name=>[name,new THREE.MeshStandardMaterial()]));
 const kitchen=createKitchen(scene,box,materials);scene.updateMatrixWorld(true);
+assert.ok(!kitchenModules.some(m=>m.id==='right-filler'),'Remove the miniature corner drawer module');
+for(const name of ['corner-side-panel','corner-return-panel']){
+ const panel=kitchen.getObjectByName(name);assert.ok(panel,'A plain continuous panel closes the blind corner');
+ assert.ok(Math.abs(new THREE.Box3().setFromObject(panel).getSize(new THREE.Vector3()).y-.75)<1e-6,'Corner has full-height fronts without tiny drawers');
+}
 const top=kitchen.getObjectByName('ceramic-worktop'),ray=new THREE.Raycaster();
 const topHit=(x,z)=>{ray.set(new THREE.Vector3(x,3,z),new THREE.Vector3(0,-1,0));return ray.intersectObject(top);};
 assert.equal(topHit(kitchenSink.x,kitchenSink.z).length,0,'Sink has an actual opening through the ceramic');

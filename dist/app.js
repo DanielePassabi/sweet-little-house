@@ -9,9 +9,11 @@ import { createMovement, DEFAULT_EYE_HEIGHT, movementCodes } from './movement.js
 
 import { createRenderState, freezeStaticTransforms, indexStaticSurface } from './render-state.js?v=20260916-3';
 
-import {diningLayout,diningChairs,breakfastTop,kitchenWallCabinets,kitchenWallVolumes} from './kitchen-layout.js?v=20261011-2';
-import {createKitchen} from './kitchen.js?v=20261011-2';
-import {canWalk,furnitureColliders,safeRoomPosition} from './furniture-collisions.js?v=20261011-2';
+import {diningLayout,diningChairs,breakfastTop,kitchenWallCabinets,kitchenWallVolumes} from './kitchen-layout.js?v=20261011-3';
+import {createKitchen} from './kitchen.js?v=20261011-3';
+import {createSofa} from './sofa.js?v=20261011-1';
+import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261011-1';
+import {canWalk,furnitureColliders,safeRoomPosition} from './furniture-collisions.js?v=20261011-3';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -174,9 +176,12 @@ walls.forEach(buildOpenings);
 // First furniture layout, following the annotated plan: media wall to the west and
 // a generous L-shaped sectional opposite it, while keeping the hall route clear.
 const furniture=new THREE.Group();model.add(furniture);
-const sofaFrameMaterial=new THREE.MeshStandardMaterial({color:'#cbb38e',roughness:1});
-const sofaCushionMaterial=new THREE.MeshStandardMaterial({color:'#ddc6a2',roughness:1});
-const sofaAccentMaterial=new THREE.MeshStandardMaterial({color:'#bfa27b',roughness:1});
+const sofaFrameMaterial=new THREE.MeshStandardMaterial({color:'#dfd8cc',roughness:1});
+const sofaCushionMaterial=new THREE.MeshStandardMaterial({color:'#ebe5db',roughness:1});
+const sofaAccentMaterial=new THREE.MeshStandardMaterial({color:'#9c9285',roughness:1});
+const pumpkinWhite=new THREE.MeshPhysicalMaterial({color:'#f5f0e7',roughness:1,sheen:1,sheenColor:'#fffaf1',sheenRoughness:1});
+const pumpkinTan=new THREE.MeshPhysicalMaterial({color:'#c6a782',roughness:1,sheen:1,sheenColor:'#ddc6a6',sheenRoughness:1});
+const pumpkinStem=new THREE.MeshStandardMaterial({color:'#927b5c',roughness:1});
 const furnitureBlack=new THREE.MeshStandardMaterial({color:'#141719',roughness:.72});
 const consoleFrontMaterial=new THREE.MeshStandardMaterial({color:'#222629',roughness:.82});
 const screenMaterial=new THREE.MeshStandardMaterial({color:'#071015',emissive:'#1d323c',emissiveIntensity:.24,roughness:.2,metalness:.18});
@@ -198,22 +203,9 @@ function sofaSoftBox(w,h,d,material,x,y,z){
  }
  const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;furniture.add(mesh);return mesh;
 }
-// Three modules over 2.25 m: a chaise and two seats, facing west toward the TV.
-sofaSoftBox(1.08,.32,2.25,sofaFrameMaterial,6.91,.20,9.23);
-sofaSoftBox(.24,.72,2.27,sofaFrameMaterial,7.37,.61,9.23);
-[8.48,9.22,9.96].forEach(z=>{
- const back=sofaSoftBox(.25,.52,.76,sofaCushionMaterial,7.19,.75,z);back.rotation.z=-.055;
-});
-[9.22,9.96].forEach(z=>sofaSoftBox(.84,.17,.68,sofaCushionMaterial,6.77,.45,z));
-// Chaise at the north end creates the L shown in the supplied sketch.
-sofaSoftBox(1.30,.32,.75,sofaFrameMaterial,6.41,.20,8.48);
-sofaSoftBox(1.08,.17,.60,sofaCushionMaterial,6.36,.45,8.48);
-sofaSoftBox(.20,.56,.76,sofaFrameMaterial,5.735,.45,8.48);
-sofaSoftBox(.88,.56,.20,sofaFrameMaterial,6.91,.45,10.40);
-// Accent pillows rest on the seat and lean against the back, centered on the end modules.
-const cushionA=sofaSoftBox(.18,.44,.46,sofaAccentMaterial,6.96,.75,8.48);cushionA.rotation.z=-.14;cushionA.rotation.y=.035;
-const cushionB=sofaSoftBox(.18,.44,.46,sofaAccentMaterial,6.96,.75,9.96);cushionB.rotation.z=-.14;cushionB.rotation.y=-.035;
-[[6.53,8.15],[7.27,8.15],[6.53,10.30],[7.27,10.30],[5.84,8.18]].forEach(([x,z])=>furnitureBox(.08,.12,.08,furnitureBlack,x,.06,z));
+// Purchased 270 × 180 cm sofa; the right-hand chaise faces the TV.
+const purchasedSofa=createSofa(furniture,{frame:sofaFrameMaterial,upholstery:sofaCushionMaterial,pillows:sofaAccentMaterial,
+ base:furnitureBlack,whitePumpkin:pumpkinWhite,tanPumpkin:pumpkinTan,stem:pumpkinStem});
 
 // Rectangular ivory rug: tucked beneath the seating, inside both sofa back edges.
 const livingRugMaterial=new THREE.MeshStandardMaterial({color:'#e6ddcc',roughness:1});
@@ -520,7 +512,7 @@ for(const angle of [-.62,.62]){
  leg.position.set(diningLayout.x,.36,diningLayout.z);leg.rotation.z=angle;leg.castShadow=leg.receiveShadow=true;diningFurniture.add(leg);
 }
 // Compact companion to the dining table: 60 cm diameter, 36 cm high.
-const coffeeTableX=5.72,coffeeTableZ=9.55;
+const coffeeTableX=sofaCoffeeTable.x,coffeeTableZ=sofaCoffeeTable.z;
 queueStaticInstance(roundGeometry,diningStone,coffeeTableX,.342,coffeeTableZ,.30,.036,.30);
 queueStaticInstance(roundGeometry,furnitureBlack,coffeeTableX,.316,coffeeTableZ,.28,.018,.28);
 for(const angle of [-.48,.48]){
@@ -587,7 +579,7 @@ for(const x of [-.32,.32])readingCushion(.16,.38,.73,x,.49,.02);
 for(const x of [-.27,.27])for(const z of [-.25,.27])box(.045,.18,.045,furnitureBlack,x,.10,z,readingChair);
 
 const bathroomFixtureCount=bathroomFixtures.children.length,bedroomObjectCount=bedroomFurniture.children.length,kitchenObjectCount=kitchenFurniture.children.length,diningObjectCount=diningFurniture.children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
-applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],fabric:[livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,laptopSilver,applianceTrim],glass:[glass,showerGlass]},renderer);
+applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,laptopSilver,applianceTrim],glass:[glass,showerGlass]},renderer);
 const assetInstanceStats=flushStaticInstances();
 
 // Most architectural details and furniture share the same cube geometry. Batch
@@ -824,4 +816,4 @@ for(const root of scene.children)if(root!==measurementGroup)frozenTransformCount
 scene.updateMatrix();scene.matrixAutoUpdate=false;
 updateDaylight();resize();setView('orbit');renderer.compile(scene,perspective);renderer.compile(scene,orthographic);requestAnimationFrame(animate);
 // Small read-only diagnostics and deterministic spatial queries for validation.
-window.houseModel={get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',parquetRoomIds:[...parquetRoomIds],nightFloor:'stoneware-with-bedroom-parquet',livingFloor:'dark-stoneware',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:2.25,chaiseLength:1.30,bedLength,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount,kitchenObjectCount,diningObjectCount,kitchenLayout:'ceramic-u-column-oven-pink-fridge',kitchenWallCabinets:kitchenWallCabinets.length,breakfastDiameter:breakfastTop.r*2,breakfastHeight:breakfastTop.bottom+breakfastTop.h,diningDiameter:diningLayout.r*2,diningChairCount:diningChairs.length,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};
+window.houseModel={get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',parquetRoomIds:[...parquetRoomIds],nightFloor:'stoneware-with-bedroom-parquet',livingFloor:'dark-stoneware',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:sofaLayout.width,chaiseLength:sofaLayout.chaiseDepth,sofaDepth:sofaLayout.depth,sofaStyle:'ivory-channel-tufted-right-chaise',plushPumpkinCount:sofaPumpkins.length,bedLength,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount,kitchenObjectCount,diningObjectCount,kitchenLayout:'ceramic-u-column-oven-pink-fridge',kitchenWallCabinets:kitchenWallCabinets.length,breakfastDiameter:breakfastTop.r*2,breakfastHeight:breakfastTop.bottom+breakfastTop.h,diningDiameter:diningLayout.r*2,diningChairCount:diningChairs.length,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};
