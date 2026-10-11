@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import {canWalk,intersects,furnitureColliders,safeRoomPosition} from '../dist/furniture-collisions.js';
-import {kitchenModules,kitchenColliders,diningChairs} from '../dist/kitchen-layout.js';
+import {kitchenModules,kitchenColliders,diningLayout,diningChairs} from '../dist/kitchen-layout.js';
 import {canStand,rooms,point} from '../dist/model.js';
 const box={minX:0,maxX:1,minZ:0,maxZ:1};
 assert.equal(intersects(box,.5,.5,0),true,'Points inside a solid must collide');
 assert.equal(intersects(box,1.15,1.15,.18),false,'Rounded player clearance frees square corners');
 assert.equal(intersects(box,1.1,1.1,.18),true);
 assert.equal(canWalk(3.5,14.2),true,'Free space beside dining table must not be blocked');
-assert.equal(canWalk(4.35,13.10),false,'Round table remains solid');
+assert.equal(canWalk(diningLayout.x,diningLayout.z),false,'Attached round table remains solid');
+assert.equal(canWalk(4.35,13.10),true,'Previous detached dining table is removed');
 assert.equal(canWalk(4.80,11.60),true,'Previous dining location is free');
 assert.equal(canWalk(1.6,5.68),true,'Former desk location is clear');
 assert.equal(canWalk(.60,7.40),false,'Relocated desk chair is solid');
@@ -28,16 +29,18 @@ for(const room of rooms)assert.ok(seen.has(key(...safeRoomPosition(room))),`${ro
 console.log('PASS: rounded clearance, individual furnishings, spatial index, safe spawns and nine rooms reachable.');
 
 const byId=id=>kitchenModules.find(m=>m.id===id);
-assert.equal(byId('hob').d,.60);
+assert.equal(byId('hob').face,'east','Induction faces into the U-shaped working aisle');
 assert.equal(byId('sink').w,.60);
 assert.equal(byId('dishwasher').w,.60);
 assert.equal(byId('window-return').d,.60);
-for(const m of kitchenModules)assert.equal(m.face==='west'?m.w:m.d,.60,'Every module is exactly 60 cm deep');
+assert.equal(byId('oven').tall,true,'Oven is in a full-height column');
+assert.ok(byId('oven').z<byId('sink').z&&byId('sink').z<byId('dishwasher').z,'Right run follows oven, sink, dishwasher order');
 const windowStart=(728-42)/86,windowEnd=(798-42)/86;
 for(const m of kitchenModules.filter(m=>m.tall))assert.ok(m.x+m.w/2<windowStart||m.x-m.w/2>windowEnd,'Tall units must clear the window');
 assert.ok(seen.has(key(8.4,13.7)),'Working aisle must be accessible');
+for(const [x,z] of [[8.55,12.675],[8.55,13.275],[8.55,13.875],[7.8,13.93],[6.235,13.85]])assert.ok(seen.has(key(x,z)),`Appliance approach ${x},${z} is reachable`);
 for(const c of diningChairs)assert.ok(!kitchenColliders.some(k=>intersects(k,c.x,c.z,.29)),'Chairs must clear cabinets');
-console.log('PASS: kitchen depths, unobstructed window, chair clearance and accessible working aisle.');
+console.log('PASS: U-shaped kitchen, oven column, unobstructed window, chair clearance and appliance access.');
 
 assert.ok(seen.has(key(.43,4.14)),'Shower interior reachable through central entrance');
 assert.equal(canWalk(.80,3.55),false,'Fixed shower glass blocks walking');

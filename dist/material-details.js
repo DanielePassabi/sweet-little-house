@@ -40,14 +40,15 @@ export function applyKitchenMaterials({wood,stone,front},renderer){
     const grain=7*Math.sin(wave*.65)+3*Math.sin(wave*2.3)+4*Math.sin(y*.04)+rnd()*5;
     data.data[i]=201+grain;data.data[i+1]=169+grain;data.data[i+2]=126+grain;
    }else{
-    const cloud=14*(noise(x/73,y/73)-.5)+8*(noise(x/21,y/21)-.5)+4*(noise(x/6,y/6)-.5)+rnd()*4;
-    data.data[i]=109+cloud;data.data[i+1]=103+cloud;data.data[i+2]=94+cloud;
+    const cloud=5*(noise(x/73,y/73)-.5)+3*(noise(x/21,y/21)-.5)+rnd()*2;
+    const vein=Math.pow(Math.max(0,Math.sin(x*.022+y*.012+noise(x/90,y/90)*2.5)),28)*8;
+    data.data[i]=236+cloud-vein;data.data[i+1]=232+cloud-vein;data.data[i+2]=223+cloud-vein;
    }
    data.data[i+3]=255;
   }
   ctx.putImageData(data,0,0);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());return t;
  }
  wood.map=map('wood');wood.color.set('#ffffff');wood.bumpMap=wood.map;wood.bumpScale=.0006;wood.roughness=.78;
- stone.map=map('stone');stone.color.set('#ffffff');stone.bumpMap=stone.map;stone.bumpScale=.00035;stone.roughness=.82;stone.metalness=0;
+ stone.map=map('stone');stone.map.wrapS=stone.map.wrapT=THREE.RepeatWrapping;stone.color.set('#ffffff');stone.bumpMap=stone.map;stone.bumpScale=.00015;stone.roughness=.48;stone.metalness=0;
  front.roughness=1;front.metalness=0;
 }

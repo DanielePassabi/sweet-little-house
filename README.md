@@ -74,3 +74,11 @@ Sostituiti cucina, isola con sgabelli e tavolo con tovaglia. Nuove basi cottura 
 ### Cucina con penisola — 23 settembre 2026
 
 Layout aggiornato: eliminato il precedente tratto cottura in alto. Lavello e lavastoviglie conservano le posizioni; cottura con forno sottostante sul tratto basso, frigorifero sul muro pieno, basi da 60 cm sotto la finestra destra senza pensili o colonne. Ritorno a penisola largo 60 cm, con piano in rovere, spazio per le gambe e quattro sgabelli. Tavolo tondo spostato in alto a sinistra conservando i collegamenti tra ambienti. Profondità di tutti i moduli pari a 60 cm (lunghezza e larghezza delle ante possono differire). Frontali chiari opachi, rovere e pietra con texture condivise procedurali. Il piano cottura rappresenta un modello con aspirazione integrata; gli impianti non sono simulati.
+
+### Cucina dal disegno del designer — 11 ottobre 2026
+
+Il nuovo disegno sostituisce il layout precedente: piano continuo a U in ceramica chiara, alto 93,5 cm, con induzione a quattro zone sulla penisola sinistra. Sul lato destro si susseguono colonna forno, lavello singolo incassato e lavastoviglie integrata (a destra guardando il lavello, in basso nella pianta). Frigorifero rosa dalle forme arrotondate, ispirato allo stile rétro Smeg, a sinistra della penisola sul muro pieno. Rimossi tutti i pensili e gli sgabelli.
+
+Il tavolo esistente mantiene il piano circolare e il basamento incrociato, passa al rovere naturale e si collega sotto l'estremità della ceramica: diametro **120 cm**, altezza 76 cm e tre sedie imbottite sui lati liberi. Il precedente tavolo separato viene rimosso; il tavolino del soggiorno rimane invariato. Basi e colonne conservano i frontali chiari. Le altre quote degli arredi sono indicative, adattate al disegno e alle pareti esistenti; finestre e architettura non cambiano.
+
+`dist/kitchen-layout.js` condivide ingombri e posizioni con le collisioni; `dist/kitchen.js` costruisce arredi e piano con foro reale per il lavello. Verificati accessi a forno, lavello, lavastoviglie, induzione e frigorifero, sedie distinte e raggiungibilità delle nove stanze. Controlli aggiunti in `node tests/kitchen.mjs`; `node tests/furniture-collisions.mjs` verifica anche i passaggi della nuova disposizione. Con Node 20 usare `--experimental-default-type=module`; il workflow usa Node 22.

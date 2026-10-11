@@ -1,4 +1,4 @@
-import {kitchenColliders,diningColliders} from './kitchen-layout.js?v=20260923-4';
+import {kitchenColliders,diningColliders} from './kitchen-layout.js?v=20261011-1';
 import {canStand,point,insidePolygon} from './model.js';
 
 
