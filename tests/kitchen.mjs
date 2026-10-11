@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
 import {createKitchen} from '../dist/kitchen.js';
-import {kitchenModules,kitchenWorktop,kitchenSink,diningLayout,diningChairs} from '../dist/kitchen-layout.js';
+import {kitchenModules,kitchenWorktop,kitchenSink,breakfastTop,kitchenWallCabinets,diningLayout,diningChairs} from '../dist/kitchen-layout.js';
+import {walls,point} from '../dist/model.js';
 
 const scene=new THREE.Group(),unit=new THREE.BoxGeometry(1,1,1);
 const box=(w,h,d,material,x,y,z,parent)=>{
@@ -27,8 +28,16 @@ assert.ok(hobBounds.min.z>13.55&&hobBounds.max.z<14.319,'Hob sits over its base 
 assert.equal(kitchen.children.filter(m=>m.name==='induction-zone').length,4);
 assert.equal(diningLayout.r*2,1.20,'Requested table diameter is 120 cm');
 assert.ok(diningLayout.y<kitchenWorktop.y,'Table is at seated dining height');
-assert.ok(diningLayout.z+diningLayout.r<13.55,'Table clears base cabinet at connection');
-assert.equal(diningChairs.length,3,'Seats occupy the three exposed sides');
+assert.deepEqual([diningLayout.x,diningLayout.z],[4.35,13.10],'Dining table returns to its previous separate position');
+assert.equal(diningChairs.length,4,'Restore all four dining chairs');
+const breakfast=kitchen.getObjectByName('breakfast-disc'),breakfastBounds=new THREE.Box3().setFromObject(breakfast);
+assert.ok(Math.abs(breakfastBounds.max.x-breakfastBounds.min.x-.80)<1e-6,'Breakfast disc is exactly 80 cm');
+assert.ok(breakfastBounds.min.y>=kitchenWorktop.y&&breakfastBounds.min.y-kitchenWorktop.y<.002,'Wooden disc sits above the ceramic');
+assert.equal(breakfast.material,materials.wood,'Breakfast surface remains oak');
+assert.ok(breakfastBounds.max.z<hobBounds.min.z,'Breakfast disc does not cover the hob');
+assert.ok(topHit(breakfastTop.x+.15,breakfastTop.z+.15).length,'Breakfast disc overlaps its supporting ceramic');
+ray.set(new THREE.Vector3(6.50,.89,13.10),new THREE.Vector3(0,-1,0));
+assert.equal(ray.intersectObjects(kitchen.children).length,0,'No dining pedestal below the breakfast overhang');
 for(let i=0;i<diningChairs.length;i++)for(let j=i+1;j<diningChairs.length;j++)assert.ok(Math.hypot(diningChairs[i].x-diningChairs[j].x,diningChairs[i].z-diningChairs[j].z)>.58,'Chair shells do not overlap');
 const fridge=kitchenModules.find(m=>m.id==='fridge');
 for(const name of ['pink-fridge-body','pink-fridge-door','fridge-handle']){
@@ -36,9 +45,19 @@ for(const name of ['pink-fridge-body','pink-fridge-door','fridge-handle']){
  assert.ok(bounds.min.x>=fridge.x-fridge.w/2-1e-5&&bounds.max.x<=fridge.x+fridge.w/2+1e-5,'Fridge fits its shared footprint');
  assert.ok(bounds.min.z>=fridge.z-fridge.d/2-1e-5&&bounds.max.z<=fridge.z+fridge.d/2+1e-5,'Fridge handle stays inside collision footprint');
 }
-// Only the requested oven column and fridge may occupy storage height.
-for(const child of kitchen.children){
- const bounds=new THREE.Box3().setFromObject(child);
- if(bounds.max.y>1.65)assert.ok(bounds.min.x>8.8&&bounds.min.z>12.37&&bounds.max.z<12.98,'No suspended wall cabinets');
+// Keep the whole rear window opening clear, including its frame, not just its centre.
+const rearWall=walls.find(w=>w.a[1]===1350&&w.b[1]===1350);
+const rearWindows=rearWall.open.filter(o=>o.kind==='window').map(o=>({
+ min:point([rearWall.a[0]+o.s,rearWall.a[1]])[0]-.04,
+ max:point([rearWall.a[0]+o.e,rearWall.a[1]])[0]+.04,
+}));
+assert.equal(kitchenWallCabinets.length,2,'Two wall cabinet runs match the annotated image');
+for(const cabinet of kitchenWallCabinets){
+ const shell=kitchen.getObjectByName(cabinet.id+'-carcass'),bounds=new THREE.Box3().setFromObject(shell);
+ assert.ok(bounds.min.y>=1.49&&bounds.max.y<2.21,'Suspended storage stays above worktops and below ceiling');
+ for(const window of rearWindows)assert.ok(bounds.max.x<window.min||bounds.min.x>window.max,'Wall cabinets do not block either window');
+ for(let row=0;row<cabinet.rows;row++)assert.ok(kitchen.getObjectByName(cabinet.id+'-front-'+row),'Each horizontal cabinet front is rendered');
 }
-console.log('PASS: ceramic U and sink opening, recessed basin, peninsula induction, 120 cm table, chair spacing, pink fridge and no wall cabinets.');
+assert.equal(kitchenWallCabinets.find(c=>c.id==='washing-upper').rows,2,'Two stacked horizontal fronts above the sink');
+assert.equal(kitchenWallCabinets.find(c=>c.id==='fridge-upper').rows,1,'Single horizontal front above the fridge-side wall');
+console.log('PASS: ceramic U, recessed sink, induction, raised 80 cm breakfast disc, separate 120 cm table, four chairs and wall cabinets clear of windows.');

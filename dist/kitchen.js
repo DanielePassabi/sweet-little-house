@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {kitchenModules,kitchenWorktop,kitchenSink,kitchenHob,diningLayout} from './kitchen-layout.js?v=20261011-1';
+import {kitchenModules,kitchenWorktop,kitchenSink,kitchenHob,breakfastTop,kitchenWallCabinets} from './kitchen-layout.js?v=20261011-2';
 
 // The same module dimensions drive the rendered kitchen and walking collisions.
 export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
@@ -76,9 +76,22 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
   const ring=mesh(new THREE.TorusGeometry(r,.0016,6,48),steel,hob.position.x+dx,.948,hob.position.z+dz,'induction-zone');ring.rotation.x=-Math.PI/2;
  }
  for(const dz of [-.10,0,.10])block(.018,.002,.006,steel,hob.position.x+.218,.948,hob.position.z+dz);
- // Short wooden bracket connects the lower table under the ceramic overhang.
- block(.30,.045,.11,wood,6.87,diningLayout.y-.045,13.47);
- block(.06,.185,.11,wood,6.99,.8075,13.47);
+ // A simple oak disc laid above the ceramic: no dining pedestal underneath.
+ mesh(new THREE.CylinderGeometry(breakfastTop.r,breakfastTop.r,breakfastTop.h,64),wood,breakfastTop.x,breakfastTop.bottom+breakfastTop.h/2,breakfastTop.z,'breakfast-disc');
+
+ // Handleless wall cabinets follow the two red areas of the user's sketch.
+ // Carcasses are recessed behind the door fronts, preserving clean shadow gaps.
+ for(const cabinet of kitchenWallCabinets){
+  const {x,z,w,d,bottom,h,rows}=cabinet,y=bottom+h/2;
+  const shell=cabinet.face==='west'
+   ?block(w-.028,h,d,wood,x+.014,y,z)
+   :block(w,h,d-.028,wood,x,y,z+.014);
+  shell.name=cabinet.id+'-carcass';
+  for(let row=0;row<rows;row++){
+   const door=face(cabinet,bottom+(row+.5)*h/rows,h/rows-.014);
+   door.name=cabinet.id+'-front-'+row;
+  }
+ }
 
  // Rounded enamel body and chrome handle: an illustrative retro fridge.
  const fridge=kitchenModules.find(m=>m.id==='fridge');

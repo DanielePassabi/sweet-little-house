@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import {canWalk,intersects,furnitureColliders,safeRoomPosition} from '../dist/furniture-collisions.js';
-import {kitchenModules,kitchenColliders,diningLayout,diningChairs} from '../dist/kitchen-layout.js';
+import {kitchenModules,kitchenColliders,breakfastTop,diningLayout,diningChairs} from '../dist/kitchen-layout.js';
 import {canStand,rooms,point} from '../dist/model.js';
 const box={minX:0,maxX:1,minZ:0,maxZ:1};
 assert.equal(intersects(box,.5,.5,0),true,'Points inside a solid must collide');
 assert.equal(intersects(box,1.15,1.15,.18),false,'Rounded player clearance frees square corners');
 assert.equal(intersects(box,1.1,1.1,.18),true);
 assert.equal(canWalk(3.5,14.2),true,'Free space beside dining table must not be blocked');
-assert.equal(canWalk(diningLayout.x,diningLayout.z),false,'Attached round table remains solid');
-assert.equal(canWalk(4.35,13.10),true,'Previous detached dining table is removed');
+assert.equal(canWalk(diningLayout.x,diningLayout.z),false,'Restored separate dining table remains solid');
+assert.equal(canWalk(breakfastTop.x,breakfastTop.z),false,'Breakfast overhang has its own circular collision');
+assert.equal(canWalk(6.08,12.94),true,'Former attached dining chair position is free');
 assert.equal(canWalk(4.80,11.60),true,'Previous dining location is free');
 assert.equal(canWalk(1.6,5.68),true,'Former desk location is clear');
 assert.equal(canWalk(.60,7.40),false,'Relocated desk chair is solid');

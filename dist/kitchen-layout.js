@@ -20,12 +20,23 @@ export const kitchenWorktop={y:.935,thickness:.035,
 };
 export const kitchenSink={x:9.235,z:13.275,w:.42,d:.44,depth:.18};
 export const kitchenHob={x:6.99,z:13.9345,w:.52,d:.72};
-// Lower 120 cm wooden circle tucks under the ceramic end. Cabinets start at
-// z=13.55, beyond the table rim, leaving the connection free of solid cabinetry.
-export const diningLayout={x:6.43,z:12.94,r:.60,y:.76};
-export const diningChairs=[-Math.PI/3,-Math.PI*7/9,Math.PI*7/9].map(theta=>({
- x:diningLayout.x+Math.cos(theta)*.73,z:diningLayout.z+Math.sin(theta)*.73,
- angle:-Math.PI/2-theta,
-}));
-export const kitchenColliders=[...kitchenModules,peninsula].map(({id,x,z,w,d})=>({minX:x-w/2-(id==='oven'?.058:0),maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2}));
+// An 80 cm oak breakfast disc rests on top of the end of the ceramic peninsula.
+// It is distinct from the freestanding 120 cm dining table restored below.
+export const breakfastTop={x:6.78,z:13.13,r:.40,bottom:kitchenWorktop.y+.001,h:.04};
+export const diningLayout={x:4.35,z:13.10,r:.60,y:.76};
+export const diningChairs=Array.from({length:4},(_,i)=>{
+ const theta=Math.PI/4+i*Math.PI/2;
+ return {x:diningLayout.x+Math.cos(theta)*.66,z:diningLayout.z+Math.sin(theta)*.66,angle:-Math.PI/2-theta};
+});
+// Two horizontal fronts above the washing run, one above the fridge-side wall.
+// The gap between these runs preserves the full height and width of the window.
+export const kitchenWallCabinets=[
+ {id:'washing-upper',x:9.365,z:13.947,w:.34,d:1.944,bottom:1.50,h:.70,face:'west',rows:2},
+ {id:'fridge-upper',x:6.82,z:14.749,w:1.84,d:.34,bottom:1.82,h:.38,face:'north',rows:1},
+];
+export const kitchenWallVolumes=kitchenWallCabinets.map(({x,z,w,d,bottom,h})=>({min:[x-w/2,bottom,z-d/2],max:[x+w/2,bottom+h,z+d/2]}));
+export const kitchenColliders=[
+ ...[...kitchenModules,peninsula].map(({id,x,z,w,d})=>({minX:x-w/2-(id==='oven'?.058:0),maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2})),
+ {...breakfastTop,minX:breakfastTop.x-breakfastTop.r,maxX:breakfastTop.x+breakfastTop.r,minZ:breakfastTop.z-breakfastTop.r,maxZ:breakfastTop.z+breakfastTop.r},
+];
 export const diningColliders=[diningLayout,...diningChairs.map(({x,z})=>({x,z,r:.29}))].map(c=>({...c,minX:c.x-c.r,maxX:c.x+c.r,minZ:c.z-c.r,maxZ:c.z+c.r}));
