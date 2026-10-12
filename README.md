@@ -106,3 +106,11 @@ Il Tipo 2 segue la nuova piantina: colonna integrata con frigorifero, freezer e 
 Il divano da 270 × 180 cm è specchiato, con la chaise sul lato vicino alla parete che separa il soggiorno dalla zona notte. Anche cuscini e zucchette seguono la specchiatura.
 
 Le alternative sono definite in `dist/kitchen-variants.js` e mantengono gruppi di rendering separati. Il cambio aggiorna ombre, ingombri e altezza libera; se un mobile della nuova configurazione occupa il punto della visita, il visitatore torna in un punto libero della zona giorno. `node tests/kitchen-variants.mjs` controlla la conservazione esatta della geometria del Tipo 1, la disposizione del Tipo 2, gli angoli arrotondati e i passaggi dopo cambi ripetuti. Verificati nel browser selezione, ritorno al Tipo 1 e ripristino della scelta dopo il ricaricamento.
+
+### LG C1 da 83 pollici e postazione PC — 12 ottobre 2026
+
+La TV conserva il centro precedente, a quota 147 cm, e adotta le dimensioni senza piedistallo della **LG OLED83C14LA: 185,1 × 106,2 × 5,53 cm**, dalla [scheda ufficiale LG](https://www.lg.com/uk/tvs/oled-tv/oled83c14la/). Gli 83 pollici indicano la diagonale, non la larghezza. Il modello distingue il pannello OLED sottile dal corpo posteriore inferiore.
+
+Sul mobile nero esistente sono appoggiati il PC della foto e due controller nello stile DualSense, uno bianco e uno grigio con simboli colorati. Il tower è ricostruito con telaio nero, vetro laterale rivolto al divano, scheda madre e video, ventole, raffreddamento a liquido e illuminazione blu. Ingombro illustrativo stimato: 44 cm lungo il mobile, 23 cm in profondità e 46 cm di altezza; controller di circa 16 × 11 cm. Il PC resta sotto il bordo dello schermo.
+
+Una canaletta color parete da circa 4 cm sale dal mobile fino al centro della TV. Il cavo video collega il retro del PC alla TV attraverso la canaletta; i cavi di alimentazione passano dietro il mobile e quello della TV risale nella stessa canaletta. Le geometrie sono in `dist/media-station.js`, con misure e ingombri condivisi in `dist/media-layout.js`. `node tests/media-station.mjs` verifica le dimensioni LG, il centro invariato, l’appoggio e l’ingombro dei dispositivi, il percorso dei cavi e la distanza dalle pareti. La postazione è presente in entrambe le configurazioni della cucina.

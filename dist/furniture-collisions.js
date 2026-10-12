@@ -1,6 +1,7 @@
 import {diningColliders} from './kitchen-layout.js?v=20261012-1';
 import {getKitchenVariant} from './kitchen-variants.js?v=20261012-1';
 import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
+import {mediaCollider} from './media-layout.js?v=20261012-1';
 import {canStand,point,insidePolygon} from './model.js';
 
 
@@ -8,7 +9,7 @@ const rect=(minX,maxX,minZ,maxZ)=>({minX,maxX,minZ,maxZ});
 const circle=(x,z,r)=>({x,z,r,minX:x-r,maxX:x+r,minZ:z-r,maxZ:z+r});
 // Retain full solid fixtures; split seats/tables and use round pot/stool footprints.
 export const furnitureColliders=[
- {minX:3.02,maxX:3.52,minZ:8.84,maxZ:11.02},
+ mediaCollider,
  {minX:.86,maxX:1.62,minZ:8.56,maxZ:9.10},
  {minX:1.70,maxX:2.45,minZ:8.56,maxZ:9.26},
  {minX:-.08,maxX:2.60,minZ:14.05,maxZ:14.88},

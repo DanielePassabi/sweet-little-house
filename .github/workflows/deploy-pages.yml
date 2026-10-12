@@ -40,6 +40,8 @@ jobs:
           node --check dist/kitchen.js
           node --check dist/sofa-layout.js
           node --check dist/sofa.js
+          node --check dist/media-layout.js
+          node --check dist/media-station.js
           node --check dist/material-details.js
           node --check dist/solar.js
           node --check dist/vendor/suncalc.js
@@ -56,6 +58,7 @@ jobs:
           node tests/kitchen.mjs
           node tests/kitchen-variants.mjs
           node tests/sofa.mjs
+          node tests/media-station.mjs
           node tests/solar.mjs
           node tests/wall-joints.mjs
 

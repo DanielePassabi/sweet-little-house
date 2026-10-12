@@ -1,0 +1,64 @@
+import assert from 'node:assert/strict';
+import * as THREE from '../dist/vendor/three.module.js';
+import {createMediaStation} from '../dist/media-station.js';
+import {television,mediaConsole,mediaCollider,cableDuct,gameControllers} from '../dist/media-layout.js';
+import {canStand} from '../dist/model.js';
+import {canWalk,setKitchenCollisionVariant} from '../dist/furniture-collisions.js';
+
+const parent=new THREE.Group(),unit=new THREE.BoxGeometry(1,1,1);
+const box=(w,h,d,m,x,y,z,p)=>{const o=new THREE.Mesh(unit,m);o.position.set(x,y,z);o.scale.set(w,h,d);p.add(o);return o;};
+const materials=Object.fromEntries(['black','screen','wall'].map(k=>[k,new THREE.MeshStandardMaterial()]));
+const station=createMediaStation(parent,box,materials);parent.updateMatrixWorld(true);
+const bounds=name=>new THREE.Box3().setFromObject(station.getObjectByName(name));
+const screen=bounds('lg-c1-83'),size=screen.getSize(new THREE.Vector3()),centre=screen.getCenter(new THREE.Vector3());
+assert.ok(Math.abs(size.z-1.851)<1e-6&&Math.abs(size.y-1.062)<1e-6,'LG C1 83-inch enclosure is exactly 185.1 × 106.2 cm');
+assert.ok(Math.abs(size.x-.0553)<.00002,'TV depth follows LG dimensions without a stand');
+assert.ok(Math.abs(centre.z-9.72)<1e-8&&Math.abs(centre.y-1.47)<1e-8,'Previous TV centre is preserved');
+const pc=bounds('desktop-pc');
+assert.ok(pc.min.y>=mediaConsole.top-1e-6&&pc.min.y<mediaConsole.top+.001,'Tower feet rest on the console');
+assert.ok(pc.max.y<screen.min.y,'Tower leaves the screen unobstructed');
+for(const name of ['desktop-pc',...gameControllers.map(c=>c.name)]){
+ const b=bounds(name);
+ assert.ok(b.min.x>=mediaConsole.x-mediaConsole.depth/2&&b.max.x<=mediaConsole.x+mediaConsole.depth/2,'Devices fit the console depth');
+ assert.ok(b.min.z>=mediaCollider.minZ&&b.max.z<=mediaCollider.maxZ,'Devices fit the console width');
+ assert.ok(b.min.y>=mediaConsole.top-.001&&b.min.y<mediaConsole.top+.007,'Each device rests on the console');
+}
+assert.ok(station.getObjectByName('pc-tempered-glass').material.transparent,'PC interior is visible through the glass panel');
+for(const name of ['ram-light','graphics-card','coolant-tube','case-fan-rings'])assert.ok(station.getObjectByName(name),name);
+assert.equal(gameControllers.length,2);
+for(const controller of gameControllers){
+ const pad=station.getObjectByName(controller.name);
+ for(const name of ['controller-touchpad','controller-left-grip','controller-right-grip','analogue-sticks','button-symbol-triangle','button-symbol-circle','button-symbol-cross','button-symbol-square'])assert.ok(pad.getObjectByName(name),name);
+}
+assert.notEqual(station.getObjectByName('white-controller').getObjectByName('controller-left-grip').material.color.getHex(),station.getObjectByName('grey-controller').getObjectByName('controller-left-grip').material.color.getHex());
+const duct=bounds('central-cable-duct');
+assert.ok(Math.abs(duct.getCenter(new THREE.Vector3()).z-television.centerZ)<1e-8,'Raceway is centred beneath the TV');
+assert.ok(Math.abs(duct.max.y-television.centerY)<1e-6&&duct.min.y<mediaConsole.top,'Raceway connects the console to the TV centre');
+for(const name of ['pc-hdmi-cable','tv-power-cable']){
+ const cable=station.getObjectByName(name),end=cable.geometry.parameters.path.getPoint(1);
+ assert.ok(Math.abs(end.y-television.centerY)<1e-8,'Cable reaches the TV at its centre height');
+ assert.ok(bounds(name).min.y<mediaConsole.top+.07,'Cable connects to the console area');
+ const positions=cable.geometry.attributes.position;
+ for(let i=0;i<positions.count;i++)if(positions.getY(i)>.56&&positions.getY(i)<.92){
+  assert.ok(Math.abs(positions.getX(i))<cableDuct.width/2,'Cable remains inside raceway width');
+  assert.ok(Math.abs(positions.getZ(i)-cableDuct.z)<cableDuct.depth/2,'Cable stays behind the raceway cover');
+ }
+}
+assert.ok(station.getObjectByName('pc-power-cable'),'PC power cable runs behind the console');
+const v=new THREE.Vector3(),instance=new THREE.Matrix4();let triangles=0;
+station.traverse(o=>{
+ if(!o.isMesh)return;
+ triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3*(o.count??1);
+ for(let i=0;i<(o.count??1);i++){
+  if(o.isInstancedMesh)o.getMatrixAt(i,instance);else instance.identity();
+  for(let j=0;j<o.geometry.attributes.position.count;j++){
+   v.fromBufferAttribute(o.geometry.attributes.position,j).applyMatrix4(instance).applyMatrix4(o.matrixWorld);
+   assert.ok(Number.isFinite(v.x+v.y+v.z),'All geometry is finite');
+   assert.ok(canStand(v.x,v.z,0),`${o.name} must not penetrate architectural walls at ${v.x},${v.z}`);
+  }
+ }
+});
+assert.ok(triangles<45000,'Static gaming details stay within a modest geometry budget');
+for(const id of ['1','2']){setKitchenCollisionVariant(id);assert.equal(canWalk(mediaConsole.x,mediaConsole.z),false,'Console remains solid in both kitchens');assert.equal(canWalk(3.75,9.72),true,'Path in front of the console remains open');}
+setKitchenCollisionVariant('1');
+console.log(`PASS: centred LG C1 185.1 × 106.2 cm, console-supported PC/controllers, connected central raceway, wall clearance; ${triangles} triangles.`);
