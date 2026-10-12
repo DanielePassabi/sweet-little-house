@@ -40,3 +40,7 @@ export const kitchenColliders=[
  {...breakfastTop,minX:breakfastTop.x-breakfastTop.r,maxX:breakfastTop.x+breakfastTop.r,minZ:breakfastTop.z-breakfastTop.r,maxZ:breakfastTop.z+breakfastTop.r},
 ];
 export const diningColliders=[diningLayout,...diningChairs.map(({x,z})=>({x,z,r:.29}))].map(c=>({...c,minX:c.x-c.r,maxX:c.x+c.r,minZ:c.z-c.r,maxZ:c.z+c.r}));
+// Preserve the approved design as the default, reusable configuration.
+export const kitchenType1={id:'1',name:'Tipo 1',description:'Frigo rosa, forno a colonna e induzione sulla penisola.',
+ modules:kitchenModules,peninsula,worktop:kitchenWorktop,sink:kitchenSink,hob:kitchenHob,
+ breakfast:breakfastTop,wallCabinets:kitchenWallCabinets,wallVolumes:kitchenWallVolumes,colliders:kitchenColliders};

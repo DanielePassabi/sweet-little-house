@@ -96,3 +96,13 @@ Sostituito il divano precedente con quello della foto: tessuto avorio, sedute pr
 Eliminato il piccolo blocco a cassetti nell’angolo a destra della lavastoviglie: il raccordo ora ha pannelli continui a tutta altezza e uno zoccolo unico. Il resto della cucina resta invariato.
 
 `dist/sofa-layout.js` condivide quote e ingombri con le collisioni, mentre `dist/sofa.js` costruisce il divano con geometrie arrotondate e parti ripetute istanziate. `node tests/sofa.mjs` verifica le misure del modello, la posizione della chaise, il contatto dei peluche con le sedute, le distanze da muri e tavolino e il costo delle geometrie. Verificati anche il raccordo della cucina e i percorsi attraverso le nove stanze.
+
+### Due cucine a confronto e divano specchiato — 12 ottobre 2026
+
+Il selettore **La cucina → Configurazione** permette di passare tra **Tipo 1** e **Tipo 2** in Panoramica, Pianta e Visita, conservando l’inquadratura. La scelta viene ricordata nel browser; alla prima apertura si presenta il Tipo 1. Geometrie e finiture del Tipo 1 sono identiche alla cucina approvata l’11 ottobre, compresi frigo rosa, forno a colonna, pensili e disco in legno da 80 cm.
+
+Il Tipo 2 segue la nuova piantina: colonna integrata con frigorifero, freezer e dispensa al posto del forno; lavello e lavastoviglie nelle posizioni precedenti; forno basso da 60 cm sotto la finestra; induzione a parete con piastrelle chiare da piano a 60 cm sopra la ceramica. La penisola occupa la zona del precedente frigo esterno, arretra di circa 60 cm e lascia un passaggio interno di 220 cm, rispetto ai 155,5 cm del Tipo 1. All’estremità c’è un appoggio in rovere quadrato da **90 × 90 cm**, spesso 4 cm e con angoli di raggio 10 cm, leggermente sporgente dalla base. Queste nuove quote sono stimate dalla piantina; architettura, tavolo separato e altri arredi restano invariati.
+
+Il divano da 270 × 180 cm è specchiato, con la chaise sul lato vicino alla parete che separa il soggiorno dalla zona notte. Anche cuscini e zucchette seguono la specchiatura.
+
+Le alternative sono definite in `dist/kitchen-variants.js` e mantengono gruppi di rendering separati. Il cambio aggiorna ombre, ingombri e altezza libera; se un mobile della nuova configurazione occupa il punto della visita, il visitatore torna in un punto libero della zona giorno. `node tests/kitchen-variants.mjs` controlla la conservazione esatta della geometria del Tipo 1, la disposizione del Tipo 2, gli angoli arrotondati e i passaggi dopo cambi ripetuti. Verificati nel browser selezione, ritorno al Tipo 1 e ripristino della scelta dopo il ricaricamento.

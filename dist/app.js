@@ -9,11 +9,12 @@ import { createMovement, DEFAULT_EYE_HEIGHT, movementCodes } from './movement.js
 
 import { createRenderState, freezeStaticTransforms, indexStaticSurface } from './render-state.js?v=20260916-3';
 
-import {diningLayout,diningChairs,breakfastTop,kitchenWallCabinets,kitchenWallVolumes} from './kitchen-layout.js?v=20261011-3';
-import {createKitchen} from './kitchen.js?v=20261011-3';
-import {createSofa} from './sofa.js?v=20261011-1';
-import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261011-1';
-import {canWalk,furnitureColliders,safeRoomPosition} from './furniture-collisions.js?v=20261011-3';
+import {diningLayout,diningChairs} from './kitchen-layout.js?v=20261012-1';
+import {kitchenVariants,getKitchenVariant} from './kitchen-variants.js?v=20261012-1';
+import {createKitchen} from './kitchen.js?v=20261012-1';
+import {createSofa} from './sofa.js?v=20261012-1';
+import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
+import {canWalk,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant} from './furniture-collisions.js?v=20261012-1';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -489,13 +490,22 @@ for(const z of [1.96,4.14]){
 }
 
 
-// Designer's U-shaped ceramic kitchen, column oven and pink retro refrigerator.
+// Two independent kitchen groups retain their own geometry and visibility.
 const kitchenBrown=new THREE.MeshStandardMaterial({color:'#c4a178',roughness:.74});
 const kitchenFront=new THREE.MeshStandardMaterial({color:'#dad4c8',roughness:.88});
 const kitchenCounter=new THREE.MeshStandardMaterial({color:'#e8e3da',roughness:.5});
 const kitchenSteel=new THREE.MeshStandardMaterial({color:'#aeb5b6',roughness:.28,metalness:.72});
 const diningFabric=new THREE.MeshStandardMaterial({color:'#85817c',roughness:1,side:THREE.DoubleSide});
-const kitchenFurniture=createKitchen(model,box,{front:kitchenFront,wood:kitchenBrown,ceramic:kitchenCounter,steel:kitchenSteel,dark:furnitureBlack,glass:applianceGlass});
+let activeKitchen=getKitchenVariant('1');
+try{activeKitchen=getKitchenVariant(localStorage.getItem('sweet-little-house.kitchen-type')??'1');}catch{/* Storage may be unavailable or contain an obsolete choice. */}
+const kitchenGroups=new Map(kitchenVariants.map(variant=>{
+ const group=createKitchen(model,box,{front:kitchenFront,wood:kitchenBrown,ceramic:kitchenCounter,steel:kitchenSteel,dark:furnitureBlack,glass:applianceGlass},variant);
+ group.name='kitchen-type-'+variant.id;group.visible=variant.id===activeKitchen.id;
+ group.userData.objectCount=group.children.length;return [variant.id,group];
+}));
+setKitchenCollisionVariant(activeKitchen.id);
+const kitchenSelector=$('#kitchen-type');kitchenSelector.value=activeKitchen.id;
+$('#kitchen-description').textContent=activeKitchen.description;
 
 // Restored freestanding 120 cm dark stone table, crossed pedestal and four chairs.
 const diningFurniture=new THREE.Group();model.add(diningFurniture);
@@ -578,7 +588,7 @@ const readingBack=readingCushion(.76,.67,.18,0,.68,-.32);readingBack.rotation.x=
 for(const x of [-.32,.32])readingCushion(.16,.38,.73,x,.49,.02);
 for(const x of [-.27,.27])for(const z of [-.25,.27])box(.045,.18,.045,furnitureBlack,x,.10,z,readingChair);
 
-const bathroomFixtureCount=bathroomFixtures.children.length,bedroomObjectCount=bedroomFurniture.children.length,kitchenObjectCount=kitchenFurniture.children.length,diningObjectCount=diningFurniture.children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
+const bathroomFixtureCount=bathroomFixtures.children.length,bedroomObjectCount=bedroomFurniture.children.length,diningObjectCount=diningFurniture.children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
 applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,laptopSilver,applianceTrim],glass:[glass,showerGlass]},renderer);
 const assetInstanceStats=flushStaticInstances();
 
@@ -588,7 +598,7 @@ const assetInstanceStats=flushStaticInstances();
 const furnitureObjectCount=furniture.children.length,utilityObjectCount=utilityFixtures.children.length,terraceObjectCount=terraceFurniture.children.length;
 function batchStaticBoxes(root=model){
  root.updateMatrixWorld(true);
- const boxes=[];root.traverse(object=>{if(object.isMesh&&object.geometry===unitBoxGeometry&&!object.material.transparent)boxes.push(object);});
+ const boxes=[];root.traverse(object=>{if(object.isMesh&&!object.isInstancedMesh&&object.geometry===unitBoxGeometry&&!object.material.transparent)boxes.push(object);});
  const groups=new Map();for(const mesh of boxes){const key=mesh.material.uuid;if(!groups.has(key))groups.set(key,{material:mesh.material,meshes:[]});groups.get(key).meshes.push(mesh);}
  const rootInverse=root.matrixWorld.clone().invert(),matrix=new THREE.Matrix4();
  for(const {material,meshes} of groups.values()){
@@ -599,7 +609,11 @@ function batchStaticBoxes(root=model){
  return {boxes:boxes.length,batches:groups.size};
 }
 applyKitchenMaterials({wood:kitchenBrown,stone:kitchenCounter,front:kitchenFront},renderer);
+// Batch each alternative separately, so hidden cupboards/appliances cannot leak
+// into the permanent scene or continue to cast shadows after switching.
+const kitchenBatches=[...kitchenGroups.values()].map(group=>batchStaticBoxes(group));
 const batchedBoxes=batchStaticBoxes();
+for(const stats of kitchenBatches){batchedBoxes.boxes+=stats.boxes;batchedBoxes.batches+=stats.batches;}
 
 const roof=polygonMesh(footprint,new THREE.MeshStandardMaterial({color:'#faf9f3',side:THREE.DoubleSide,roughness:1}),HEIGHT);
 model.remove(roof);ceiling.add(roof);
@@ -648,7 +662,8 @@ const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),grassMaterial);grou
 
 const {landscape,mountains,clouds,grass,treeCount,mountainCount,cloudCount,grassCount}=createLandscape(scene,GROUND_Y,footprint,insidePolygon,isTouch);
 
-const overheadVolumes=[...architecturalVolumes.filter(v=>v.min[1]>0),...kitchenWallVolumes];
+const architecturalOverhead=architecturalVolumes.filter(v=>v.min[1]>0);
+let overheadVolumes=[...architecturalOverhead,...activeKitchen.wallVolumes];
 const movement=createMovement(canWalk,(x,z,eye)=>{
  let ceilingHeight=HEIGHT;
  for(const v of overheadVolumes)if(x+.18>v.min[0]&&x-.18<v.max[0]&&z+.18>v.min[2]&&z-.18<v.max[2])ceilingHeight=Math.min(ceilingHeight,v.min[1]);
@@ -745,6 +760,25 @@ function move(dt){
  activeKeys.clear();for(const key of keys)activeKeys.add(key);for(const key of touchKeys)activeKeys.add(key);
  movement.update(dt,activeKeys,yaw,perspective.position,eyeHeight);
 }
+kitchenSelector.onchange=()=>{
+ const next=getKitchenVariant(kitchenSelector.value);
+ if(next.id===activeKitchen.id)return;
+ resetMovement();
+ activeKitchen=next;setKitchenCollisionVariant(next.id);
+ for(const [id,group] of kitchenGroups)group.visible=id===next.id;
+ overheadVolumes=[...architecturalOverhead,...next.wallVolumes];
+ // A person may be standing where the restored peninsula or fridge appears.
+ // Keep the camera for comparisons unless its current walking position is blocked.
+ if(view==='walk'&&!canWalk(perspective.position.x,perspective.position.z,.20)){
+  const [x,z]=safeRoomPosition(rooms.find(r=>r.id==='living'));
+  perspective.position.set(x,eyeHeight,z);updateSelection('living');
+ }
+ $('#kitchen-description').textContent=next.description;
+ try{localStorage.setItem('sweet-little-house.kitchen-type',next.id);}catch{/* Choice still works for this visit. */}
+ renderer.domElement.dataset.kitchenType=next.id;
+ renderer.shadowMap.needsUpdate=true;renderState.invalidate();
+};
+renderer.domElement.dataset.kitchenType=activeKitchen.id;
 $('#tile-size').onchange=e=>{tileSize=Number(e.target.value);floorMaterial.map.repeat.set(1/tileSize,1/tileSize);renderState.invalidate();};
 $('#eye-height').oninput=e=>{eyeHeight=Number(e.target.value);$('#eye-value').textContent=eyeHeight.toFixed(2).replace('.',',')+' m';resetMovement();};
 $('#panel-toggle').onclick=()=>{const open=$('#panel').classList.toggle('open');$('#panel-toggle').setAttribute('aria-expanded',open);};
@@ -816,4 +850,4 @@ for(const root of scene.children)if(root!==measurementGroup)frozenTransformCount
 scene.updateMatrix();scene.matrixAutoUpdate=false;
 updateDaylight();resize();setView('orbit');renderer.compile(scene,perspective);renderer.compile(scene,orthographic);requestAnimationFrame(animate);
 // Small read-only diagnostics and deterministic spatial queries for validation.
-window.houseModel={get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',parquetRoomIds:[...parquetRoomIds],nightFloor:'stoneware-with-bedroom-parquet',livingFloor:'dark-stoneware',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:sofaLayout.width,chaiseLength:sofaLayout.chaiseDepth,sofaDepth:sofaLayout.depth,sofaStyle:'ivory-channel-tufted-right-chaise',plushPumpkinCount:sofaPumpkins.length,bedLength,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount,kitchenObjectCount,diningObjectCount,kitchenLayout:'ceramic-u-column-oven-pink-fridge',kitchenWallCabinets:kitchenWallCabinets.length,breakfastDiameter:breakfastTop.r*2,breakfastHeight:breakfastTop.bottom+breakfastTop.h,diningDiameter:diningLayout.r*2,diningChairCount:diningChairs.length,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};
+window.houseModel={get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',parquetRoomIds:[...parquetRoomIds],nightFloor:'stoneware-with-bedroom-parquet',livingFloor:'dark-stoneware',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:sofaLayout.width,chaiseLength:sofaLayout.chaiseDepth,sofaDepth:sofaLayout.depth,sofaStyle:'ivory-channel-tufted-wall-side-chaise',plushPumpkinCount:sofaPumpkins.length,bedLength,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount,kitchenObjectCount:kitchenGroups.get(activeKitchen.id).userData.objectCount,diningObjectCount,kitchenType:activeKitchen.id,kitchenLayout:activeKitchen.description,kitchenWallCabinets:activeKitchen.wallCabinets.length,breakfastDiameter:activeKitchen.breakfast.r?activeKitchen.breakfast.r*2:null,breakfastWidth:activeKitchen.breakfast.w??activeKitchen.breakfast.r*2,breakfastHeight:activeKitchen.breakfast.bottom+activeKitchen.breakfast.h,diningDiameter:diningLayout.r*2,diningChairCount:diningChairs.length,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};

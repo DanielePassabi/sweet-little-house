@@ -35,7 +35,7 @@ for(const pumpkin of sofaPumpkins){
  assert.ok(Math.abs(box.min.y-sofaLayout.seatHeight)<.015,'Pumpkin rests in the seat without floating');
  assert.ok(plush.getObjectByName('soft-stem'),'Pumpkin has a soft curved stem');
 }
-assert.equal(canWalk(5.95,10.35),false,'Right-hand chaise blocks walking');
-assert.equal(canWalk(5.95,8.48),true,'Previous left-hand chaise location is now open');
+assert.equal(canWalk(5.95,8.48),false,'Mirrored chaise beside the partition blocks walking');
+assert.equal(canWalk(5.95,10.35),true,'Previous right-hand chaise location is now open');
 assert.ok(!sofaColliders.some(c=>intersects(c,sofaCoffeeTable.x,sofaCoffeeTable.z,sofaCoffeeTable.r)),'Coffee table clears the new chaise');
-console.log(`PASS: 270 × 180 cm sofa, right chaise, collision/wall clearance, two seated plush pumpkins; ${draws} draw calls, ${triangles} triangles.`);
+console.log(`PASS: 270 × 180 cm sofa, wall-side chaise, collision/wall clearance, two seated plush pumpkins; ${draws} draw calls, ${triangles} triangles.`);

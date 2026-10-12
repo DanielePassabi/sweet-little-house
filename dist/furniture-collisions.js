@@ -1,5 +1,6 @@
-import {kitchenColliders,diningColliders} from './kitchen-layout.js?v=20261011-3';
-import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261011-1';
+import {diningColliders} from './kitchen-layout.js?v=20261012-1';
+import {getKitchenVariant} from './kitchen-variants.js?v=20261012-1';
+import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
 import {canStand,point,insidePolygon} from './model.js';
 
 
@@ -21,7 +22,7 @@ export const furnitureColliders=[
  {minX:7.02,maxX:7.62,minZ:1.02,maxZ:5.04},
  {minX:point([529,632])[0]-.06-.55,maxX:point([529,632])[0]-.06,minZ:point([529,632])[1]+.06,maxZ:point([529,742])[1]-.06},
 ];
-furnitureColliders.push(...kitchenColliders,...diningColliders);
+furnitureColliders.push(...diningColliders);
 furnitureColliders.push(...sofaColliders);
 furnitureColliders.push(circle(sofaCoffeeTable.x,sofaCoffeeTable.z,sofaCoffeeTable.r));
 furnitureColliders.push(circle(1.275,12.25,.425));
@@ -60,9 +61,16 @@ export function intersects(c,x,z,r){
 }
 // Spatial buckets avoid scanning every furnishing for each physics substep.
 const buckets=new Map();
-for(const c of furnitureColliders)for(let x=Math.floor(c.minX);x<=Math.floor(c.maxX);x++)for(let z=Math.floor(c.minZ);z<=Math.floor(c.maxZ);z++){
- const key=x+','+z;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(c);
+const permanentFurnitureColliders=[...furnitureColliders];
+export function setKitchenCollisionVariant(id){
+ const variant=getKitchenVariant(id);
+ furnitureColliders.splice(0,furnitureColliders.length,...permanentFurnitureColliders,...variant.colliders);
+ buckets.clear();
+ for(const c of furnitureColliders)for(let x=Math.floor(c.minX);x<=Math.floor(c.maxX);x++)for(let z=Math.floor(c.minZ);z<=Math.floor(c.maxZ);z++){
+  const key=x+','+z;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(c);
+ }
 }
+setKitchenCollisionVariant('1');
 export function canWalk(x,z,r=.18){
  if(!canStand(x,z,r))return false;
  for(let gx=Math.floor(x-r);gx<=Math.floor(x+r);gx++)for(let gz=Math.floor(z-r);gz<=Math.floor(z+r);gz++){

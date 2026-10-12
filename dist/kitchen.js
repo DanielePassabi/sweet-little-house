@@ -1,8 +1,10 @@
 import * as THREE from './vendor/three.module.js';
-import {kitchenModules,kitchenWorktop,kitchenSink,kitchenHob,breakfastTop,kitchenWallCabinets} from './kitchen-layout.js?v=20261011-3';
+import {kitchenType1} from './kitchen-layout.js?v=20261012-1';
+import {roundedTopPoints} from './kitchen-variants.js?v=20261012-1';
 
 // The same module dimensions drive the rendered kitchen and walking collisions.
-export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
+export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass},layout=kitchenType1){
+ const {modules:kitchenModules,worktop:kitchenWorktop,sink:kitchenSink,hob:kitchenHob,breakfast:breakfastTop,wallCabinets:kitchenWallCabinets}=layout;
  const group=new THREE.Group();group.name='kitchen';parent.add(group);
  const block=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,group);
  const mesh=(geometry,material,x,y,z,name)=>{
@@ -34,7 +36,22 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
    continue;
   }
   block(w-.08,.10,d-.08,dark,x,.055,z);
-  if(m.id==='oven'){
+  if(m.id==='integrated-fridge'){
+   block(w-.028,.022,d-.028,front,x,h-.011,z);
+   face(m,.43,.57).name='integrated-freezer-door';
+   face(m,1.30,1.14).name='integrated-fridge-door';
+   face(m,2.04,.28).name='integrated-pantry-door';
+  }else if(m.id==='under-window-oven'){
+   face(m,.86,.06);face(m,.175,.065);
+   face(m,.51,.60,steel).name='under-window-oven-frame';
+   face(m,.475,.46,glass,-.004).name='under-window-oven-glass';
+   block(w-.09,.09,.024,dark,x,.765,z-d/2-.004);
+   block(w-.13,.028,.036,steel,x,.695,z-d/2-.025);
+   for(const dx of [-.18,.18]){
+    const knob=mesh(new THREE.CylinderGeometry(.019,.019,.014,16),steel,x+dx,.765,z-d/2-.025,'under-window-oven-control');knob.rotation.x=Math.PI/2;
+   }
+   block(.09,.03,.006,glass,x,.765,z-d/2-.019);
+  }else if(m.id==='oven'){
    block(w-.028,.022,d-.028,front,x,h-.011,z);
    face(m,.45,.61);face(m,1.785,.79);
    face(m,1.065,.60,steel);face(m,1.035,.49,glass,-.004);
@@ -45,13 +62,13 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
     const knob=mesh(new THREE.CylinderGeometry(.021,.021,.016,16),steel,x-w/2-.029,1.30,z+dz,'oven-control');knob.rotation.z=Math.PI/2;
    }
    block(.005,.036,.09,glass,x-w/2-.030,1.30,z);
-  }else if(m.id==='sink')face(m,.515,.75);
+  }else if(m.id==='sink'||m.plain)face(m,.515,.75);
   else if(m.id==='dishwasher'){
    face(m,.515,.75);
    block(.021,.026,d-.12,dark,x-w/2-.002,.855,z);
   }else if(m.id==='window-return'){
    for(const sign of [-1,1])for(const y of [.27,.53,.79])block(w/2-.02,.235,.018,front,x+sign*w/4,y,z-d/2+.009);
-  }else for(const y of [.27,.53,.79])face(m,y,.235);
+ }else for(const y of [.27,.53,.79])face(m,y,.235);
  }
 
  // Continuous ceramic with a real through-opening for the single inset sink.
@@ -80,11 +97,31 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
 
  const hob=mesh(new THREE.BoxGeometry(kitchenHob.w,.012,kitchenHob.d),glass,kitchenHob.x,.941,kitchenHob.z,'induction-hob');
  for(const [dx,dz,r] of [[-.13,-.18,.087],[.13,-.18,.095],[-.13,.16,.102],[.13,.16,.088]]){
-  const ring=mesh(new THREE.TorusGeometry(r,.0016,6,48),steel,hob.position.x+dx,.948,hob.position.z+dz,'induction-zone');ring.rotation.x=-Math.PI/2;
+  const ring=mesh(new THREE.TorusGeometry(r,.0016,6,48),steel,hob.position.x+(kitchenHob.turned?dz:dx),.948,hob.position.z+(kitchenHob.turned?-dx:dz),'induction-zone');ring.rotation.x=-Math.PI/2;
  }
- for(const dz of [-.10,0,.10])block(.018,.002,.006,steel,hob.position.x+.218,.948,hob.position.z+dz);
- // A simple oak disc laid above the ceramic: no dining pedestal underneath.
- mesh(new THREE.CylinderGeometry(breakfastTop.r,breakfastTop.r,breakfastTop.h,64),wood,breakfastTop.x,breakfastTop.bottom+breakfastTop.h/2,breakfastTop.z,'breakfast-disc');
+ for(const dz of [-.10,0,.10]){
+  if(kitchenHob.turned)block(.006,.002,.018,steel,hob.position.x+dz,.948,hob.position.z-.218);
+  else block(.018,.002,.006,steel,hob.position.x+.218,.948,hob.position.z+dz);
+ }
+ // Both breakfast surfaces rest on the ceramic, with no dining pedestal.
+ if(breakfastTop.shape==='rounded-square'){
+  const shape=new THREE.Shape(roundedTopPoints(breakfastTop).map(([x,z])=>new THREE.Vector2(x,-z)));
+  const geometry=new THREE.ExtrudeGeometry(shape,{depth:breakfastTop.h,bevelEnabled:false,steps:1});
+  const positions=geometry.attributes.position,uv=geometry.attributes.uv;
+  for(let i=0;i<uv.count;i++)uv.setXY(i,(positions.getX(i)-breakfastTop.x)/breakfastTop.w+.5,(-positions.getY(i)-breakfastTop.z)/breakfastTop.d+.5);
+  const top=mesh(geometry,wood,0,breakfastTop.bottom,0,'breakfast-rounded-top');top.rotation.x=-Math.PI/2;
+ }else mesh(new THREE.CylinderGeometry(breakfastTop.r,breakfastTop.r,breakfastTop.h,64),wood,breakfastTop.x,breakfastTop.bottom+breakfastTop.h/2,breakfastTop.z,'breakfast-disc');
+
+ if(layout.backsplash){
+  const {x,z,w,bottom,h}=layout.backsplash;
+  const grout=new THREE.MeshStandardMaterial({color:'#bdbbb3',roughness:1});
+  const tile=new THREE.MeshStandardMaterial({color:'#eee9df',roughness:.38});
+  block(w,h,.009,grout,x,bottom+h/2,z).name='hob-backsplash';
+  const columns=6,rows=6;
+  for(let col=0;col<columns;col++)for(let row=0;row<rows;row++){
+   block(w/columns-.003,h/rows-.003,.012,tile,x-w/2+(col+.5)*w/columns,bottom+(row+.5)*h/rows,z-.007).name='backsplash-tile';
+  }
+ }
 
  // Handleless wall cabinets follow the two red areas of the user's sketch.
  // Carcasses are recessed behind the door fronts, preserving clean shadow gaps.
@@ -102,6 +139,7 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
 
  // Rounded enamel body and chrome handle: an illustrative retro fridge.
  const fridge=kitchenModules.find(m=>m.id==='fridge');
+ if(fridge){
  const pink=new THREE.MeshPhysicalMaterial({color:'#eaa7b8',roughness:.28,metalness:.06,clearcoat:.5,clearcoatRoughness:.2});
  function roundedBox(w,h,d,r,material,x,y,z,name){
   const geometry=new THREE.BoxGeometry(w,h,d,8,8,8),p=geometry.attributes.position,n=geometry.attributes.normal;
@@ -118,5 +156,6 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass}){
  for(const y of [.92,1.23])block(.026,.026,.05,steel,fridge.x-.205,y,14.195);
  mesh(new THREE.CylinderGeometry(.016,.016,.34,20),steel,fridge.x-.205,1.075,14.188,'fridge-handle');
  for(const dx of [-.22,.22])for(const dz of [-.23,.23])block(.055,.08,.055,dark,fridge.x+dx,.04,fridge.z+dz);
+ }
  return group;
 }

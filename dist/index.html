@@ -29,6 +29,7 @@
   <aside id="panel">
    <div class="panel-intro"><span class="eyebrow">LA CASA, IN SCALA</span><h1>Si parte dallo spazio.</h1><p>Ambienti arredati, materiali e luce.<br>La tua casa prende forma.</p></div>
    <div class="facts"><div><strong>2,60 <small>m</small></strong><span>Altezza interna</span></div><div><strong>3</strong><span>Camere</span></div></div>
+   <section class="panel-section kitchen-settings"><h2>La cucina</h2><label class="field" for="kitchen-type">Configurazione<select id="kitchen-type" aria-describedby="kitchen-description"><option value="1">Tipo 1</option><option value="2">Tipo 2</option></select></label><p id="kitchen-description" class="note" aria-live="polite">Frigo rosa, forno a colonna e induzione sulla penisola.</p></section>
    <section class="panel-section"><div class="section-heading"><h2>Esplora gli ambienti</h2><span>09</span></div><div id="room-list"></div></section>
    <section class="panel-section finish-section"><div class="section-heading"><h2>I pavimenti</h2><span class="small-tag">Due finiture</span></div><div class="material-stack"><div class="material"><div class="material-sample bathroom-tile-sample"></div><div><strong>Zona giorno, bagni e disimpegno · Gres</strong><span>Grigio caldo · finitura opaca</span></div></div><div class="material"><div class="material-sample parquet-sample"></div><div><strong>Tre camere · Rovere naturale</strong><span>Doghe sfalsate · finitura opaca</span></div></div></div><label class="field">Formato piastrelle<select id="tile-size"><option value=".6">60 × 60 cm</option><option value=".8">80 × 80 cm</option><option value="1.2">120 × 120 cm</option></select></label></section>
    <section class="panel-section sunlight-settings"><h2>Luce e orientamento</h2><p class="note">Fiume Veneto · ora italiana<br>Ovest ↑ · Nord → · Est ↓ · Sud ←</p><label class="field">Data<input id="sun-date" type="date" min="2000-01-01" max="2100-12-31" aria-label="Data della simulazione solare"></label><label class="field">Ora <output id="sun-time-value">14:30</output><input id="sun-time" type="range" min="300" max="1320" step="10" value="870" aria-label="Ora italiana del sole"></label><p id="sun-status" class="note"></p><label class="field">Luci interne<input id="interior-lights" type="checkbox" checked></label></section>
@@ -37,5 +38,5 @@
     <div class="panel-footer"><span class="empty-icon">◇</span><span>Arredo in corso<br><strong>Zona giorno, terrazza, locale tecnico, bagni e camere.</strong></span></div>
   </aside>
  </main>
- <script type="module" src="./app.js?v=20261011-3"></script>
+ <script type="module" src="./app.js?v=20261012-1"></script>
 </body></html>

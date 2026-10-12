@@ -36,6 +36,7 @@ jobs:
           node --check dist/render-state.js
           node --check dist/furniture-collisions.js
           node --check dist/kitchen-layout.js
+          node --check dist/kitchen-variants.js
           node --check dist/kitchen.js
           node --check dist/sofa-layout.js
           node --check dist/sofa.js
@@ -53,6 +54,7 @@ jobs:
           node tests/render-state.mjs
           node tests/furniture-collisions.mjs
           node tests/kitchen.mjs
+          node tests/kitchen-variants.mjs
           node tests/sofa.mjs
           node tests/solar.mjs
           node tests/wall-joints.mjs

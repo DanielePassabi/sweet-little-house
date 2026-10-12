@@ -1,11 +1,13 @@
 import * as THREE from './vendor/three.module.js';
-import {sofaLayout,sofaPumpkins} from './sofa-layout.js?v=20261011-1';
+import {sofaLayout,sofaPumpkins} from './sofa-layout.js?v=20261012-1';
 
 // Soft channel upholstery, three tufted backs and a right-hand chaise from the photo.
 export function createSofa(parent,materials){
  const {width,depth,chaiseDepth,chaiseWidth,backX,minZ,seatHeight}=sofaLayout;
  const group=new THREE.Group();group.name='purchased-sofa';
  group.position.set(backX,0,minZ+width/2);group.rotation.y=-Math.PI/2;parent.add(group);
+ // Mirror the complete sofa, including its cushions and plush pumpkins.
+ group.scale.x=-1;
  const cache=new Map(),repeated=new Map(),dummy=new THREE.Object3D();
  function softGeometry(w,h,d,r,tufted=false){
   const key=[w,h,d,r,tufted].join(',');if(cache.has(key))return cache.get(key);
