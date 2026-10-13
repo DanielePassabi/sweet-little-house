@@ -38,11 +38,36 @@ for(const name of ['pc-hdmi-cable','tv-power-cable']){
  const cable=station.getObjectByName(name),end=cable.geometry.parameters.path.getPoint(1);
  assert.ok(Math.abs(end.y-television.centerY)<1e-8,'Cable reaches the TV at its centre height');
  assert.ok(bounds(name).min.y<mediaConsole.top+.07,'Cable connects to the console area');
- const positions=cable.geometry.attributes.position;
- for(let i=0;i<positions.count;i++)if(positions.getY(i)>.56&&positions.getY(i)<.92){
-  assert.ok(Math.abs(positions.getX(i))<cableDuct.width/2,'Cable remains inside raceway width');
-  assert.ok(Math.abs(positions.getZ(i)-cableDuct.z)<cableDuct.depth/2,'Cable stays behind the raceway cover');
+ const {path,tubularSegments,radialSegments}=cable.geometry.parameters;
+ // The HDMI lead starts at the PC above the console before entering the duct.
+ // Only its vertical riser belongs inside the raceway; height alone also selects
+ // the exposed PC connection. Identify the riser by distance along the path.
+ const riserIndex=name==='pc-hdmi-cable'?1:0;
+ const riser=path.curves[riserIndex],lengths=path.getCurveLengths();
+ assert.ok(riser.isLineCurve3,'Raceway section is a straight riser');
+ assert.ok(riser.v1.y<.56&&riser.v2.y>.92,'Riser spans the visible raceway');
+ for(const end of [riser.v1,riser.v2]){
+  assert.ok(Math.abs(end.x)<cableDuct.width/2,'Riser centre stays within duct width');
+  assert.ok(Math.abs(end.z-cableDuct.z)<cableDuct.depth/2,'Riser centre stays within duct depth');
  }
+ if(riserIndex>0){
+  const leadEnd=path.curves[riserIndex-1].getPoint(1);
+  assert.ok(leadEnd.distanceTo(riser.v1)<1e-8,'PC lead connects to the riser');
+ }
+ const positions=cable.geometry.attributes.position;let checkedRings=0;
+ for(let ring=0;ring<=tubularSegments;ring++){
+  const distance=ring/tubularSegments*path.getLength();
+  if(distance<=(riserIndex?lengths[riserIndex-1]:0)||distance>=lengths[riserIndex])continue;
+  const centre=path.getPointAt(ring/tubularSegments);
+  if(centre.y<=.56||centre.y>=.92)continue;
+  checkedRings++;
+  for(let side=0;side<=radialSegments;side++){
+   const i=ring*(radialSegments+1)+side;
+   assert.ok(Math.abs(positions.getX(i))<cableDuct.width/2,'Cable remains inside raceway width');
+   assert.ok(Math.abs(positions.getZ(i)-cableDuct.z)<cableDuct.depth/2,'Cable stays behind the raceway cover');
+  }
+ }
+ assert.ok(checkedRings>=3,'Check multiple complete cable cross-sections inside the raceway');
 }
 assert.ok(station.getObjectByName('pc-power-cable'),'PC power cable runs behind the console');
 const v=new THREE.Vector3(),instance=new THREE.Matrix4();let triangles=0;
