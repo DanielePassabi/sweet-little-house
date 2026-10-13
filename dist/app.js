@@ -12,8 +12,8 @@ import { createRenderState, freezeStaticTransforms, indexStaticSurface } from '.
 import {diningLayout,diningChairs} from './kitchen-layout.js?v=20261012-1';
 import {kitchenVariants,getKitchenVariant} from './kitchen-variants.js?v=20261012-1';
 import {createKitchen} from './kitchen.js?v=20261012-1';
-import {createMediaStation} from './media-station.js?v=20261012-1';
-import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261012-1';
+import {createMediaStation} from './media-station.js?v=20261013-1';
+import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261013-1';
 import {createSofa} from './sofa.js?v=20261012-1';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
 import {canWalk,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant} from './furniture-collisions.js?v=20261012-2';
@@ -186,7 +186,7 @@ const pumpkinWhite=new THREE.MeshPhysicalMaterial({color:'#f5f0e7',roughness:1,s
 const pumpkinTan=new THREE.MeshPhysicalMaterial({color:'#c6a782',roughness:1,sheen:1,sheenColor:'#ddc6a6',sheenRoughness:1});
 const pumpkinStem=new THREE.MeshStandardMaterial({color:'#927b5c',roughness:1});
 const furnitureBlack=new THREE.MeshStandardMaterial({color:'#141719',roughness:.72});
-const consoleFrontMaterial=new THREE.MeshStandardMaterial({color:'#222629',roughness:.82});
+const kitchenBrown=new THREE.MeshStandardMaterial({color:'#c4a178',roughness:.74});
 const screenMaterial=new THREE.MeshStandardMaterial({color:'#071015',emissive:'#1d323c',emissiveIntensity:.24,roughness:.2,metalness:.18});
 const furnitureBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,furniture);
 
@@ -214,10 +214,10 @@ const purchasedSofa=createSofa(furniture,{frame:sofaFrameMaterial,upholstery:sof
 const livingRugMaterial=new THREE.MeshStandardMaterial({color:'#e6ddcc',roughness:1});
 furnitureBox(2.50,.014,2.62,livingRugMaterial,6.10,.014,9.53);
 
-// Existing black console, with a dimensioned LG C1 and photographed gaming setup.
+// TV console shares the kitchen wall cabinets' oak material and texture.
 const mediaWallCenterZ=mediaConsole.z;
-furnitureBox(mediaConsole.depth,.42,mediaConsole.width,furnitureBlack,mediaConsole.x,.24,mediaWallCenterZ);
-[mediaWallCenterZ-.64,mediaWallCenterZ,mediaWallCenterZ+.64].forEach(z=>furnitureBox(.018,.31,.60,consoleFrontMaterial,3.48,.27,z));
+furnitureBox(mediaConsole.depth,.42,mediaConsole.width,kitchenBrown,mediaConsole.x,.24,mediaWallCenterZ);
+[mediaWallCenterZ-.64,mediaWallCenterZ,mediaWallCenterZ+.64].forEach(z=>furnitureBox(.018,.31,.60,kitchenBrown,3.48,.27,z));
 [[3.20,mediaWallCenterZ-.90],[3.20,mediaWallCenterZ+.90],[3.38,mediaWallCenterZ-.90],[3.38,mediaWallCenterZ+.90]].forEach(([x,z])=>furnitureBox(.055,.12,.055,furnitureBlack,x,.06,z));
 createMediaStation(furniture,box,{black:furnitureBlack,screen:screenMaterial,wall:white});
 
@@ -492,7 +492,6 @@ for(const z of [1.96,4.14]){
 
 
 // Two independent kitchen groups retain their own geometry and visibility.
-const kitchenBrown=new THREE.MeshStandardMaterial({color:'#c4a178',roughness:.74});
 const kitchenFront=new THREE.MeshStandardMaterial({color:'#dad4c8',roughness:.88});
 const kitchenCounter=new THREE.MeshStandardMaterial({color:'#e8e3da',roughness:.5});
 const kitchenSteel=new THREE.MeshStandardMaterial({color:'#aeb5b6',roughness:.28,metalness:.72});

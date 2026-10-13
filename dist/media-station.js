@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {television as tv,desktopPC as pc,gameControllers,cableDuct as duct} from './media-layout.js?v=20261012-1';
+import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct} from './media-layout.js?v=20261013-1';
 
 // Local X = width seen from the sofa, +Z = toward the viewer, Y = vertical.
 export function createMediaStation(parent,box,{black,screen,wall}){
@@ -74,6 +74,76 @@ export function createMediaStation(parent,box,{black,screen,wall}){
  for(const x of [-w/2+.019,w/2-.019])for(const y of [.039,h-.023])instance(tower,'glass-fasteners',screwGeometry,graphite,x,y,d/2+.002,Math.PI/2);
  block(tower,'power-button',.013,.002,.014,blue,.177,h+.002,.056);
  for(const x of [.133,.153])block(tower,'usb-port',.012,.002,.004,rubber,x,h+.002,.060);
+
+ // Rounded shells keep the silhouette readable without high-resolution meshes.
+ function roundedShell(root,name,w,h,d,r,material,x,y,z){
+  const shape=new THREE.Shape(),l=-w/2,b=-h/2;
+  shape.moveTo(l+r,b);shape.lineTo(l+w-r,b);shape.quadraticCurveTo(l+w,b,l+w,b+r);
+  shape.lineTo(l+w,b+h-r);shape.quadraticCurveTo(l+w,b+h,l+w-r,b+h);
+  shape.lineTo(l+r,b+h);shape.quadraticCurveTo(l,b+h,l,b+h-r);
+  shape.lineTo(l,b+r);shape.quadraticCurveTo(l,b,l+r,b);
+  const geometry=new THREE.ExtrudeGeometry(shape,{depth:d,bevelEnabled:false,steps:1,curveSegments:4});geometry.translate(0,0,-d/2);
+  return add(root,name,geometry,material,x,y,z);
+ }
+ const playstation=new THREE.Group();playstation.name='ps4-pro';playstation.position.set(ps4.x,ps4.bottom,ps4.z);station.add(playstation);
+ block(playstation,'ps4-vertical-stand',.13,ps4.standHeight,.26,matte,0,ps4.standHeight/2,0);
+ const ps4Body=new THREE.Group();ps4Body.name='ps4-pro-chassis';ps4Body.position.y=ps4.standHeight;playstation.add(ps4Body);
+ // Three stacked tiers become three vertical slabs when stood on its side.
+ block(ps4Body,'ps4-recessed-core',.051,ps4.height-.012,ps4.depth-.010,rubber,0,ps4.height/2,0);
+ for(const x of [-.0195,0,.0195])roundedShell(ps4Body,'ps4-tier',.016,ps4.height,ps4.depth,.003,matte,x,ps4.height/2,0);
+ block(ps4Body,'ps4-disc-slot',.002,.14,.001,rubber,-.00975,.185,ps4.depth/2+.0005);
+ block(ps4Body,'ps4-status-light',.001,.10,.001,whiteLED,.00975,.21,ps4.depth/2+.0005);
+ for(const y of [.039,.059])block(ps4Body,'ps4-front-usb',.008,.012,.001,rubber,.004,y,ps4.depth/2+.0005);
+ for(let j=0;j<13;j++)for(const x of [-.030,.030])block(playstation,'ps4-stand-vent',.009,.0008,.003,graphite,x,ps4.standHeight+.0004,-.10+j*.016);
+
+ const deckSetup=new THREE.Group();deckSetup.name='steam-deck-docked';deckSetup.position.set(deck.x,dock.bottom,deck.z);station.add(deckSetup);
+ const dockBody=new THREE.Group();dockBody.name='steam-dock';deckSetup.add(dockBody);
+ roundedShell(dockBody,'dock-base',dock.width,.012,dock.depth,.004,matte,0,.006,0);
+ block(dockBody,'dock-back-support',dock.width,dock.height-.012,.008,matte,0,(dock.height+.012)/2,-dock.depth/2+.004);
+ block(dockBody,'dock-front-lip',dock.width,.009,.006,rubber,0,.0165,dock.depth/2-.003);
+ const dockPortZ=-dock.depth/2-.0005;
+ for(const [name,x,width] of [['dock-hdmi-port',-.023,.014],['dock-usb-c-power',.021,.008]])block(dockBody,name,width,.004,.001,rubber,x,.007,dockPortZ);
+ const handheld=new THREE.Group();handheld.name='steam-deck';
+ // Its lowest rear grip rests on the base; the front lip and rear support cradle it.
+ handheld.position.y=.012+Math.cos(deck.tilt)*deck.height/2+Math.abs(Math.sin(deck.tilt))*deck.depth/2;
+ handheld.rotation.x=deck.tilt;deckSetup.add(handheld);
+ roundedShell(handheld,'deck-shell',deck.width,deck.height,.033,.020,matte,0,0,0);
+ for(const x of [-.1125,.1125])roundedShell(handheld,'deck-rear-grip',.073,.105,.039,.023,matte,x,-.004,-.005);
+ roundedShell(handheld,'deck-screen-bezel',.172,.106,.004,.006,rubber,0,0,.0185);
+ const deckDisplay=new THREE.MeshStandardMaterial({color:'#142b3d',emissive:'#1d5678',emissiveIntensity:.30,roughness:.24});
+ roundedShell(handheld,'deck-screen',.151,.094,.002,.003,deckDisplay,0,0,.0215);
+ for(const x of [-.100,.100])roundedShell(handheld,'deck-trackpad',.026,.027,.002,.003,graphite,x,-.025,.0175);
+ const deckStick=new THREE.CylinderGeometry(.0075,.0075,.006,14),deckButton=new THREE.CylinderGeometry(.0034,.0034,.002,10);
+ for(const x of [-.092,.092])instance(handheld,'deck-thumbsticks',deckStick,rubber,x,.030,.0215,Math.PI/2);
+ block(handheld,'deck-dpad-horizontal',.019,.006,.003,graphite,-.126,.033,.019);
+ block(handheld,'deck-dpad-vertical',.006,.019,.003,graphite,-.126,.033,.019);
+ for(const [x,y] of [[.126,.042],[.135,.033],[.126,.024],[.117,.033]])instance(handheld,'deck-face-buttons',deckButton,graphite,x,y,.019,Math.PI/2);
+ for(const x of [-.116,.116]){
+  block(handheld,'deck-shoulder-button',.040,.003,.025,graphite,x,.057,0);
+  for(let row=0;row<3;row++)block(handheld,'deck-speaker-slot',.014,.001,.0008,rubber,x,-.047+row*.003,.017);
+ }
+ block(handheld,'deck-usb-c-port',.009,.001,.006,rubber,.024,deck.height/2+.0005,0);
+ // Dock's captive USB-C cable loops behind the handheld to its top edge.
+ handheld.updateMatrix();
+ const usbTip=new THREE.Vector3(.024,deck.height/2+.003,0).applyMatrix4(handheld.matrix);
+ block(handheld,'deck-usb-c-plug',.011,.006,.009,graphite,.024,deck.height/2+.004,0);
+ tube(deckSetup,'deck-dock-usb-c-cable',[[.042,.009,-dock.depth/2],[.055,.045,-.055],[.043,.11,-.055],[usbTip.x,usbTip.y+.012,usbTip.z-.01],usbTip.toArray()],.0018,rubber);
+
+ // Each new HDMI cable runs behind the console, then inside its own duct lane.
+ function videoCable(name,connector,entryX){
+  const path=new THREE.CurvePath();
+  path.add(new THREE.CatmullRomCurve3([connector,[connector[0],.477,-.065],[connector[0]*.45,.474,duct.z],[entryX,.51,duct.z]].map(p=>new THREE.Vector3(...p))));
+  path.add(new THREE.LineCurve3(new THREE.Vector3(entryX,.51,duct.z),new THREE.Vector3(entryX,1.40,duct.z)));
+  path.add(new THREE.LineCurve3(new THREE.Vector3(entryX,1.40,duct.z),new THREE.Vector3(entryX,tv.centerY,-.055)));
+  tube(station,name,path,.0022,rubber);
+ }
+ const ps4Port=[ps4.x,ps4.bottom+ps4.standHeight+.06,ps4.z-ps4.depth/2-.003];
+ block(playstation,'ps4-hdmi-plug',.012,.007,.009,graphite,0,ps4.standHeight+.06,-ps4.depth/2-.0045);
+ videoCable('ps4-hdmi-cable',ps4Port,-.014);
+ videoCable('dock-hdmi-cable',[deck.x-.023,dock.bottom+.007,deck.z+dockPortZ],0);
+ // Power leads join the lower duct behind the cabinet, below the visible risers.
+ tube(station,'ps4-power-cable',[[ps4.x+.012,ps4.bottom+ps4.standHeight+.032,ps4.z-ps4.depth/2],[ps4.x+.012,.474,-.069],[-.018,.44,duct.z],[-.016,.30,duct.z]],.002,rubber);
+ tube(station,'dock-power-cable',[[deck.x+.021,dock.bottom+.007,deck.z+dockPortZ],[deck.x+.045,.48,.07],[.28,.47,-.064],[.015,.43,duct.z],[.015,.30,duct.z]],.0018,rubber);
 
  // HDMI goes to the TV centre; both power leads disappear behind the cabinet.
  const hdmiPath=new THREE.CurvePath();
