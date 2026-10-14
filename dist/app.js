@@ -12,6 +12,7 @@ import { createRenderState, freezeStaticTransforms, indexStaticSurface } from '.
 import {diningLayout,diningChairs} from './kitchen-layout.js?v=20261012-1';
 import {kitchenVariants,getKitchenVariant} from './kitchen-variants.js?v=20261012-1';
 import {createKitchen} from './kitchen.js?v=20261012-1';
+import {createTelevisionVideo} from './television-video.js?v=20261014-1';
 import {createMediaStation} from './media-station.js?v=20261013-1';
 import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261013-1';
 import {createSofa} from './sofa.js?v=20261012-1';
@@ -25,7 +26,7 @@ const $ = s => document.querySelector(s);
 const host = $('#scene');
 const isTouch = matchMedia('(pointer:coarse)').matches;
 let renderer;
-try { renderer = new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'}); }
+try { renderer = new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'}); }
 catch { $('#error').hidden=false; $('#error').textContent='Il browser non riesce ad avviare la vista 3D. Prova ad attivare l’accelerazione grafica o ad aprire la pagina in un browser aggiornato.'; throw new Error('WebGL unavailable'); }
 let renderPixelRatio=Math.min(devicePixelRatio,1.75);
 renderer.setPixelRatio(renderPixelRatio);
@@ -219,7 +220,8 @@ const mediaWallCenterZ=mediaConsole.z;
 furnitureBox(mediaConsole.depth,.42,mediaConsole.width,kitchenBrown,mediaConsole.x,.24,mediaWallCenterZ);
 [mediaWallCenterZ-.64,mediaWallCenterZ,mediaWallCenterZ+.64].forEach(z=>furnitureBox(.018,.31,.60,kitchenBrown,3.48,.27,z));
 [[3.20,mediaWallCenterZ-.90],[3.20,mediaWallCenterZ+.90],[3.38,mediaWallCenterZ-.90],[3.38,mediaWallCenterZ+.90]].forEach(([x,z])=>furnitureBox(.055,.12,.055,furnitureBlack,x,.06,z));
-createMediaStation(furniture,box,{black:furnitureBlack,screen:screenMaterial,wall:white});
+const mediaStation=createMediaStation(furniture,box,{black:furnitureBlack,screen:screenMaterial,wall:white});
+const televisionVideo=createTelevisionVideo({host,screen:mediaStation.getObjectByName('oled-screen'),invalidate:()=>renderState.invalidate(),controls:{power:$('#tv-power'),audio:$('#tv-audio'),play:$('#tv-play'),status:$('#tv-status'),link:$('#tv-external')}});
 
 // Utility room: boiler and meter on the left, sink in the centre, stacked
 // washer/dryer on the right, all facing the entrance from the terrace.
@@ -827,6 +829,7 @@ function animate(now){
   if(view==='walk'){
    const p=perspective.position;mapMarker.setAttribute('transform',`translate(${p.x*SCALE+42} ${p.z*SCALE+54}) rotate(${-yaw*180/Math.PI})`);
   }
+  televisionVideo.update(camera,viewportWidth,viewportHeight);
   renderer.render(scene,camera);
   cpuTotal+=performance.now()-renderStart;perfFrames++;renderedFrames++;lastRenderedAt=now;
  }

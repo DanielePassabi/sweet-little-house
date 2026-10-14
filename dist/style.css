@@ -28,3 +28,13 @@
 #performance-values{white-space:pre-line}
 
 .room-label:hover{background:#e3effa;border-color:#a8c6dd}
+
+/* YouTube stays behind WebGL; only the depth-tested TV aperture reveals it. */
+#scene canvas{z-index:1}
+/* Black backing covers subpixel gaps between CSS and WebGL rasterization. */
+.tv-video-layer{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none;background:#000}
+.tv-video-surface{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;pointer-events:none;background:#000}
+.tv-video-surface iframe{display:block;width:960px;height:540px;border:0;pointer-events:none;background:#000}
+.tv-settings button{margin-top:12px;padding:8px 12px;border:1px solid #cdd6da;border-radius:6px;background:#e9f0f5}
+.tv-settings a{margin-top:10px;font-size:12px;color:#315c78}
+.tv-settings a:not([hidden]){display:block}

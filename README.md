@@ -123,3 +123,12 @@ Aggiunta una PS4 Pro nera in verticale fra il PC e i due controller, su un suppo
 Il cavo USB-C della dock raggiunge la presa superiore della Steam Deck. PS4 e dock hanno ciascuna un collegamento HDMI che entra nella canalina centrale e risale dietro la TV; le alimentazioni si uniscono al fascio inferiore dietro il mobile. Mobile, TV, PC, controller e architettura conservano posizione e ingombri. Nessuna luce aggiuntiva; piccoli dettagli ripetuti istanziati e geometrie statiche. I controlli in `tests/media-station.mjs` coprono appoggi, ordine dei dispositivi, ingombri, schermo libero, continuità delle connessioni e contenimento dei nuovi cavi nella canalina.
 
 Il mobile TV condivide ora lo stesso materiale in rovere dei pensili della cucina (colore, venature e finitura), su struttura, piano e frontali. Piedini neri e dimensioni originali conservati.
+
+
+### Video sulla TV — 14 ottobre 2026
+
+La TV del soggiorno riproduce in loop [LG OLED · The Black](https://www.youtube.com/watch?v=njX2bu-_Vw4), tramite il player ufficiale YouTube. Parte senza audio; nella sezione **La TV** si può spegnere il video, attivare l’audio o avviare manualmente la riproduzione se il browser blocca l’autoplay. In caso di errore compaiono Riprova e il collegamento a YouTube. Serve una connessione Internet e il consenso del browser alla riproduzione incorporata.
+
+Il player viene proiettato sullo schermo con la stessa prospettiva della scena. Una maschera WebGL con controllo della profondità consente a pareti e arredi di coprirlo correttamente. Un fondo nero elimina i bordi chiari dovuti alle differenze di rasterizzazione tra iframe e canvas; l’antialiasing resta attivo. Dimensioni della TV e architettura invariate. Il video si mette in pausa in Pianta, quando lo schermo esce dall’inquadratura o la scheda è nascosta. I fotogrammi del video non richiedono di ridisegnare continuamente tutta la scena 3D.
+
+`node tests/television-video.mjs` verifica la proiezione prospettica e ortografica, il loop, l’avvio silenzioso, i comandi audio, pausa/ripresa, gestione degli errori e rilascio delle risorse. Anche questi controlli vengono eseguiti prima della pubblicazione su GitHub Pages.
