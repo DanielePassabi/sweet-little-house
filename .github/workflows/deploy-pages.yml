@@ -43,6 +43,8 @@ jobs:
           node --check dist/media-layout.js
           node --check dist/media-station.js
           node --check dist/television-video.js
+          node --check dist/interior-lighting.js
+          node --check dist/lighting-performance.js
           node --check dist/material-details.js
           node --check dist/solar.js
           node --check dist/vendor/suncalc.js
@@ -61,6 +63,7 @@ jobs:
           node tests/sofa.mjs
           node tests/media-station.mjs
           node tests/television-video.mjs
+          node tests/interior-lighting.mjs
           node tests/solar.mjs
           node tests/wall-joints.mjs
 

@@ -12,7 +12,9 @@ import { createRenderState, freezeStaticTransforms, indexStaticSurface } from '.
 import {diningLayout,diningChairs} from './kitchen-layout.js?v=20261012-1';
 import {kitchenVariants,getKitchenVariant} from './kitchen-variants.js?v=20261012-1';
 import {createKitchen} from './kitchen.js?v=20261012-1';
-import {createTelevisionVideo} from './television-video.js?v=20261014-1';
+import {createTelevisionVideo} from './television-video.js?v=20261014-2';
+import {createInteriorLighting,createCeiling} from './interior-lighting.js?v=20261014-3';
+import {optimizeLightingMaterials} from './lighting-performance.js?v=20261014-3';
 import {createMediaStation} from './media-station.js?v=20261013-1';
 import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261013-1';
 import {createSofa} from './sofa.js?v=20261012-1';
@@ -489,7 +491,7 @@ for(const z of [1.96,4.14]){
  bedroomBox(.07,.065,.34,vanityBlack,bedroomWallInnerX+.062,1.12,z);
  bedroomBox(.012,.028,.30,bedsideLampMaterial,bedroomWallInnerX+.103,1.125,z);
  const glow=new THREE.Mesh(bedsideGlowGeometry,bedsideGlowMaterial);glow.rotation.y=Math.PI/2;glow.position.set(bedroomWallInnerX+.027,1.12,z);bedroomFurniture.add(glow);bedsideHalos.push(glow);
- const light=new THREE.PointLight('#ffd398',.45,1.5,2);light.position.set(bedroomWallInnerX+.20,1.14,z);light.userData.onIntensity=.45;bedsideLights.push(light);
+ const light=new THREE.SpotLight('#ffd398',.45,1.5,.5,.65,2);light.position.set(bedroomWallInnerX+.20,1.14,z);light.target.position.set(bedroomWallInnerX+1,1.0,z);scene.add(light.target);light.userData.onIntensity=.45;bedsideLights.push(light);
 }
 
 
@@ -617,9 +619,7 @@ const kitchenBatches=[...kitchenGroups.values()].map(group=>batchStaticBoxes(gro
 const batchedBoxes=batchStaticBoxes();
 for(const stats of kitchenBatches){batchedBoxes.boxes+=stats.boxes;batchedBoxes.batches+=stats.batches;}
 
-const roof=polygonMesh(footprint,new THREE.MeshStandardMaterial({color:'#faf9f3',side:THREE.DoubleSide,roughness:1}),HEIGHT);
-model.remove(roof);ceiling.add(roof);
-roof.castShadow=true;roof.material.shadowSide=THREE.DoubleSide;
+const roof=createCeiling();ceiling.add(roof);
 // Thin clear panes transmit direct sunlight; opaque frames still cast shadows.
 // Standard shadow maps otherwise treat even nearly transparent glass as opaque.
 model.traverse(object=>{if(object.isMesh&&object.material.transparent)object.castShadow=false;});
@@ -631,12 +631,12 @@ sunlight.target.position.set(4.5,0,7.5);
 sunlight.position.copy(sunlight.target.position).add(new THREE.Vector3(-24,19,-14));
 sunlight.castShadow=true;sunlight.shadow.mapSize.set(2048,2048);
 Object.assign(sunlight.shadow.camera,{left:-17,right:17,top:17,bottom:-17,near:.5,far:90});
-sunlight.shadow.bias=-.00008;sunlight.shadow.normalBias=.012;
+sunlight.shadow.bias=-.00008;sunlight.shadow.normalBias=.002;
 scene.add(sunlight,sunlight.target);
-// Low-cost fill approximates indirect bounce, without washing out window light.
-const interiorLights=new THREE.Group();scene.add(interiorLights);
-interiorLights.add(...bedsideLights);
-for(const r of rooms){if(r.id==='terrace')continue;const [x,z]=point(r.at);const light=new THREE.PointLight('#fff7eb',1.8,8,2);light.position.set(x,2.3,z);interiorLights.add(light);}
+// Downward ceiling lights use cached shadow maps, so partitions block light.
+const indoorLighting=createInteriorLighting(scene);
+scene.add(...bedsideLights);
+const mirrorHalos=[];bathroomFixtures.traverse(object=>{if(object.material===mirrorHalo.material||object.material===mirrorEdge.material)mirrorHalos.push(object);});
 const sunDateInput=$('#sun-date'),sunTimeInput=$('#sun-time'),sunStatus=$('#sun-status');
 sunDateInput.value=romeDate();
 let solarPending=false,currentSun=null;
@@ -657,7 +657,16 @@ function updateDaylight(){
  renderer.shadowMap.needsUpdate=true;renderState.invalidate();
 }
 sunDateInput.oninput=sunTimeInput.oninput=()=>{solarPending=true;};
-$('#interior-lights').onchange=e=>{for(const light of interiorLights.children)light.intensity=e.target.checked?(light.userData.onIntensity??1.8):0;bedsideLampMaterial.emissiveIntensity=e.target.checked?.8:0;for(const halo of bedsideHalos)halo.visible=e.target.checked;renderState.invalidate();};
+function updateInteriorLighting(){
+ const enabled=$('#interior-lights').checked;
+ indoorLighting.setState(enabled,Number($('#light-temperature').value));
+ for(const light of bedsideLights)light.intensity=enabled?light.userData.onIntensity:0;
+ bedsideLampMaterial.emissiveIntensity=enabled?.8:0;
+ for(const halo of [...bedsideHalos,...mirrorHalos])halo.visible=enabled;
+ renderState.invalidate();
+}
+$('#interior-lights').onchange=$('#light-temperature').onchange=updateInteriorLighting;
+updateInteriorLighting();
 const grassTexture=makeGrassTexture();
 const grassMaterial=new THREE.MeshStandardMaterial({color:'#f2f8ec',map:grassTexture,bumpMap:grassTexture,bumpScale:.002,roughness:1});
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),grassMaterial);ground.rotation.x=-Math.PI/2;ground.position.y=GROUND_Y;ground.receiveShadow=true;scene.add(ground);
@@ -778,6 +787,7 @@ kitchenSelector.onchange=()=>{
  $('#kitchen-description').textContent=next.description;
  try{localStorage.setItem('sweet-little-house.kitchen-type',next.id);}catch{/* Choice still works for this visit. */}
  renderer.domElement.dataset.kitchenType=next.id;
+ indoorLighting.invalidateShadows();
  renderer.shadowMap.needsUpdate=true;renderState.invalidate();
 };
 renderer.domElement.dataset.kitchenType=activeKitchen.id;
@@ -801,7 +811,7 @@ performanceToggle.onclick=()=>{showPerformance=!showPerformance;performanceToggl
 // UI mutations can change pixels without moving the camera (tiles, labels, ruler).
 for(const event of ['input','change','click'])document.addEventListener(event,()=>renderState.invalidate());
 document.addEventListener('visibilitychange',()=>{last=performance.now();perfWindowStart=last;perfFrames=0;cpuTotal=0;renderState.invalidate();});
-renderer.domElement.addEventListener('webglcontextrestored',()=>{renderer.shadowMap.needsUpdate=true;renderState.invalidate();});
+renderer.domElement.addEventListener('webglcontextrestored',()=>{indoorLighting.invalidateShadows();renderer.shadowMap.needsUpdate=true;renderState.invalidate();});
 let last=performance.now(),lastRoomTime=0,perfWindowStart=last,perfFrames=0,currentFps=0;
 let cpuTotal=0,cpuRenderMs=0,lastRenderedAt=0,renderedFrames=0,idle=true;
 const projected=new THREE.Vector3();
@@ -851,6 +861,12 @@ renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;
 let frozenTransformCount=0;
 for(const root of scene.children)if(root!==measurementGroup)frozenTransformCount+=freezeStaticTransforms(root);
 scene.updateMatrix();scene.matrixAutoUpdate=false;
-updateDaylight();resize();setView('orbit');renderer.compile(scene,perspective);renderer.compile(scene,orthographic);requestAnimationFrame(animate);
+optimizeLightingMaterials(scene);
+updateDaylight();resize();setView('orbit');
+// Both cameras share the same material programs. Compile once without forcing
+// the driver to finish every shader synchronously before the page can respond.
+renderer.compileAsync(scene,perspective).then(()=>requestAnimationFrame(animate)).catch(error=>{
+ $('#error').hidden=false;$('#error').textContent='La vista 3D non si è avviata. Prova a ricaricare la pagina.';console.error(error);
+});
 // Small read-only diagnostics and deterministic spatial queries for validation.
-window.houseModel={get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',parquetRoomIds:[...parquetRoomIds],nightFloor:'stoneware-with-bedroom-parquet',livingFloor:'dark-stoneware',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:sofaLayout.width,chaiseLength:sofaLayout.chaiseDepth,sofaDepth:sofaLayout.depth,sofaStyle:'ivory-channel-tufted-wall-side-chaise',plushPumpkinCount:sofaPumpkins.length,televisionModel:television.model,televisionWidth:television.width,televisionHeight:television.height,gameControllerCount:gameControllers.length,bedLength,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount,kitchenObjectCount:kitchenGroups.get(activeKitchen.id).userData.objectCount,diningObjectCount,kitchenType:activeKitchen.id,kitchenLayout:activeKitchen.description,kitchenWallCabinets:activeKitchen.wallCabinets.length,breakfastDiameter:activeKitchen.breakfast.r?activeKitchen.breakfast.r*2:null,breakfastWidth:activeKitchen.breakfast.w??activeKitchen.breakfast.r*2,breakfastHeight:activeKitchen.breakfast.bottom+activeKitchen.breakfast.h,diningDiameter:diningLayout.r*2,diningChairCount:diningChairs.length,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};
+window.houseModel={get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,interiorLighting:indoorLighting.state,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',parquetRoomIds:[...parquetRoomIds],nightFloor:'stoneware-with-bedroom-parquet',livingFloor:'dark-stoneware',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:sofaLayout.width,chaiseLength:sofaLayout.chaiseDepth,sofaDepth:sofaLayout.depth,sofaStyle:'ivory-channel-tufted-wall-side-chaise',plushPumpkinCount:sofaPumpkins.length,televisionModel:television.model,televisionWidth:television.width,televisionHeight:television.height,gameControllerCount:gameControllers.length,bedLength,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount,kitchenObjectCount:kitchenGroups.get(activeKitchen.id).userData.objectCount,diningObjectCount,kitchenType:activeKitchen.id,kitchenLayout:activeKitchen.description,kitchenWallCabinets:activeKitchen.wallCabinets.length,breakfastDiameter:activeKitchen.breakfast.r?activeKitchen.breakfast.r*2:null,breakfastWidth:activeKitchen.breakfast.w??activeKitchen.breakfast.r*2,breakfastHeight:activeKitchen.breakfast.bottom+activeKitchen.breakfast.h,diningDiameter:diningLayout.r*2,diningChairCount:diningChairs.length,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};

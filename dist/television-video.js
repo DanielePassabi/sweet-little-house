@@ -51,10 +51,11 @@ export function createTelevisionVideo({host,screen,invalidate,controls,apiLoader
  const surface=document.createElement('div');surface.className='tv-video-surface';layer.append(surface);host.prepend(layer);
  let player=null,ready=false,loading=false,failed=false,visible=false,sentPlaying=null,blocked=false,disposed=false,generation=0;
  link.href=`https://www.youtube.com/watch?v=${TV_VIDEO_ID}`;
- const shouldPlay=()=>power.checked&&visible&&!document.hidden&&!failed;
+ // Playback is independent of the camera: turning away must not interrupt audio.
+ const shouldPlay=()=>power.checked&&!failed;
  function sync(){
   const show=ready&&power.checked&&visible&&!failed;
-  layer.hidden=!show;screen.material=show?aperture:originalMaterial;
+  layer.hidden=!ready||!power.checked||failed;screen.material=show?aperture:originalMaterial;
   if(ready){
    const wanted=shouldPlay()&&!blocked;
    if(wanted!==sentPlaying){sentPlaying=wanted;wanted?player.playVideo():player.pauseVideo();}
@@ -81,7 +82,7 @@ export function createTelevisionVideo({host,screen,invalidate,controls,apiLoader
     onStateChange:event=>{
      if(disposed||attempt!==generation)return;
      if(event.data===1){if(!shouldPlay()){player.pauseVideo();return;}blocked=false;play.hidden=true;status.textContent='Video in loop';}
-     if(event.data===2&&!failed&&!blocked)status.textContent=power.checked?'Video in pausa fuori vista':'TV spenta';
+     if(event.data===2&&!failed&&!blocked)status.textContent=power.checked?'Video in pausa':'TV spenta';
      if(event.data===0&&shouldPlay()){player.seekTo(0,true);player.playVideo();}
     },
     onAutoplayBlocked:()=>{if(disposed||attempt!==generation)return;blocked=true;play.hidden=false;play.textContent='Avvia video';status.textContent='Premi Avvia video per iniziare.';},
@@ -92,15 +93,14 @@ export function createTelevisionVideo({host,screen,invalidate,controls,apiLoader
  function powerChanged(){if(power.checked&&!ready&&!loading)start();sync();if(!power.checked)status.textContent='TV spenta';}
  function audioChanged(){if(ready){audio.checked?player.unMute():player.mute();} }
  function playClicked(){if(failed||!ready){start();return;}blocked=false;sentPlaying=null;sync();}
- function visibilityChanged(){sync();}
- power.addEventListener('change',powerChanged);audio.addEventListener('change',audioChanged);play.addEventListener('click',playClicked);document.addEventListener('visibilitychange',visibilityChanged);
+ power.addEventListener('change',powerChanged);audio.addEventListener('change',audioChanged);play.addEventListener('click',playClicked);
  return {
   update(camera,width,height){
    const projection=projectTVScreen(screen,camera,width,height),nextVisible=!!projection;
-   if(projection)surface.style.transform=projection.transform;
+   surface.style.transform=projection?projection.transform:'translate(-200%, -200%)';
    if(nextVisible!==visible){visible=nextVisible;sync();}
-   if(visible&&power.checked&&!ready&&!loading&&!failed)start();
+   if(power.checked&&!ready&&!loading&&!failed)start();
   },
-  dispose(){disposed=true;generation++;player?.destroy();layer.remove();screen.material=originalMaterial;aperture.dispose();power.removeEventListener('change',powerChanged);audio.removeEventListener('change',audioChanged);play.removeEventListener('click',playClicked);document.removeEventListener('visibilitychange',visibilityChanged);}
+  dispose(){disposed=true;generation++;player?.destroy();layer.remove();screen.material=originalMaterial;aperture.dispose();power.removeEventListener('change',powerChanged);audio.removeEventListener('change',audioChanged);play.removeEventListener('click',playClicked);}
  };
 }
