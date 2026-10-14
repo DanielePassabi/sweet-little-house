@@ -7,6 +7,7 @@ import {optimizeLightingMaterials,efficientLightingChunk} from '../dist/lighting
 
 const scene=new THREE.Scene(),system=createInteriorLighting(scene),roof=createCeiling();
 assert.equal(system.lights.length,10);
+assert.ok(system.lights.reduce((sum,l)=>sum+l.shadow.mapSize.x*l.shadow.mapSize.y,0)<=10*1024*1024,'Indoor shadow maps stay within the texel budget');
 assert.equal(system.group.children.filter(o=>o.isInstancedMesh).length,2,'Only two fixture draw calls');
 assert.ok(system.lights.every(l=>!l.shadow.autoUpdate&&l.shadow.needsUpdate),'Indoor shadows are rendered once');
 for(const light of system.lights)light.shadow.needsUpdate=false;
@@ -24,7 +25,7 @@ for(const light of system.lights){
  assert.equal(light.target.position.x,light.position.x);assert.equal(light.target.position.z,light.position.z);
  assert.equal(light.target.position.y,0);assert.ok(light.angle<Math.PI/2,'No upward wall illumination');
  assert.ok(light.castShadow,'Walls must occlude every ceiling light');
- assert.equal(light.shadow.mapSize.x,512,'Bounded shadow budget');
+ assert.equal(light.shadow.mapSize.x,1024,'Eye-level shadow detail within bounded budget');
  assert.ok(light.shadow.camera.near<light.position.y);
 }
 for(const temp of [3000,4000]){
@@ -66,6 +67,7 @@ assert.equal(optimizeLightingMaterials(testScene),1,'Shared material is patched 
 const key=material.customProgramCacheKey();assert.equal(optimizeLightingMaterials(testScene),0);assert.equal(material.customProgramCacheKey(),key);
 const shader={uniforms:{},fragmentShader:'#include <shadowmap_pars_fragment>\n#include <lights_fragment_begin>'};
 material.onBeforeCompile(shader,null);assert.ok(originalHookCalled);assert.equal(shader.uniforms.custom.value,1);
+assert.equal((shader.fragmentShader.match(/texture2DCompare\(map,/g)||[]).length,9,'Smooth indoor filter stays below the standard 16 depth reads');
 assert.ok(shader.fragmentShader.includes('getIndoorShadow( spotShadowMap'));
 assert.ok(shader.fragmentShader.includes('if(directLight.visible && litFace)'));
 // Match the renderer's unrolling, which removes each loop's enclosing scope.

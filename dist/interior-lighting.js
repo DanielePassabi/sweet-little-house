@@ -46,7 +46,9 @@ export function createInteriorLighting(scene){
   dummy.rotation.x=Math.PI/2;dummy.position.y=HEIGHT-.061;dummy.scale.set(layout.size-.035,layout.size-.035,1);dummy.updateMatrix();diffusers.setMatrixAt(i,dummy.matrix);
   const light=new THREE.SpotLight(lightTemperatures[3000],layout.intensity,7,Math.PI*.38,.62,2);
   light.name=layout.id;light.position.set(layout.x,HEIGHT-.075,layout.z);light.target.position.set(layout.x,0,layout.z);
-  light.castShadow=true;light.shadow.mapSize.set(512,512);
+  // The wide cone covers several metres: 512 px produces visible stair steps
+  // at eye level. Cache 1024 px maps so extra raster work is only paid on edits.
+  light.castShadow=true;light.shadow.mapSize.set(1024,1024);
   // Sun/view changes must not rebuild ten unchanged indoor shadow maps.
   light.shadow.autoUpdate=false;light.shadow.needsUpdate=true;
   light.shadow.camera.near=.05;light.shadow.camera.far=7;

@@ -1,20 +1,28 @@
 import {ShaderChunk} from './vendor/three.module.js';
 
-// Keep the sun's PCFSoft filter. Static indoor lights use bilinear 2x2 PCF:
-// four depth reads instead of sixteen, with a continuous edge between texels.
+// Keep the sun's PCFSoft filter. Indoor lights use a continuously weighted
+// 3x3 PCF footprint: nine depth reads, versus sixteen in the standard filter.
 const indoorShadowGLSL=`
 #if defined(USE_SHADOWMAP) && NUM_SPOT_LIGHT_SHADOWS > 0
 float getIndoorShadow(sampler2D map, vec2 size, float intensity, float bias, vec4 coord) {
  vec3 p=coord.xyz/coord.w; p.z+=bias;
  if(p.x<0.0||p.x>1.0||p.y<0.0||p.y>1.0||p.z>1.0) return 1.0;
  vec2 texel=1.0/size;
- vec2 pixel=p.xy*size-0.5;
+ vec2 pixel=p.xy*size;
  vec2 f=fract(pixel), uv=(floor(pixel)+0.5)*texel;
- float a=texture2DCompare(map,uv,p.z);
- float b=texture2DCompare(map,uv+vec2(texel.x,0.0),p.z);
- float c=texture2DCompare(map,uv+vec2(0.0,texel.y),p.z);
- float d=texture2DCompare(map,uv+texel,p.z);
- return mix(1.0,mix(mix(a,b,f.x),mix(c,d,f.x),f.y),intensity);
+ // Average four adjacent bilinear comparisons, sharing their depth samples.
+ // The weights sum to four and remain continuous across shadow-map texels.
+ vec3 wx=vec3(1.0-f.x,1.0,f.x), wy=vec3(1.0-f.y,1.0,f.y);
+ float a=texture2DCompare(map,uv+vec2(-texel.x,-texel.y),p.z)*wx.x
+        +texture2DCompare(map,uv+vec2(0.0,-texel.y),p.z)*wx.y
+        +texture2DCompare(map,uv+vec2(texel.x,-texel.y),p.z)*wx.z;
+ float b=texture2DCompare(map,uv+vec2(-texel.x,0.0),p.z)*wx.x
+        +texture2DCompare(map,uv,p.z)*wx.y
+        +texture2DCompare(map,uv+vec2(texel.x,0.0),p.z)*wx.z;
+ float c=texture2DCompare(map,uv+vec2(-texel.x,texel.y),p.z)*wx.x
+        +texture2DCompare(map,uv+vec2(0.0,texel.y),p.z)*wx.y
+        +texture2DCompare(map,uv+texel,p.z)*wx.z;
+ return mix(1.0,dot(vec3(a,b,c),wy)*0.25,intensity);
 }
 #endif
 `;
@@ -56,7 +64,7 @@ export function optimizeLightingMaterials(scene){
     shader.fragmentShader=shader.fragmentShader.replace('#include <shadowmap_pars_fragment>','#include <shadowmap_pars_fragment>\n'+indoorShadowGLSL)
      .replace('#include <lights_fragment_begin>',chunk);
    };
-   material.customProgramCacheKey=()=>key+'|indoor-bilinear-pcf-v1';
+   material.customProgramCacheKey=()=>key+'|indoor-smooth-pcf-v2';
    material.needsUpdate=true;
   }
  });
