@@ -41,6 +41,8 @@ jobs:
           node --check dist/dining.js
           node --check dist/sofa-layout.js
           node --check dist/sofa.js
+          node --check dist/room3-layout.js
+          node --check dist/room3.js
           node --check dist/media-layout.js
           node --check dist/media-station.js
           node --check dist/television-video.js
@@ -62,6 +64,7 @@ jobs:
           node tests/kitchen.mjs
           node tests/kitchen-variants.mjs
           node tests/sofa.mjs
+          node tests/room3.mjs
           node tests/media-station.mjs
           node tests/television-video.mjs
           node tests/interior-lighting.mjs

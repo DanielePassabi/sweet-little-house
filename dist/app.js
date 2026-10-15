@@ -18,8 +18,9 @@ import {optimizeLightingMaterials} from './lighting-performance.js?v=20261014-4'
 import {createMediaStation} from './media-station.js?v=20261013-1';
 import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261013-1';
 import {createSofa} from './sofa.js?v=20261012-1';
+import {createRoom3} from './room3.js?v=20261015-1';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {canWalk,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant} from './furniture-collisions.js?v=20261015-1';
+import {canWalk,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant} from './furniture-collisions.js?v=20261015-2';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -193,22 +194,6 @@ const kitchenBrown=new THREE.MeshStandardMaterial({color:'#c4a178',roughness:.74
 const screenMaterial=new THREE.MeshStandardMaterial({color:'#071015',emissive:'#1d323c',emissiveIntensity:.24,roughness:.2,metalness:.18});
 const furnitureBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,furniture);
 
-// Round inward from the original bounding boxes: every outer dimension stays unchanged.
-const sofaGeometryCache=new Map();
-function sofaSoftBox(w,h,d,material,x,y,z){
- const key=[w,h,d].join(',');let geometry=sofaGeometryCache.get(key);
- if(!geometry){
-  geometry=new THREE.BoxGeometry(w,h,d,8,8,8);
-  const radius=Math.min(.055,Math.min(w,h,d)*.28),position=geometry.attributes.position,normal=geometry.attributes.normal;
-  const half=new THREE.Vector3(w/2-radius,h/2-radius,d/2-radius),v=new THREE.Vector3(),inner=new THREE.Vector3();
-  for(let i=0;i<position.count;i++){
-   v.fromBufferAttribute(position,i);inner.copy(v).clamp(half.clone().negate(),half);v.sub(inner).normalize();
-   normal.setXYZ(i,v.x,v.y,v.z);v.multiplyScalar(radius).add(inner);position.setXYZ(i,v.x,v.y,v.z);
-  }
-  geometry.computeBoundingBox();geometry.computeBoundingSphere();sofaGeometryCache.set(key,geometry);
- }
- const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;furniture.add(mesh);return mesh;
-}
 // Purchased 270 × 180 cm sofa, mirrored with its chaise beside the partition.
 const purchasedSofa=createSofa(furniture,{frame:sofaFrameMaterial,upholstery:sofaCushionMaterial,pillows:sofaAccentMaterial,
  base:furnitureBlack,whitePumpkin:pumpkinWhite,tanPumpkin:pumpkinTan,stem:pumpkinStem});
@@ -548,37 +533,15 @@ for(const side of [-1,1]){
 }
 hallWardrobeBox(hallWardrobeDepth,.08,hallWardrobeWidth,wardrobeFrontMaterial,(hallWardrobeFront+hallWardrobeBack)/2,2.52,hallWardrobeCenterZ);
 
-// Two unchanged 102 × 64 cm stations facing the south wall.
-const room3Furniture=new THREE.Group();model.add(room3Furniture);
-const room3Box=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,room3Furniture);
+// Joined desks, one photo-inspired workstation/chair and a low corner sofa.
 const deskWood=new THREE.MeshStandardMaterial({color:'#d5ad78',roughness:.76});
 const gamingUpholstery=new THREE.MeshStandardMaterial({color:'#252a2f',roughness:.9});
 const gamingAccent=new THREE.MeshStandardMaterial({color:'#555c65',roughness:.88});
-const laptopSilver=new THREE.MeshStandardMaterial({color:'#bfc5c7',roughness:.34,metalness:.68});
-for(const [x,laptop] of [[.60,laptopSilver],[2.36,furnitureBlack]]){
- room3Box(1.02,.065,.64,deskWood,x,.75,7.88);
- for(const dx of [-.43,.43])for(const z of [7.63,8.13])room3Box(.045,.72,.045,furnitureBlack,x+dx,.37,z);
- room3Box(.50,.025,.38,laptop,x,.795,7.78);
- const screen=room3Box(.48,.32,.035,laptop,x,.96,7.96);screen.rotation.x=-.12;
- room3Box(.40,.25,.012,screenMaterial,x,.96,7.938).rotation.x=-.12;
- room3Box(.50,.12,.48,gamingUpholstery,x,.46,7.40);
- const back=room3Box(.56,.72,.16,gamingUpholstery,x,.84,7.14);back.rotation.x=.10;
- for(const dx of [-.29,.29])room3Box(.06,.08,.38,gamingAccent,x+dx,.67,7.38);
- queueStaticInstance(tapGeometry,furnitureBlack,x,.25,7.36,.05,.34,.05);
- room3Box(.07,.045,.62,furnitureBlack,x,.09,7.36);room3Box(.62,.045,.07,furnitureBlack,x,.09,7.36);
-}
-// Reading chair beside the west window, angled toward the east doorway.
 const readingFabric=new THREE.MeshStandardMaterial({color:'#c8b599',roughness:1});
-const readingChair=new THREE.Group();readingChair.position.set(.64,0,5.83);readingChair.rotation.y=Math.PI/3;room3Furniture.add(readingChair);
-function readingCushion(w,h,d,x,y,z){const mesh=sofaSoftBox(w,h,d,readingFabric,x,y,z);readingChair.add(mesh);return mesh;}
-readingCushion(.78,.24,.78,0,.27,0);
-readingCushion(.60,.17,.61,0,.45,.05);
-const readingBack=readingCushion(.76,.67,.18,0,.68,-.32);readingBack.rotation.x=-.10;
-for(const x of [-.32,.32])readingCushion(.16,.38,.73,x,.49,.02);
-for(const x of [-.27,.27])for(const z of [-.25,.27])box(.045,.18,.045,furnitureBlack,x,.10,z,readingChair);
+const room3Furniture=createRoom3(model,box,{wood:deskWood,black:furnitureBlack,upholstery:gamingUpholstery,accent:gamingAccent,sofaFabric:readingFabric,screen:screenMaterial});
 
 const bathroomFixtureCount=bathroomFixtures.children.length,bedroomObjectCount=bedroomFurniture.children.length,diningObjectCount=diningGroups.get(activeKitchen.id).children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
-applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,laptopSilver,applianceTrim],glass:[glass,showerGlass]},renderer);
+applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,applianceTrim],glass:[glass,showerGlass]},renderer);
 const assetInstanceStats=flushStaticInstances();
 
 // Most architectural details and furniture share the same cube geometry. Batch

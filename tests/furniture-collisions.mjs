@@ -11,9 +11,12 @@ assert.equal(canWalk(diningLayout.x,diningLayout.z),false,'Restored separate din
 assert.equal(canWalk(breakfastTop.x,breakfastTop.z),false,'Breakfast overhang has its own circular collision');
 assert.equal(canWalk(6.08,12.94),true,'Former attached dining chair position is free');
 assert.equal(canWalk(4.80,11.60),true,'Previous dining location is free');
-assert.equal(canWalk(1.6,5.68),true,'Former desk location is clear');
-assert.equal(canWalk(.60,7.40),false,'Relocated desk chair is solid');
-assert.equal(canWalk(.64,5.83),false,'Reading chair is solid');
+assert.equal(canWalk(1.6,5.68),false,'Corner sofa now follows the top wall');
+assert.equal(canWalk(.60,7.25),true,'Former left desk chair position is clear');
+assert.equal(canWalk(2.36,7.25),true,'Former right desk chair position is clear');
+assert.equal(canWalk(1.48,7.15),false,'Single centred desk chair is solid');
+assert.equal(canWalk(.40,6.40),false,'Corner sofa return follows the window wall');
+assert.equal(canWalk(1.05,6.35),true,'Inside of the L stays accessible');
 for(const room of rooms)assert.ok(canWalk(...safeRoomPosition(room)),`${room.id} spawn`);
 // Compare the bucketed broad phase with a complete scan across the whole house.
 for(let x=-.2;x<10;x+=.13)for(let z=-.2;z<16;z+=.13){
