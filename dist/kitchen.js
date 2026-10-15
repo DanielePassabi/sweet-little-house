@@ -1,9 +1,9 @@
 import * as THREE from './vendor/three.module.js';
 import {kitchenType1} from './kitchen-layout.js?v=20261012-1';
-import {roundedTopPoints} from './kitchen-variants.js?v=20261012-1';
+import {roundedTopPoints} from './kitchen-variants.js?v=20261014-5';
 
 // The same module dimensions drive the rendered kitchen and walking collisions.
-export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass},layout=kitchenType1){
+export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass,fabric=front},layout=kitchenType1){
  const {modules:kitchenModules,worktop:kitchenWorktop,sink:kitchenSink,hob:kitchenHob,breakfast:breakfastTop,wallCabinets:kitchenWallCabinets}=layout;
  const group=new THREE.Group();group.name='kitchen';parent.add(group);
  const block=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,group);
@@ -41,6 +41,16 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass},l
    face(m,.43,.57).name='integrated-freezer-door';
    face(m,1.30,1.14).name='integrated-fridge-door';
    face(m,2.04,.28).name='integrated-pantry-door';
+  }else if(m.id==='peninsula-oven'){
+   face(m,.86,.06);face(m,.175,.065);
+   face(m,.51,.60,steel).name='peninsula-oven-frame';
+   face(m,.475,.46,glass,-.004).name='peninsula-oven-glass';
+   block(.024,.09,d-.09,dark,x+w/2+.004,.765,z);
+   block(.036,.028,d-.13,steel,x+w/2+.025,.695,z);
+   for(const dz of [-.18,.18]){
+    const knob=mesh(new THREE.CylinderGeometry(.019,.019,.014,16),steel,x+w/2+.025,.765,z+dz,'peninsula-oven-control');knob.rotation.z=Math.PI/2;
+   }
+   block(.006,.03,.09,glass,x+w/2+.019,.765,z);
   }else if(m.id==='under-window-oven'){
    face(m,.86,.06);face(m,.175,.065);
    face(m,.51,.60,steel).name='under-window-oven-frame';
@@ -111,6 +121,17 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass},l
   for(let i=0;i<uv.count;i++)uv.setXY(i,(positions.getX(i)-breakfastTop.x)/breakfastTop.w+.5,(-positions.getY(i)-breakfastTop.z)/breakfastTop.d+.5);
   const top=mesh(geometry,wood,0,breakfastTop.bottom,0,'breakfast-rounded-top');top.rotation.x=-Math.PI/2;
  }else mesh(new THREE.CylinderGeometry(breakfastTop.r,breakfastTop.r,breakfastTop.h,64),wood,breakfastTop.x,breakfastTop.bottom+breakfastTop.h/2,breakfastTop.z,'breakfast-disc');
+
+ // Two compact upholstered stools tucked into the oak overhang (Type 3 only).
+ for(const {x,z,angle} of layout.stools??[]){
+  const stool=new THREE.Group();stool.name='breakfast-stool';stool.position.set(x,0,z);stool.rotation.y=angle;group.add(stool);
+  const part=(geometry,material,px,y,pz)=>{const m=new THREE.Mesh(geometry,material);m.position.set(px,y,pz);m.castShadow=m.receiveShadow=true;stool.add(m);return m;};
+  const seat=part(new THREE.SphereGeometry(1,20,12),fabric,0,.64,0);seat.scale.set(.235,.045,.22);
+  const stoolBackMaterial=fabric.side===THREE.DoubleSide?fabric:fabric.clone();stoolBackMaterial.side=THREE.DoubleSide;
+  part(new THREE.CylinderGeometry(.24,.22,.21,20,1,true,Math.PI/2,Math.PI),stoolBackMaterial,0,.76,0);
+  for(const dx of [-.16,.16])for(const dz of [-.15,.15])part(new THREE.CylinderGeometry(.016,.021,.59,10),dark,dx,.315,dz);
+  const rail=part(new THREE.TorusGeometry(.18,.012,6,20),dark,0,.25,0);rail.rotation.x=Math.PI/2;
+ }
 
  if(layout.backsplash){
   const {x,z,w,bottom,h}=layout.backsplash;

@@ -1,5 +1,4 @@
-import {diningColliders} from './kitchen-layout.js?v=20261012-1';
-import {getKitchenVariant} from './kitchen-variants.js?v=20261012-1';
+import {getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261014-5';
 import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
 import {mediaCollider} from './media-layout.js?v=20261013-1';
 import {canStand,point,insidePolygon} from './model.js';
@@ -23,7 +22,6 @@ export const furnitureColliders=[
  {minX:7.02,maxX:7.62,minZ:1.02,maxZ:5.04},
  {minX:point([529,632])[0]-.06-.55,maxX:point([529,632])[0]-.06,minZ:point([529,632])[1]+.06,maxZ:point([529,742])[1]-.06},
 ];
-furnitureColliders.push(...diningColliders);
 furnitureColliders.push(...sofaColliders);
 furnitureColliders.push(circle(sofaCoffeeTable.x,sofaCoffeeTable.z,sofaCoffeeTable.r));
 furnitureColliders.push(circle(1.275,12.25,.425));
@@ -65,7 +63,7 @@ const buckets=new Map();
 const permanentFurnitureColliders=[...furnitureColliders];
 export function setKitchenCollisionVariant(id){
  const variant=getKitchenVariant(id);
- furnitureColliders.splice(0,furnitureColliders.length,...permanentFurnitureColliders,...variant.colliders);
+ furnitureColliders.splice(0,furnitureColliders.length,...permanentFurnitureColliders,...getDiningConfiguration(variant).colliders,...variant.colliders);
  buckets.clear();
  for(const c of furnitureColliders)for(let x=Math.floor(c.minX);x<=Math.floor(c.maxX);x++)for(let z=Math.floor(c.minZ);z<=Math.floor(c.maxZ);z++){
   const key=x+','+z;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(c);

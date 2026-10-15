@@ -38,6 +38,7 @@ jobs:
           node --check dist/kitchen-layout.js
           node --check dist/kitchen-variants.js
           node --check dist/kitchen.js
+          node --check dist/dining.js
           node --check dist/sofa-layout.js
           node --check dist/sofa.js
           node --check dist/media-layout.js
