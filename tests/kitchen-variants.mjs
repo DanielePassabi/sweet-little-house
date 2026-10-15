@@ -5,7 +5,7 @@ import {createKitchen} from '../dist/kitchen.js';
 import {kitchenVariants,getKitchenVariant,getDiningConfiguration} from '../dist/kitchen-variants.js';
 import {createDiningSet} from '../dist/dining.js';
 import {canWalk,setKitchenCollisionVariant,furnitureColliders,intersects,safeRoomPosition} from '../dist/furniture-collisions.js';
-import {canStand,rooms} from '../dist/model.js';
+import {canStand,rooms,walls,point} from '../dist/model.js';
 
 const materials=Object.fromEntries(['front','wood','ceramic','steel','dark','glass'].map(n=>[n,new THREE.MeshStandardMaterial()]));
 const unit=new THREE.BoxGeometry(1,1,1),parent=new THREE.Group();
@@ -70,7 +70,7 @@ for(const id of ['1','2','3','1','3','2']){
   const nc=c+dc,nr=r+dr,nk=nr*cols+nc;if(nc>=0&&nc<cols&&nr>=0&&nr<rowsCount&&grid[nk]&&!seen.has(nk)){seen.add(nk);queue.push(nk);}
  }}
  for(const room of rooms)assert.ok(seen.has(key(...safeRoomPosition(room))),`${room.id} reachable in Type ${id}`);
- const approaches=id==='1'?[[8.55,12.675],[8.55,13.275],[8.55,13.875],[7.8,13.93],[6.235,13.85]]:id==='2'?[[8.55,12.675],[8.55,13.275],[8.55,13.875],[8.385,13.9],[7.385,13.9],[6.335,13.2]]:[[8.55,12.675],[8.55,13.275],[8.55,13.875],[8.3,14.019],[8.4,14.25],[5.8,13.59],[5.8,14.31]];
+ const approaches=id==='1'?[[8.55,12.675],[8.55,13.275],[8.55,13.875],[7.8,13.93],[6.235,13.85]]:id==='2'?[[8.55,12.675],[8.55,13.275],[8.55,13.875],[8.385,13.9],[7.385,13.9],[6.335,13.2]]:[[8.55,12.675],[8.55,13.375],[8.55,14.075],[8.3,14.019],[8.4,14.25],[5.8,13.59],[5.8,14.31]];
  for(const p of approaches)assert.ok(seen.has(key(...p)),`Appliance/breakfast approach ${p} reachable in Type ${id}`);
 }
 assert.equal(fingerprint(groups[0]),approved,'Repeated changes never mutate Type 1');
@@ -80,7 +80,38 @@ const third=getKitchenVariant('3'),thirdGroup=groups[2],thirdDining=getDiningCon
 assert.equal(third.modules.find(m=>m.id==='integrated-fridge').w,.60);
 assert.equal(third.modules.find(m=>m.id==='shallow-workbench').d,.40);
 assert.equal(thirdDining.table.r*2,1.50);assert.equal(thirdDining.chairs.length,6);
-assert.deepEqual(third.sink,getKitchenVariant('1').sink,'Washing connections remain in place');
+const close=(actual,expected,message)=>assert.ok(Math.abs(actual-expected)<1e-6,message);
+const original=getKitchenVariant('1'),sinkBase=third.modules.find(m=>m.id==='sink'),dishwasher=third.modules.find(m=>m.id==='dishwasher');
+const fridge=third.modules.find(m=>m.id==='integrated-fridge'),corner=third.modules.find(m=>m.id==='right-corner');
+close(third.sink.z-third.sink.d/2,original.sink.z-original.sink.d/2,'Sink keeps its fridge-side edge');
+close(third.sink.z+third.sink.d/2,original.sink.z+original.sink.d/2+.20,'Bowl extends 20 cm away from the fridge');
+assert.equal(third.sink.x,original.sink.x,'Sink stays on the washing wall');
+assert.equal(third.sink.w,original.sink.w,'Sink depth across the counter is unchanged');
+close(sinkBase.d,.80,'Wider bowl has an 80 cm base');
+close(dishwasher.d,.60,'Dishwasher remains a full 60 cm module');
+close(fridge.z+fridge.d/2,sinkBase.z-sinkBase.d/2,'Sink base stays against the fridge');
+close(sinkBase.z+sinkBase.d/2,dishwasher.z-dishwasher.d/2,'Dishwasher shifts to meet the wider sink base');
+close(dishwasher.z+dishwasher.d/2,corner.z-corner.d/2,'Reduced corner meets the dishwasher without overlap');
+close(corner.z+corner.d/2,14.919,'Corner still meets the rear wall');
+const cornerFront=new THREE.Box3().setFromObject(thirdGroup.getObjectByName('corner-return-panel'));
+close(cornerFront.min.z,14.519,'Corner front aligns with the 40 cm return');
+assert.ok(cornerFront.min.z>dishwasher.z+dishwasher.d/2,'Corner return does not cross the dishwasher front');
+assert.equal(hit(thirdGroup.getObjectByName('ceramic-worktop'),third.sink.x,13.60).length,0,'Cutout includes the extended bowl');
+ray.set(new THREE.Vector3(third.sink.x,1,13.60),new THREE.Vector3(0,-1,0));
+const expandedBasinHit=ray.intersectObjects(thirdGroup.children)[0];
+assert.ok(expandedBasinHit.point.y>.75&&expandedBasinHit.point.y<.79,'Extended bowl stays recessed without cabinet panels across it');
+assert.deepEqual(third.wallCabinets,layout.wallCabinets,'Type 3 reuses both Type 2 cabinet runs');
+assert.deepEqual(third.wallVolumes,layout.wallVolumes,'Both upper cabinets participate in head clearance');
+const rearWall=walls.find(w=>w.a[1]===1350&&w.b[1]===1350);
+const rearWindows=rearWall.open.filter(o=>o.kind==='window').map(o=>({
+ min:point([rearWall.a[0]+o.s,rearWall.a[1]])[0]-.04,
+ max:point([rearWall.a[0]+o.e,rearWall.a[1]])[0]+.04,
+}));
+for(const cabinet of third.wallCabinets){
+ const cabinetBounds=new THREE.Box3().setFromObject(thirdGroup.getObjectByName(cabinet.id+'-carcass'));
+ for(const window of rearWindows)assert.ok(cabinetBounds.max.x<window.min||cabinetBounds.min.x>window.max,'Type 3 uppers keep both windows clear');
+ for(let row=0;row<cabinet.rows;row++)assert.ok(thirdGroup.getObjectByName(cabinet.id+'-front-'+row),'All reused cabinet fronts are rendered');
+}
 assert.equal(thirdGroup.children.filter(o=>o.name==='breakfast-stool').length,2);
 assert.ok(thirdGroup.getObjectByName('peninsula-oven-glass'));
 assert.ok(third.breakfast.x+third.breakfast.w/2<third.hob.x-third.hob.w/2,'Oak surface never covers the hob');

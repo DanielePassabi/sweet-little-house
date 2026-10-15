@@ -1,4 +1,4 @@
-import {getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261014-5';
+import {getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261015-1';
 import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
 import {mediaCollider} from './media-layout.js?v=20261013-1';
 import {canStand,point,insidePolygon} from './model.js';

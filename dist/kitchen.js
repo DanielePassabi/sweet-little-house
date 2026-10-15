@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import {kitchenType1} from './kitchen-layout.js?v=20261012-1';
-import {roundedTopPoints} from './kitchen-variants.js?v=20261014-5';
+import {roundedTopPoints} from './kitchen-variants.js?v=20261015-1';
 
 // The same module dimensions drive the rendered kitchen and walking collisions.
 export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass,fabric=front},layout=kitchenType1){
@@ -31,7 +31,7 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass,fa
   if(m.blindCorner){
    // Flush returns meet the neighbouring fronts, with one continuous recessed plinth.
    const side=face({...m,face:'west'},.515,.75);side.name='corner-side-panel';
-   const end=face({...m,d:.60,z:14.619},.515,.75);end.name='corner-return-panel';
+   const end=face({...m,d:.60,z:14.619,...m.returnPanel},.515,.75);end.name='corner-return-panel';
    block(w-.08,.10,d,dark,x,.055,z).name='corner-plinth';
    continue;
   }

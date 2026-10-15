@@ -36,8 +36,14 @@ export const kitchenType2={id:'2',name:'Tipo 2',description:'Frigo integrato, fo
 };
 // Type 3: 60 cm washing run, 40 cm window return and a 180 x 120 cm peninsula.
 // Unspecified lengths are a proposal fitted to the unchanged architectural plan.
+const sinkExtension=.20;
 const thirdModules=[
- modules[0],...kitchenType1.modules.filter(m=>['sink','dishwasher','right-corner'].includes(m.id)),
+ modules[0],...kitchenType1.modules.filter(m=>['sink','dishwasher','right-corner'].includes(m.id)).map(m=>{
+  // Keep the fridge-side edge fixed; use the shallower return's extra 20 cm.
+  if(m.id==='sink')return {...m,z:m.z+sinkExtension/2,d:m.d+sinkExtension};
+  if(m.id==='dishwasher')return {...m,z:m.z+sinkExtension};
+  return {...m,z:m.z+sinkExtension/2,d:m.d-sinkExtension,returnPanel:{z:14.719,d:.40}};
+ }),
  {id:'shallow-workbench',x:8.3925,z:14.719,w:1.085,d:.40,face:'north'},
  ...[13.419,14.019,14.619].flatMap((z,i)=>[
   {id:i===1?'peninsula-oven':'peninsula-inner-'+i,x:7.55,z,w:.60,d:.60,face:'east'},
@@ -56,9 +62,10 @@ const thirdChairs=Array.from({length:6},(_,i)=>{
  return {x:thirdDining.x+Math.cos(theta)*.81,z:thirdDining.z+Math.sin(theta)*.81,angle:-Math.PI/2-theta};
 });
 const circleCollider=({x,z,r})=>({x,z,r,minX:x-r,maxX:x+r,minZ:z-r,maxZ:z+r});
-const thirdUppers=kitchenType1.wallCabinets.filter(c=>c.id==='washing-upper');
+const thirdUppers=kitchenType2.wallCabinets;
 export const kitchenType3={id:'3',name:'Tipo 3',description:'Frigo integrato, raccordo da 40 cm, penisola 180 × 120 cm con induzione e breakfast per due. Tavolo Ø 150 cm, sei posti.',
- modules:thirdModules,peninsula:{x:7.25,z:14.019,w:1.20,d:1.80},worktop:thirdWorktop,sink:kitchenType1.sink,
+ modules:thirdModules,peninsula:{x:7.25,z:14.019,w:1.20,d:1.80},worktop:thirdWorktop,
+ sink:{...kitchenType1.sink,z:kitchenType1.sink.z+sinkExtension/2,d:kitchenType1.sink.d+sinkExtension},
  hob:{x:7.40,z:14.019,w:.52,d:.72},breakfast:thirdBreakfast,stools:thirdStools,
  wallCabinets:thirdUppers,wallVolumes:thirdUppers.map(({x,z,w,d,bottom,h})=>({min:[x-w/2,bottom,z-d/2],max:[x+w/2,bottom+h,z+d/2]})),
  dining:{table:thirdDining,chairs:thirdChairs,colliders:[thirdDining,...thirdChairs.map(c=>({...c,r:.29}))].map(circleCollider)},

@@ -10,8 +10,8 @@ import { createMovement, DEFAULT_EYE_HEIGHT, movementCodes } from './movement.js
 import { createRenderState, freezeStaticTransforms, indexStaticSurface } from './render-state.js?v=20260916-3';
 
 import {createDiningSet} from './dining.js?v=20261014-5';
-import {kitchenVariants,getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261014-5';
-import {createKitchen} from './kitchen.js?v=20261014-5';
+import {kitchenVariants,getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261015-1';
+import {createKitchen} from './kitchen.js?v=20261015-1';
 import {createTelevisionVideo} from './television-video.js?v=20261014-2';
 import {createInteriorLighting,createCeiling} from './interior-lighting.js?v=20261014-4';
 import {optimizeLightingMaterials} from './lighting-performance.js?v=20261014-4';
@@ -19,7 +19,7 @@ import {createMediaStation} from './media-station.js?v=20261013-1';
 import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261013-1';
 import {createSofa} from './sofa.js?v=20261012-1';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {canWalk,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant} from './furniture-collisions.js?v=20261014-5';
+import {canWalk,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant} from './furniture-collisions.js?v=20261015-1';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
