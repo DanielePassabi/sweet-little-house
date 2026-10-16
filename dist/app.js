@@ -24,8 +24,9 @@ import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261
 import {createSofa} from './sofa.js?v=20261012-1';
 import {createRoom3} from './room3.js?v=20261015-1';
 import {createBed} from './bed.js?v=20261016-3';
+import {createSanitaryFixtures} from './sanitary.js?v=20261016-4';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261016-2';
+import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261016-4';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -308,33 +309,8 @@ const bathroomMetal=new THREE.MeshStandardMaterial({color:'#aeb8bc',roughness:.3
 const bathroomMirror=new THREE.MeshStandardMaterial({color:'#bcd0d6',roughness:.12,metalness:.72});
 const showerDrainMaterial=new THREE.MeshStandardMaterial({color:"#272d30",roughness:.55});
 const showerGlass=new THREE.MeshPhysicalMaterial({color:'#c7e3eb',transparent:true,opacity:.26,roughness:.08,metalness:.05,depthWrite:false});
-const sanitaryBodyGeometry=new THREE.CylinderGeometry(1,1,1,24),sanitaryRingGeometry=new THREE.TorusGeometry(1,.12,9,28),tapGeometry=new THREE.CylinderGeometry(1,1,1,12);
-// Continuous ceramic profile: floor, pedestal, bowl, lip and inner basin share edges.
-const sanitaryProfile=[[0,.012],[.56,.012],[.62,.045],[.60,.16],[.78,.24],[.97,.32],[1,.385],[.98,.415],[.84,.415],[.79,.36],[.52,.27],[0,.26]];
-const connectedSanitaryGeometry=new THREE.LatheGeometry(sanitaryProfile.map(([r,y])=>new THREE.Vector2(r,y)),40);
-const toiletSeatGeometry=new THREE.LatheGeometry([[.85,0],[1,0],[1,.022],[.98,.032],[.85,.032],[.85,0]].map(([r,y])=>new THREE.Vector2(r,y)),40);
-function addSanitary(x,z,rotation=0,toilet=false){
- const sx=.19,sz=.29;
- queueStaticInstance(connectedSanitaryGeometry,ceramicMaterial,x,0,z,sx,1,sz,0,-rotation,0);
- const place=(dx,dz)=>[x+Math.cos(rotation)*dx-Math.sin(rotation)*dz,z+Math.sin(rotation)*dx+Math.cos(rotation)*dz];
- const fixtureBox=(w,h,d,mat,dx,y,dz)=>{const [px,pz]=place(dx,dz);const mesh=bathroomBox(w,h,d,mat,px,y,pz);mesh.rotation.y=-rotation;};
- if(toilet){
-  queueStaticInstance(toiletSeatGeometry,applianceWhite,x,.413,z,sx,1,sz,0,-rotation,0);
-  fixtureBox(.34,.40,.18,ceramicMaterial,0,.59,-.23);
-  fixtureBox(.355,.025,.19,applianceWhite,0,.802,-.23);
-  fixtureBox(.075,.008,.04,bathroomMetal,0,.818,-.23);
- }else{
-  const [deckX,deckZ]=place(0,-.19);
-  queueStaticInstance(sanitaryBodyGeometry,ceramicMaterial,deckX,.400,deckZ,.12,.032,.085,0,-rotation,0);
-  queueStaticInstance(tapGeometry,bathroomMetal,x,.264,z,.023,.004,.023);
-  const [tx,tz]=place(0,-.22);
-  queueStaticInstance(tapGeometry,bathroomMetal,tx,.491,tz,.017,.16,.017);
-  fixtureBox(.028,.024,.12,bathroomMetal,0,.567,-.172);
-  const [px,pz]=place(0,-.12);
-  queueStaticInstance(tapGeometry,bathroomMetal,px,.548,pz,.016,.035,.016);
- }
-}
-// Bath 1: recessed tub, towel warmer, bidet, toilet and vanity.
+const tapGeometry=new THREE.CylinderGeometry(1,1,1,12);
+createSanitaryFixtures(bathroomFixtures,{ceramic:ceramicMaterial,seat:applianceWhite,metal:bathroomMetal});
 // Bath 1: 80 × 194 cm tray, fitted between the existing walls.
 const showerStart=3.1704,showerEnd=5.1104,showerCenter=(showerStart+showerEnd)/2;
 const showerBack=.012,showerFront=showerBack+.80;
@@ -361,7 +337,6 @@ queueStaticInstance(tapGeometry,bathroomMetal,showerBack+.067,1.59,showerTapZ,.0
 bathroomBox(.37,.022,.022,bathroomMetal,showerBack+.235,2.11,showerTapZ);
 queueStaticInstance(tapGeometry,bathroomMetal,showerBack+.40,2.08,showerTapZ,.115,.022,.115);
 queueStaticInstance(tapGeometry,showerDrainMaterial,showerBack+.40,2.067,showerTapZ,.106,.003,.106);
-addSanitary(1.42,3.62,0,false);addSanitary(2.12,3.62,0,true);
 // Bath 1 reference vanity: 120 x 48 cm, opposite the sanitary fixtures.
 const vanityOak=new THREE.MeshStandardMaterial({color:'#ba925b',roughness:.7});
 const vanityDark=new THREE.MeshStandardMaterial({color:'#393c38',roughness:.86});
@@ -423,7 +398,6 @@ bath2Vanity.position.set(6.66+1.72*bath2WidthScale,0,5.415+4.84);
 // Keep the mirror perfectly circular when narrowing the cabinet.
 for(const child of bath2Vanity.children)if(child.geometry===roundMirror.geometry||child.geometry===mirrorEdge.geometry||child.geometry===mirrorHalo.geometry)child.scale.x/=bath2WidthScale;
 bathroomFixtures.add(bath2Vanity);
-addSanitary(7.29,6.15,Math.PI/2,false);addSanitary(7.29,6.91,Math.PI/2,true);
 bathroomBox(.84,.09,.84,ceramicMaterial,6.16,.055,7.47);
 
 bathroomBox(.025,1.82,.90,showerGlass,6.57,.94,7.49);bathroomBox(.91,1.82,.025,showerGlass,6.115,.94,7.055);

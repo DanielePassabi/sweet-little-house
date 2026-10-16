@@ -51,6 +51,8 @@ jobs:
           node --check dist/robot-navigation.js
           node --check dist/robot-vacuum.js
           node --check dist/bed.js
+          node --check dist/sanitary.js
+          node --check dist/sanitary-layout.js
           node --check dist/floor-layout.js
           node --check dist/lighting-performance.js
           node --check dist/material-details.js
@@ -76,6 +78,7 @@ jobs:
           node tests/sliding-doors.mjs
           node tests/robot-vacuum.mjs
           node tests/bed.mjs
+          node tests/sanitary.mjs
           node tests/floor-layout.mjs
           node tests/solar.mjs
           node tests/wall-joints.mjs

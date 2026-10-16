@@ -2,6 +2,7 @@ import {getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=
 import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
 import {mediaCollider} from './media-layout.js?v=20261013-1';
 import {room3Colliders} from './room3-layout.js?v=20261015-1';
+import {sanitaryColliders} from './sanitary-layout.js?v=20261016-4';
 import {canStand,point,insidePolygon} from './model.js';
 
 
@@ -31,12 +32,7 @@ for(const [x,z,r] of [[3.47,8.34,.24*.86],[.18,10.83,.24]])furnitureColliders.pu
 furnitureColliders.push(...room3Colliders);
 for(const z of [1.96,4.14])furnitureColliders.push(rect(4.535,4.985,z-.225,z+.225));
 furnitureColliders.push(rect(.11,.69,8.565,8.815));
-// Elliptical sanitary rims, represented by a convex perimeter, including tanks.
-for(const [x,z,rx,rz] of [[1.42,3.62,.19,.29],[2.12,3.62,.19,.29],[7.29,6.15,.29,.19],[7.29,6.91,.29,.19]]){
- const points=Array.from({length:24},(_,i)=>[x+Math.cos(i*Math.PI/12)*rx,z+Math.sin(i*Math.PI/12)*rz]);
- furnitureColliders.push({points,minX:x-rx,maxX:x+rx,minZ:z-rz,maxZ:z+rz});
-}
-furnitureColliders.push(rect(1.9425,2.2975,3.295,3.485),rect(7.425,7.615,6.7325,7.0875));
+furnitureColliders.push(...sanitaryColliders);
 export function intersects(c,x,z,r){
  if(x+r<c.minX||x-r>c.maxX||z+r<c.minZ||z-r>c.maxZ)return false;
  if(c.r!==undefined)return (x-c.x)**2+(z-c.z)**2<(r+c.r)**2;
