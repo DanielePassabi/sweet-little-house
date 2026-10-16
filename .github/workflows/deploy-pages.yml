@@ -53,6 +53,8 @@ jobs:
           node --check dist/bed.js
           node --check dist/sanitary.js
           node --check dist/sanitary-layout.js
+          node --check dist/wine-cabinet.js
+          node --check dist/wine-cabinet-layout.js
           node --check dist/floor-layout.js
           node --check dist/lighting-performance.js
           node --check dist/material-details.js
@@ -79,6 +81,7 @@ jobs:
           node tests/robot-vacuum.mjs
           node tests/bed.mjs
           node tests/sanitary.mjs
+          node tests/wine-cabinet.mjs
           node tests/floor-layout.mjs
           node tests/solar.mjs
           node tests/wall-joints.mjs

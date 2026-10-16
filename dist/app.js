@@ -25,8 +25,9 @@ import {createSofa} from './sofa.js?v=20261012-1';
 import {createRoom3} from './room3.js?v=20261015-1';
 import {createBed} from './bed.js?v=20261016-3';
 import {createSanitaryFixtures} from './sanitary.js?v=20261016-4';
+import {createWineCabinet} from './wine-cabinet.js?v=20261016-5';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261016-4';
+import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261016-5';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -194,6 +195,7 @@ const furnitureBlack=new THREE.MeshStandardMaterial({color:'#141719',roughness:.
 const kitchenBrown=new THREE.MeshStandardMaterial({color:'#c4a178',roughness:.74});
 const screenMaterial=new THREE.MeshStandardMaterial({color:'#071015',emissive:'#1d323c',emissiveIntensity:.24,roughness:.2,metalness:.18});
 const furnitureBox=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,furniture);
+createWineCabinet(furniture);
 
 // Purchased 270 × 180 cm sofa, mirrored with its chaise beside the partition.
 const purchasedSofa=createSofa(furniture,{frame:sofaFrameMaterial,upholstery:sofaCushionMaterial,pillows:sofaAccentMaterial,
