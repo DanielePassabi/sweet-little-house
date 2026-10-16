@@ -38,6 +38,16 @@ for(const temp of [3000,4000]){
 system.setState(true,3000);const warm=system.lights[0].color.clone();
 system.setState(true,4000);assert.ok(system.lights[0].color.b>warm.b,'White is cooler than warm');
 system.setState(true,123);assert.equal(system.state.kelvin,3000,'Safe temperature fallback');
+for(const light of system.lights)light.shadow.needsUpdate=false;
+const intensities=system.lights.map(l=>l.intensity),fixtureMeshes=system.group.children.filter(o=>o.isInstancedMesh);
+system.setFixturesVisible(false);
+assert.equal(system.state.fixturesVisible,false);assert.ok(fixtureMeshes.every(m=>!m.visible));
+assert.ok(system.group.visible&&system.lights.every(l=>l.visible),'Hiding fixtures does not hide their light sources');
+assert.deepEqual(system.lights.map(l=>l.intensity),intensities,'Light output is independent of fixture visibility');
+system.setState(false,4000);system.setState(true,3000);
+assert.ok(fixtureMeshes.every(m=>!m.visible),'Power and temperature preserve hidden fixtures');
+system.setFixturesVisible(true);assert.ok(fixtureMeshes.every(m=>m.visible));
+assert.ok(system.lights.every(l=>!l.shadow.needsUpdate),'Fixture visibility reuses existing shadow maps');
 
 roof.geometry.computeBoundingBox();
 assert.ok(Math.abs(roof.geometry.boundingBox.min.y-HEIGHT)<1e-6,'Interior height remains exactly 2.60 m');

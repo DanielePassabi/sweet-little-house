@@ -47,6 +47,8 @@ jobs:
           node --check dist/media-station.js
           node --check dist/television-video.js
           node --check dist/interior-lighting.js
+          node --check dist/sliding-doors.js
+          node --check dist/floor-layout.js
           node --check dist/lighting-performance.js
           node --check dist/material-details.js
           node --check dist/solar.js
@@ -68,6 +70,8 @@ jobs:
           node tests/media-station.mjs
           node tests/television-video.mjs
           node tests/interior-lighting.mjs
+          node tests/sliding-doors.mjs
+          node tests/floor-layout.mjs
           node tests/solar.mjs
           node tests/wall-joints.mjs
 

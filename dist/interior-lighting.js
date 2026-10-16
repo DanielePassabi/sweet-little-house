@@ -56,14 +56,15 @@ export function createInteriorLighting(scene){
   light.userData.onIntensity=layout.intensity;group.add(light,light.target);lights.push(light);
  });
  for(const mesh of [bodies,diffusers]){mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();}
- let enabled=true,kelvin=3000;
+ let enabled=true,kelvin=3000,fixturesVisible=true;
  return {group,lights,diffuserMaterial,
+  setFixturesVisible(visible){fixturesVisible=!!visible;bodies.visible=diffusers.visible=fixturesVisible;},
   invalidateShadows(){for(const light of lights)light.shadow.needsUpdate=true;},
   setState(on,temperature){
    enabled=!!on;kelvin=Object.hasOwn(lightTemperatures,temperature)?Number(temperature):3000;
    for(const light of lights){light.intensity=enabled?light.userData.onIntensity:0;light.color.set(lightTemperatures[kelvin]);}
    diffuserMaterial.emissive.set(lightTemperatures[kelvin]);diffuserMaterial.emissiveIntensity=enabled?1.4:0;
   },
-  get state(){return {enabled,kelvin,fixtureCount:lights.length};}
+  get state(){return {enabled,kelvin,fixturesVisible,fixtureCount:lights.length};}
  };
 }

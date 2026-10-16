@@ -13,14 +13,16 @@ import {createDiningSet} from './dining.js?v=20261014-5';
 import {kitchenVariants,getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261015-1';
 import {createKitchen} from './kitchen.js?v=20261015-1';
 import {createTelevisionVideo} from './television-video.js?v=20261014-2';
-import {createInteriorLighting,createCeiling} from './interior-lighting.js?v=20261014-4';
+import {createInteriorLighting,createCeiling} from './interior-lighting.js?v=20261016-1';
+import {createSlidingDoors} from './sliding-doors.js?v=20261016-1';
+import {parquetRoomIds,parquetPolygons} from './floor-layout.js?v=20261016-1';
 import {optimizeLightingMaterials} from './lighting-performance.js?v=20261014-4';
 import {createMediaStation} from './media-station.js?v=20261013-1';
 import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261013-1';
 import {createSofa} from './sofa.js?v=20261012-1';
 import {createRoom3} from './room3.js?v=20261015-1';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {canWalk,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant} from './furniture-collisions.js?v=20261015-2';
+import {canWalk,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261016-1';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -35,6 +37,7 @@ let renderPixelRatio=Math.min(devicePixelRatio,1.75);
 renderer.setPixelRatio(renderPixelRatio);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled=true;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.0;
@@ -121,13 +124,7 @@ const floor=polygonMesh(footprint,floorMaterial);floorObjects.push(floor);
 const terraceFloor=polygonMesh(rooms.find(r=>r.id==='terrace').polygon,new THREE.MeshStandardMaterial({color:'#d7d8d3',map:floorMaterial.map,roughness:.95}),.003);floorObjects.push(terraceFloor);
 const parquetTexture=makeParquetTexture();
 const parquetMaterial=new THREE.MeshStandardMaterial({color:'#fff4df',map:parquetTexture,bumpMap:parquetTexture,bumpScale:.006,roughness:.72});
-// Finishes meet at partition centre-lines, including the bedroom door thresholds.
-const parquetRoomIds=['room2','room3','bedroom'];
-const parquetPolygons=[
- [[30,43],[409,43],[409,374],[270,374],[270,320],[30,320]],
- [[30,498],[300.32,498],[300.32,775],[30,775]],
- [[409,125],[712,125],[712,493],[529,493],[529,529],[409,529]]
-];
+// Finishes include the bedroom access recess beside Bath 2.
 for(const polygon of parquetPolygons)floorObjects.push(polygonMesh(polygon,parquetMaterial,.006));
 for(const [material,layer] of [[terraceFloor.material,1],[parquetMaterial,2]]){material.polygonOffset=true;material.polygonOffsetFactor=-layer;material.polygonOffsetUnits=-layer;}
 const base=polygonMesh(footprint,new THREE.MeshStandardMaterial({color:'#a7b1b7',roughness:1}),-.16);
@@ -583,6 +580,28 @@ sunlight.shadow.bias=-.00008;sunlight.shadow.normalBias=.002;
 scene.add(sunlight,sunlight.target);
 // Downward ceiling lights use cached shadow maps, so partitions block light.
 const indoorLighting=createInteriorLighting(scene);
+const fixtureToggle=$('#ceiling-fixtures');
+try{fixtureToggle.checked=localStorage.getItem('sweet-little-house.ceiling-fixtures')!=='false';}catch{/* Defaults remain usable without storage. */}
+function updateFixtureVisibility(){
+ indoorLighting.setFixturesVisible(fixtureToggle.checked);renderState.invalidate();
+ try{localStorage.setItem('sweet-little-house.ceiling-fixtures',String(fixtureToggle.checked));}catch{/* The current visit still works. */}
+}
+fixtureToggle.onchange=updateFixtureVisibility;updateFixtureVisibility();
+const doorButtons=new Map([...document.querySelectorAll('[data-door]')].map(button=>[button.dataset.door,button]));
+function syncDoorControls(door){
+ const button=doorButtons.get(door.id);
+ button.textContent=`${door.targetOpen?'Chiudi':'Apri'} ${door.name}`;
+ button.setAttribute('aria-pressed',String(door.targetOpen));button.dataset.state=door.moving?'moving':door.open?'open':'closed';
+ $('#door-status').textContent=door.obstructed?'Passaggio occupato: la porta si riapre.':`${door.name}: ${door.moving?(door.targetOpen?'apertura…':'chiusura…'):(door.open?'aperta':'chiusa')}`;
+}
+// Dynamic leaves stay outside the static furniture batches.
+const slidingDoors=createSlidingDoors(scene,{onStateChange:syncDoorControls});
+setDoorCollisionTest(slidingDoors.blocksPoint);
+for(const door of slidingDoors.state)syncDoorControls(door);
+$('#door-status').textContent='Clicca una porta o usa questi pulsanti per aprirla e chiuderla.';
+for(const [id,button] of doorButtons)button.onclick=()=>slidingDoors.toggle(id);
+const doorOccluders=[];model.traverse(o=>{if(o.isMesh)doorOccluders.push(o);});
+indoorLighting.group.traverse(o=>{if(o.isMesh)doorOccluders.push(o);});
 scene.add(...bedsideLights);
 const mirrorHalos=[];bathroomFixtures.traverse(object=>{if(object.material===mirrorHalo.material||object.material===mirrorEdge.material)mirrorHalos.push(object);});
 const sunDateInput=$('#sun-date'),sunTimeInput=$('#sun-time'),sunStatus=$('#sun-status');
@@ -748,6 +767,21 @@ function clearMeasurements(){for(const child of [...measurementGroup.children]){
 function toggleMeasure(on=!measuring){measuring=on;$('#measure').classList.toggle('active',on);$('#measure').setAttribute('aria-pressed',on);controls.enabled=view==='orbit'&&!on;$('#measure-result').hidden=!on;$('#measure-result').textContent='Seleziona due punti sul pavimento';renderer.domElement.style.cursor=on?'crosshair':'';clearMeasurements();}
 $('#measure').onclick=()=>toggleMeasure();
 const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();
+let doorPress=null;
+renderer.domElement.addEventListener('pointerdown',e=>{doorPress=e.button===0?{x:e.clientX,y:e.clientY,moved:false}:null;});
+renderer.domElement.addEventListener('pointermove',e=>{
+ if(!doorPress)return;
+ if(Math.hypot(e.clientX-doorPress.x,e.clientY-doorPress.y)>6||(document.pointerLockElement===renderer.domElement&&Math.hypot(e.movementX,e.movementY)>3))doorPress.moved=true;
+});
+renderer.domElement.addEventListener('pointercancel',()=>doorPress=null);
+renderer.domElement.addEventListener('click',e=>{
+ const press=doorPress;doorPress=null;if(measuring||!press||press.moved)return;
+ const rect=renderer.domElement.getBoundingClientRect();
+ if(document.pointerLockElement===renderer.domElement)pointer.set(0,0);
+ else pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);
+ camera.updateMatrixWorld();raycaster.setFromCamera(pointer,camera);
+ const hit=slidingDoors.pick(raycaster,doorOccluders);if(hit)slidingDoors.toggle(hit.id);
+});
 renderer.domElement.addEventListener('click',e=>{if(!measuring)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(floorObjects)[0];if(!hit)return;if(measurePoints.length===2)clearMeasurements();const p=hit.point.clone();p.y=.055;measurePoints.push(p);const dot=new THREE.Mesh(new THREE.SphereGeometry(.055,12,8),new THREE.MeshBasicMaterial({color:'#286eaa',depthTest:false,depthWrite:false}));dot.position.copy(p);dot.renderOrder=10;measurementGroup.add(dot);if(measurePoints.length===1){$('#measure-result').textContent='Seleziona il secondo punto';return;}const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(measurePoints),new THREE.LineBasicMaterial({color:'#286eaa',depthTest:false,depthWrite:false}));line.renderOrder=10;measurementGroup.add(line);const dist=measurePoints[0].distanceTo(measurePoints[1]);$('#measure-result').textContent=dist.toFixed(2).replace('.',',')+' m · Clicca per una nuova misura';});
 renderer.domElement.addEventListener('wheel',e=>{if(view==='plan'){e.preventDefault();orthographic.zoom=THREE.MathUtils.clamp(orthographic.zoom*Math.exp(-e.deltaY*.001),.45,4);orthographic.updateProjectionMatrix();}},{passive:false});
 
@@ -774,6 +808,9 @@ function animate(now){
  if(document.hidden)return;
  if(view==='orbit'&&controls.enabled)controls.update();
  move(dt);
+ if(slidingDoors.update(dt,view==='walk'?{x:perspective.position.x,z:perspective.position.z,r:.20}:null)){
+  indoorLighting.invalidateShadows();renderer.shadowMap.needsUpdate=true;renderState.invalidate();
+ }
  if(solarPending){solarPending=false;updateDaylight();}
  if(renderState.consume(camera)){
   const renderStart=performance.now();
@@ -802,9 +839,8 @@ function animate(now){
   updatePerformanceText();
  }
 }
-// The house, landscape and furniture are static: render their shadow map once
-// instead of rebuilding a 2048px map on every frame while walking.
-// Entering/leaving the cutaway view refreshes it once for the ceiling change.
+// Static shadows remain cached while walking; door motion refreshes them only
+// during the short slide, and changing cutaway view refreshes the ceiling once.
 renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;
 // The ruler remains dynamic; architecture, scenery and lights have fixed transforms.
 let frozenTransformCount=0;

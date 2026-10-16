@@ -66,8 +66,10 @@ export function setKitchenCollisionVariant(id){
  }
 }
 setKitchenCollisionVariant('1');
+let doorCollisionTest=()=>false;
+export function setDoorCollisionTest(test){doorCollisionTest=test??(()=>false);}
 export function canWalk(x,z,r=.18){
- if(!canStand(x,z,r))return false;
+ if(!canStand(x,z,r)||doorCollisionTest(x,z,r))return false;
  for(let gx=Math.floor(x-r);gx<=Math.floor(x+r);gx++)for(let gz=Math.floor(z-r);gz<=Math.floor(z+r);gz++){
   for(const c of buckets.get(gx+','+gz)??[])if(intersects(c,x,z,r))return false;
  }
