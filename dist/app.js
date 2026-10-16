@@ -23,6 +23,7 @@ import {createMediaStation} from './media-station.js?v=20261013-1';
 import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261013-1';
 import {createSofa} from './sofa.js?v=20261012-1';
 import {createRoom3} from './room3.js?v=20261015-1';
+import {createBed} from './bed.js?v=20261016-3';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
 import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261016-2';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
@@ -437,19 +438,15 @@ const wardrobeMaterial=new THREE.MeshStandardMaterial({color:'#ded8cd',roughness
 const wardrobeFrontMaterial=new THREE.MeshStandardMaterial({color:'#ece8df',roughness:.72});
 const lilacBedding=new THREE.MeshStandardMaterial({color:'#c8addb',roughness:1});
 const lilacAccent=new THREE.MeshStandardMaterial({color:'#a98bc1',roughness:1});
+const bedUpholstery=new THREE.MeshStandardMaterial({color:'#ded8cd',roughness:1});
+const bedLinen=new THREE.MeshStandardMaterial({color:'#f2eee7',roughness:1});
 bedroomBox(.56,2.42,4.00,wardrobeMaterial,7.335,1.21,3.03);
 for(let i=0;i<5;i++){const z=1.43+i*.80;bedroomBox(.025,2.22,.78,wardrobeFrontMaterial,7.04,1.18,z);bedroomBox(.025,.20,.025,bathroomMetal,7.02,1.18,z-.12);}
-// The complete wall-to-footboard depth is 2.00 m: the headboard starts on the
-// inner wall face and the shorter frame begins at its front edge.
-const bedroomWallInnerX=point([409,54])[0]+.15/2,bedLength=2,headboardDepth=.18,bedFrameLength=bedLength-headboardDepth,bedFrameCenterX=bedroomWallInnerX+headboardDepth+bedFrameLength/2;
-bedroomBox(headboardDepth,.95,1.88,wardrobeMaterial,bedroomWallInnerX+headboardDepth/2,.49,3.05);
-bedroomBox(bedFrameLength,.25,1.68,wardrobeMaterial,bedFrameCenterX,.17,3.05);
-bedroomBox(1.78,.25,1.60,applianceWhite,bedFrameCenterX,.39,3.05);
-bedroomBox(1.35,.17,1.56,lilacBedding,bedroomWallInnerX+1.283,.59,3.05);
-bedroomBox(.42,.17,.66,wardrobeFrontMaterial,4.76,.60,2.65);bedroomBox(.42,.17,.66,wardrobeFrontMaterial,4.76,.60,3.45);
-bedroomBox(.18,.15,.42,lilacAccent,5.04,.71,2.65);bedroomBox(.18,.15,.42,lilacAccent,5.04,.71,3.45);
+// Preserve the complete 2.00 m wall-to-footprint depth with softer upholstery.
+const bedroomWallInnerX=point([409,54])[0]+.15/2,bedLength=2;
+const detailedBed=createBed(bedroomFurniture,{wallX:bedroomWallInnerX,frame:bedUpholstery,fabric:bedLinen,duvet:lilacBedding,accent:lilacAccent});
 for(const z of [1.96,4.14]){bedroomBox(.43,.47,.43,wardrobeMaterial,4.76,.245,z);bedroomBox(.45,.035,.45,wardrobeFrontMaterial,4.76,.50,z);}
-// Walnut fluted wall behind the unchanged headboard: texture relief, no slat meshes.
+// Walnut fluted wall behind the headboard: texture relief, no slat meshes.
 const bedroomPanelCanvas=document.createElement('canvas');bedroomPanelCanvas.width=512;bedroomPanelCanvas.height=256;
 const panelCtx=bedroomPanelCanvas.getContext('2d');
 panelCtx.fillStyle='#624530';panelCtx.fillRect(0,0,512,256);
@@ -540,7 +537,7 @@ const readingFabric=new THREE.MeshStandardMaterial({color:'#c8b599',roughness:1}
 const room3Furniture=createRoom3(model,box,{wood:deskWood,black:furnitureBlack,upholstery:gamingUpholstery,accent:gamingAccent,sofaFabric:readingFabric,screen:screenMaterial});
 
 const bathroomFixtureCount=bathroomFixtures.children.length,bedroomObjectCount=bedroomFurniture.children.length,diningObjectCount=diningGroups.get(activeKitchen.id).children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
-applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,applianceTrim],glass:[glass,showerGlass]},renderer);
+applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial,bedUpholstery],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,bedLinen,...detailedBed.userData.fabricMaterials,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown],metal:[bathroomMetal,kitchenSteel,applianceTrim],glass:[glass,showerGlass]},renderer);
 const assetInstanceStats=flushStaticInstances();
 
 // Most architectural details and furniture share the same cube geometry. Batch

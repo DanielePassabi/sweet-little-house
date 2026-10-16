@@ -199,3 +199,9 @@ La navigazione usa una griglia da 10 cm con raggio di sicurezza di 19,5 cm, cost
 Il cambio cucina ricalcola il percorso. Se i nuovi arredi compaiono sopra il robot, viene ricollocato nel punto libero più vicino, come già avviene per il visitatore. Geometrie in `dist/robot-vacuum.js`, navigazione in `dist/robot-navigation.js`. L’ombra di contatto segue il corpo senza ricostruire continuamente le mappe delle ombre della casa; da fermo non richiede ridisegni. Non vengono aggiunte sorgenti luminose.
 
 `node tests/robot-vacuum.mjs` simula un giro completo nelle tre cucine con porte inizialmente chiuse: visita tutti i nove ambienti e verifica ad ogni passo assenza di collisioni e salti di posizione, fino al rientro preciso alla base. Copre inoltre pausa/ripresa, richiamo, ostacoli temporanei, riapertura delle porte, cambio cucina, clic occlusi e animazione dopo il congelamento delle trasformazioni statiche.
+
+### Letto matrimoniale più morbido — 16 ottobre 2026
+
+Testiera imbottita a due pannelli, giroletto e materasso hanno bordi arrotondati. I cuscini sono gonfi al centro, leggermente inclinati e rifiniti con bordini cuciti. Il piumone lilla segue il materasso con pieghe leggere, un risvolto più chiaro e lembi ricadenti sui lati e ai piedi; cuciture sottili e piedini arretrati completano il modello. La testiera e il giroletto condividono la trama del tessuto degli altri imbottiti.
+
+Il letto conserva la posizione, la palette e l’ingombro di **2,00 m dalla parete ai piedi**, lasciando liberi i passaggi esistenti. Geometrie statiche in `dist/bed.js`, senza nuove luci. `node tests/bed.mjs` controlla ingombri, appoggio dei cuscini, superfici chiuse del piumone, normali, costo geometrico e percorsi liberi. Verificati anche tutti i test esistenti e la resa nella camera nell’anteprima locale.
