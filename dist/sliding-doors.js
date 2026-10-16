@@ -72,6 +72,7 @@ export function createSlidingDoors(parent,{onStateChange=()=>{}}={}){
   setOpen,
   toggle(id){const door=find(id);setOpen(id,door.target===0);},
   blocksPoint(x,z,r=.18){return doors.some(door=>touches(door,interval(door),x,z,r));},
+  blockingDoors(x,z,r=.18){return doors.filter(door=>touches(door,interval(door),x,z,r)).map(door=>door.layout.id);},
   update(dt,occupant){
    if(!Number.isFinite(dt)||dt<=0)return false;let changed=false;
    for(const door of doors){
@@ -80,7 +81,8 @@ export function createSlidingDoors(parent,{onStateChange=()=>{}}={}){
     const next=door.target>door.progress?Math.min(door.target,door.progress+step):Math.max(door.target,door.progress-step);
     if(door.target===0&&occupant){
      const a=interval(door),b=interval(door,next),sweep={min:Math.min(a.min,b.min),max:Math.max(a.max,b.max)};
-     if(touches(door,sweep,occupant.x,occupant.z,occupant.r??.20)){
+     const occupants=Array.isArray(occupant)?occupant:[occupant];
+     if(occupants.some(person=>touches(door,sweep,person.x,person.z,person.r??.20))){
       door.target=1;onStateChange({...state(door),obstructed:true});continue;
      }
     }

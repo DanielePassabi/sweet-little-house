@@ -14,7 +14,9 @@ import {kitchenVariants,getKitchenVariant,getDiningConfiguration} from './kitche
 import {createKitchen} from './kitchen.js?v=20261015-1';
 import {createTelevisionVideo} from './television-video.js?v=20261014-2';
 import {createInteriorLighting,createCeiling} from './interior-lighting.js?v=20261016-1';
-import {createSlidingDoors} from './sliding-doors.js?v=20261016-1';
+import {createSlidingDoors} from './sliding-doors.js?v=20261016-2';
+import {createRobotVacuum} from './robot-vacuum.js?v=20261016-2';
+import {createRobotController,robotLayout,robotDockCollider} from './robot-navigation.js?v=20261016-2';
 import {parquetRoomIds,parquetPolygons} from './floor-layout.js?v=20261016-1';
 import {optimizeLightingMaterials} from './lighting-performance.js?v=20261014-4';
 import {createMediaStation} from './media-station.js?v=20261013-1';
@@ -22,7 +24,7 @@ import {television,mediaConsole,gameControllers} from './media-layout.js?v=20261
 import {createSofa} from './sofa.js?v=20261012-1';
 import {createRoom3} from './room3.js?v=20261015-1';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {canWalk,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261016-1';
+import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261016-2';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -602,6 +604,36 @@ $('#door-status').textContent='Clicca una porta o usa questi pulsanti per aprirl
 for(const [id,button] of doorButtons)button.onclick=()=>slidingDoors.toggle(id);
 const doorOccluders=[];model.traverse(o=>{if(o.isMesh)doorOccluders.push(o);});
 indoorLighting.group.traverse(o=>{if(o.isMesh)doorOccluders.push(o);});
+const vacuum=createRobotVacuum(scene);
+const robotStaticFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!intersects(robotDockCollider,x,z,r);
+const robotController=createRobotController({
+ isFree:robotStaticFree,
+ canMove:(x,z,r)=>canWalk(x,z,r)&&!intersects(robotDockCollider,x,z,r)&&
+  !(view==='walk'&&Math.hypot(x-perspective.position.x,z-perspective.position.z)<r+.20),
+ prepareStep:(x,z,r)=>{for(const id of slidingDoors.blockingDoors(x,z,r))slidingDoors.setOpen(id,true);},
+ onChange:syncRobotControls
+});
+function syncRobotControls(state){
+ const active=state.mode==='cleaning'||state.mode==='returning',button=$('#robot-toggle');
+ button.textContent=active?'Pausa':state.mode==='paused'?'Riprendi':'Avvia pulizia';
+ button.setAttribute('aria-pressed',String(active));$('#robot-home').disabled=state.mode==='docked';
+ const room=rooms.find(r=>r.id===state.roomId)?.name??'In transito';
+ const status=state.mode==='docked'?(state.completed?'Giro completato · In ricarica':'In ricarica · Locale tecnico'):
+  state.mode==='paused'?'In pausa':state.mode==='blocked'?'Percorso non disponibile · Prova a riavviare':
+  state.waiting?'Attendo che il passaggio sia libero':state.mode==='returning'?'Ritorno alla base':`In pulizia · ${room}`;
+ const output=$('#robot-status');output.textContent=`${status}${state.visited.length?` · ${state.visited.length}/${state.total} ambienti`:''}`;
+ output.dataset.mode=state.mode;output.dataset.waiting=String(state.waiting);output.dataset.visited=state.visited.join(',');
+ vacuum.sync(state);renderState.invalidate();
+}
+syncRobotControls(robotController.state);
+$('#robot-toggle').onclick=()=>robotController.toggle();
+$('#robot-home').onclick=()=>robotController.returnHome();
+$('#robot-focus').onclick=()=>{
+ const {x,z}=robotController.state;if(view==='walk')setView('orbit');
+ if(view==='plan'){orthographic.position.set(x,24,z+.001);orthographic.lookAt(x,0,z);orthographic.zoom=2.3;orthographic.updateProjectionMatrix();}
+ else{const offset=new THREE.Vector3(1.2,4.7,1.3).normalize().multiplyScalar(5);controls.target.set(x,0,z);perspective.position.copy(controls.target).add(offset);controls.update();}
+ updateSelection(null);renderState.invalidate();
+};
 scene.add(...bedsideLights);
 const mirrorHalos=[];bathroomFixtures.traverse(object=>{if(object.material===mirrorHalo.material||object.material===mirrorEdge.material)mirrorHalos.push(object);});
 const sunDateInput=$('#sun-date'),sunTimeInput=$('#sun-time'),sunStatus=$('#sun-status');
@@ -642,7 +674,10 @@ const {landscape,mountains,clouds,grass,treeCount,mountainCount,cloudCount,grass
 
 const architecturalOverhead=architecturalVolumes.filter(v=>v.min[1]>0);
 let overheadVolumes=[...architecturalOverhead,...activeKitchen.wallVolumes];
-const movement=createMovement(canWalk,(x,z,eye)=>{
+const movement=createMovement((x,z,r=.18)=>{
+ const robot=robotController.state;
+ return canWalk(x,z,r)&&!intersects(robotDockCollider,x,z,r)&&Math.hypot(x-robot.x,z-robot.z)>r+robotLayout.radius;
+},(x,z,eye)=>{
  let ceilingHeight=HEIGHT;
  for(const v of overheadVolumes)if(x+.18>v.min[0]&&x-.18<v.max[0]&&z+.18>v.min[2]&&z-.18<v.max[2])ceilingHeight=Math.min(ceilingHeight,v.min[1]);
  return Math.max(0,ceilingHeight-eye-.12);
@@ -655,6 +690,10 @@ map.append(svg('polygon',{points:footprint.map(p=>p.join(',')).join(' '),fill:'#
 const mapRooms=new Map();for(const room of rooms){const p=svg('polygon',{points:room.polygon.map(p=>p.join(',')).join(' '),fill:'#f7f8f7',stroke:'#ccd7dc','stroke-width':5});mapRooms.set(room.id,p);map.append(p);}
 for(const w of walls){let cursor=0;const len=Math.hypot(w.b[0]-w.a[0],w.b[1]-w.a[1]);const add=(s,e)=>map.append(svg('line',{x1:w.a[0]+(w.b[0]-w.a[0])*s/len,y1:w.a[1]+(w.b[1]-w.a[1])*s/len,x2:w.a[0]+(w.b[0]-w.a[0])*e/len,y2:w.a[1]+(w.b[1]-w.a[1])*e/len,stroke:'#617583','stroke-width':w.t*SCALE}));for(const o of w.open??[]){add(cursor,o.s);cursor=o.e;}add(cursor,len);}
 const mapMarker=svg('g',{});mapMarker.append(svg('path',{d:'M 0 -62 L -35 -10 L 35 -10 Z',fill:'#3a7fad',opacity:.3}));mapMarker.append(svg('circle',{r:18,fill:'#315c78',stroke:'white','stroke-width':7}));map.append(mapMarker);mapMarker.style.display='none';
+const robotMarker=svg('circle',{r:13,fill:'#239f92',stroke:'white','stroke-width':5});map.append(robotMarker);
+robotMarker.append(svg('title',{}));robotMarker.firstChild.textContent='Robot aspirapolvere';
+function updateRobotMarker(){const {x,z}=robotController.state;robotMarker.setAttribute('cx',x*SCALE+42);robotMarker.setAttribute('cy',z*SCALE+54);$('#robot-status').dataset.position=`${x.toFixed(3)},${z.toFixed(3)}`;}
+updateRobotMarker();
 for(const room of rooms){
  const button=document.createElement('button');button.className='room-button';button.textContent=room.name;button.title=room.detail;button.dataset.room=room.id;button.onclick=()=>selectRoom(room.id);$('#room-list').append(button);
  const label=document.createElement('button');label.type='button';label.className='room-label';label.setAttribute('aria-label',`Inquadra ${room.name}`);label.onclick=()=>selectRoom(room.id);label.textContent=room.name==='Camera matrimoniale'?'Matrimoniale':room.name;$('#labels').append(label);labelElements.set(room.id,label);
@@ -743,6 +782,7 @@ kitchenSelector.onchange=()=>{
  if(next.id===activeKitchen.id)return;
  resetMovement();
  activeKitchen=next;setKitchenCollisionVariant(next.id);
+ robotController.replan();updateRobotMarker();
  for(const [id,group] of kitchenGroups)group.visible=id===next.id;
  for(const [id,group] of diningGroups)group.visible=id===next.id;
  overheadVolumes=[...architecturalOverhead,...next.wallVolumes];
@@ -780,7 +820,9 @@ renderer.domElement.addEventListener('click',e=>{
  if(document.pointerLockElement===renderer.domElement)pointer.set(0,0);
  else pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);
  camera.updateMatrixWorld();raycaster.setFromCamera(pointer,camera);
- const hit=slidingDoors.pick(raycaster,doorOccluders);if(hit)slidingDoors.toggle(hit.id);
+ const doorHit=slidingDoors.pick(raycaster,doorOccluders),robotHit=vacuum.pick(raycaster,doorOccluders);
+ if(robotHit&&(!doorHit||robotHit.distance<doorHit.distance))robotController.toggle();
+ else if(doorHit)slidingDoors.toggle(doorHit.id);
 });
 renderer.domElement.addEventListener('click',e=>{if(!measuring)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(floorObjects)[0];if(!hit)return;if(measurePoints.length===2)clearMeasurements();const p=hit.point.clone();p.y=.055;measurePoints.push(p);const dot=new THREE.Mesh(new THREE.SphereGeometry(.055,12,8),new THREE.MeshBasicMaterial({color:'#286eaa',depthTest:false,depthWrite:false}));dot.position.copy(p);dot.renderOrder=10;measurementGroup.add(dot);if(measurePoints.length===1){$('#measure-result').textContent='Seleziona il secondo punto';return;}const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(measurePoints),new THREE.LineBasicMaterial({color:'#286eaa',depthTest:false,depthWrite:false}));line.renderOrder=10;measurementGroup.add(line);const dist=measurePoints[0].distanceTo(measurePoints[1]);$('#measure-result').textContent=dist.toFixed(2).replace('.',',')+' m · Clicca per una nuova misura';});
 renderer.domElement.addEventListener('wheel',e=>{if(view==='plan'){e.preventDefault();orthographic.zoom=THREE.MathUtils.clamp(orthographic.zoom*Math.exp(-e.deltaY*.001),.45,4);orthographic.updateProjectionMatrix();}},{passive:false});
@@ -808,9 +850,12 @@ function animate(now){
  if(document.hidden)return;
  if(view==='orbit'&&controls.enabled)controls.update();
  move(dt);
- if(slidingDoors.update(dt,view==='walk'?{x:perspective.position.x,z:perspective.position.z,r:.20}:null)){
+ const robotState=robotController.state,occupants=[{x:robotState.x,z:robotState.z,r:robotLayout.clearance}];
+ if(view==='walk')occupants.push({x:perspective.position.x,z:perspective.position.z,r:.20});
+ if(slidingDoors.update(dt,occupants)){
   indoorLighting.invalidateShadows();renderer.shadowMap.needsUpdate=true;renderState.invalidate();
  }
+ if(robotController.update(dt)){vacuum.sync(robotController.state,dt);updateRobotMarker();renderState.invalidate();}
  if(solarPending){solarPending=false;updateDaylight();}
  if(renderState.consume(camera)){
   const renderStart=performance.now();
@@ -842,7 +887,7 @@ function animate(now){
 // Static shadows remain cached while walking; door motion refreshes them only
 // during the short slide, and changing cutaway view refreshes the ceiling once.
 renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;
-// The ruler remains dynamic; architecture, scenery and lights have fixed transforms.
+// Doors and robot update their own matrices; architecture and lights stay fixed.
 let frozenTransformCount=0;
 for(const root of scene.children)if(root!==measurementGroup)frozenTransformCount+=freezeStaticTransforms(root);
 scene.updateMatrix();scene.matrixAutoUpdate=false;

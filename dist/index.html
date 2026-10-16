@@ -5,7 +5,7 @@
  <title>Sweet Little House · La tua casa in 3D</title>
  <meta name="description" content="Esplora il modello in scala della tua casa: ambienti arredati, materiali e giardino.">
  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23203140'/%3E%3Cpath d='M7 15L16 7l9 8v11h-7v-8h-4v8H7z' fill='%23e9f0ed'/%3E%3C/svg%3E">
- <link rel="stylesheet" href="./style.css?v=20261016-1">
+ <link rel="stylesheet" href="./style.css?v=20261016-2">
  <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/controls/OrbitControls.js":"./vendor/OrbitControls.js"}}</script>
 </head>
 <body>
@@ -36,10 +36,11 @@
    <section class="panel-section sunlight-settings"><h2>Luce e orientamento</h2><p class="note">Fiume Veneto · ora italiana<br>Ovest ↑ · Nord → · Est ↓ · Sud ←</p><label class="field">Data<input id="sun-date" type="date" min="2000-01-01" max="2100-12-31" aria-label="Data della simulazione solare"></label><label class="field">Ora <output id="sun-time-value">14:30</output><input id="sun-time" type="range" min="300" max="1320" step="10" value="870" aria-label="Ora italiana del sole"></label><p id="sun-status" class="note"></p></section>
    <section class="panel-section interior-settings"><h2>Luci interne</h2><label class="field">Mostra lampade a soffitto<input id="ceiling-fixtures" type="checkbox" checked></label><label class="field">Accendi le luci<input id="interior-lights" type="checkbox" checked></label><label class="field">Temperatura plafoniere<select id="light-temperature"><option value="3000">Calda · 3000 K</option><option value="4000">Bianca · 4000 K</option></select></label><p class="note">La visibilità delle lampade è indipendente dalla luce.<br>Posizioni indicative: la pianta non specifica l’impianto elettrico.</p></section>
    <section class="panel-section door-settings"><h2>Porte scorrevoli</h2><div class="door-buttons"><button type="button" data-door="bath1" aria-pressed="false">Apri Bagno 1</button><button type="button" data-door="bath2" aria-pressed="false">Apri Bagno 2</button><button type="button" data-door="hall" aria-pressed="false">Apri Zona giorno / disimpegno</button></div><p id="door-status" class="note" role="status">Clicca una porta o usa questi pulsanti per aprirla e chiuderla.</p></section>
+   <section class="panel-section robot-settings"><h2>Robot aspirapolvere</h2><p id="robot-status" class="note" role="status">In ricarica · Locale tecnico</p><div class="door-buttons"><button id="robot-toggle" type="button" aria-pressed="false">Avvia pulizia</button><button id="robot-home" type="button" disabled>Torna alla base</button><button id="robot-focus" type="button">Inquadra robot</button></div><p class="note">Clicca il robot per avviare o mettere in pausa. Apre le porte scorrevoli lungo il percorso e torna alla base a giro concluso.</p></section>
    <section class="panel-section performance-setting"><span>Prestazioni</span><button id="performance-toggle" type="button" aria-pressed="false" aria-controls="performance-overlay">Mostra FPS</button></section>
    <details class="panel-section"><summary>Vista e riferimenti</summary><label class="field">Etichette ambienti<input type="checkbox" id="show-labels" checked></label><label class="field">Altezza occhi <output id="eye-value">1,75 m</output><input id="eye-height" type="range" min="1.2" max="1.9" step=".05" value="1.75"></label><p class="note">Pianta confermata · altezza 2,60 m.<br>Aperture e finiture sono stimate. Il garage è escluso. Le misure del modello non sostituiscono un rilievo.</p></details>
     <div class="panel-footer"><span class="empty-icon">◇</span><span>Arredo in corso<br><strong>Zona giorno, terrazza, locale tecnico, bagni e camere.</strong></span></div>
   </aside>
  </main>
- <script type="module" src="./app.js?v=20261016-1"></script>
+ <script type="module" src="./app.js?v=20261016-2"></script>
 </body></html>

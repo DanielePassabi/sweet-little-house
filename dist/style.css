@@ -41,3 +41,5 @@
 .door-buttons{display:grid;gap:8px;margin-top:14px}
 .door-buttons button{padding:9px 10px;border:1px solid #dfe5e8;border-radius:7px;background:#fff;color:#415566;text-align:left;font-size:12px}
 .door-buttons button[aria-pressed=true]{background:#e9f0f5;border-color:#b7cbd9;color:#244b66}
+.door-buttons button:disabled{opacity:.45;cursor:default}
+#robot-status{font-variant-numeric:tabular-nums}
