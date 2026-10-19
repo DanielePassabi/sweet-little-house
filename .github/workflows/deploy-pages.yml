@@ -48,6 +48,9 @@ jobs:
           node --check dist/television-video.js
           node --check dist/interior-lighting.js
           node --check dist/sliding-doors.js
+          node --check dist/hinged-doors.js
+          node --check dist/doors.js
+          node --check dist/bathroom-tiles.js
           node --check dist/robot-navigation.js
           node --check dist/robot-vacuum.js
           node --check dist/bed.js
@@ -78,6 +81,8 @@ jobs:
           node tests/television-video.mjs
           node tests/interior-lighting.mjs
           node tests/sliding-doors.mjs
+          node tests/hinged-doors.mjs
+          node tests/bathroom-tiles.mjs
           node tests/robot-vacuum.mjs
           node tests/bed.mjs
           node tests/sanitary.mjs

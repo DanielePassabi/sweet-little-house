@@ -4,15 +4,16 @@ import {rooms,insidePolygon} from '../dist/model.js';
 import {canWalk,canWalkWithoutDoors,intersects,setKitchenCollisionVariant,setDoorCollisionTest} from '../dist/furniture-collisions.js';
 import {createRobotController,clearRobotSegment,robotLayout,robotDockCollider} from '../dist/robot-navigation.js';
 import {createRobotVacuum} from '../dist/robot-vacuum.js';
-import {createSlidingDoors} from '../dist/sliding-doors.js';
+import {createDoors} from '../dist/doors.js';
 import {freezeStaticTransforms} from '../dist/render-state.js';
 
-const isFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!intersects(robotDockCollider,x,z,r);
+const isFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!doors.blocksWhenOpen(x,z,r)&&!intersects(robotDockCollider,x,z,r);
 assert.ok(insidePolygon(robotLayout.dock.x,robotLayout.dock.z,rooms.find(r=>r.id==='utility').polygon));
-assert.ok(isFree(robotLayout.dock.x,robotLayout.dock.z,robotLayout.clearance),'Docked robot clears walls, utilities and charging station');
+
 assert.equal(clearRobotSegment({x:0,z:0},{x:1,z:0},x=>Math.abs(x-.5)>.03),false,'Swept check catches an obstacle between clear endpoints');
-const scene=new THREE.Scene(),visual=createRobotVacuum(scene),doors=createSlidingDoors(scene);
+const scene=new THREE.Scene(),visual=createRobotVacuum(scene),doors=createDoors(scene);
 freezeStaticTransforms(scene);
+assert.ok(isFree(robotLayout.dock.x,robotLayout.dock.z,robotLayout.clearance),'Docked robot clears walls, utilities and charging station');
 const bodyBounds=new THREE.Box3().setFromObject(visual.robot);
 assert.ok(bodyBounds.max.y<.15&&bodyBounds.min.y>.005,'Small floor-level robot with raised LiDAR and mop pads');
 assert.equal(visual.robot.getObjectByName('mop-pad')!==undefined,true);
@@ -27,7 +28,7 @@ assert.equal(visual.pick(ray,[occluder]),null,'Cannot click through a wall or fu
 occluder.visible=false;assert.ok(visual.pick(ray,[occluder]));
 setDoorCollisionTest(doors.blocksPoint);
 const liveFree=(x,z,r)=>canWalk(x,z,r)&&!intersects(robotDockCollider,x,z,r);
-function controller(onChange=()=>{}){return createRobotController({isFree,canMove:liveFree,prepareStep:(x,z,r)=>doors.blockingDoors(x,z,r).forEach(id=>doors.setOpen(id,true)),onChange});}
+function controller(onChange=()=>{}){return createRobotController({isFree,canMove:liveFree,prepareStep:doors.prepareRobotStep,onChange});}
 function advance(robot,dt=.1){
  const before=robot.state;
  doors.update(dt,[{x:before.x,z:before.z,r:robotLayout.clearance}]);robot.update(dt);
@@ -46,7 +47,7 @@ for(const variant of ['1','2','3']){
  assert.equal(robot.state.mode,'docked',`Variant ${variant} completes tour and returns`);
  assert.equal(robot.state.completed,true);
  assert.deepEqual([...robot.state.visited].sort(),rooms.map(r=>r.id).sort(),`Variant ${variant}: every room is visited`);
- assert.ok(doors.state.every(d=>d.open),'All three initially closed doors were opened along the route');
+ assert.ok(doors.state.every(d=>d.open),'All seven initially closed doors were opened along the route');
  assert.ok(Math.hypot(robot.state.x-robotLayout.dock.x,robot.state.z-robotLayout.dock.z)<.005);
  assert.equal(robot.state.yaw,robotLayout.dock.yaw,'Faces out from charger after docking');
  assert.equal(robot.update(.1),false,'Completed tour stops rendering');
@@ -75,7 +76,7 @@ for(let i=0;i<100;i++)waiting.update(.1);
 assert.equal(waiting.state.waiting,true);assert.equal(waiting.state.x,robotLayout.dock.x);
 occupied=false;for(let i=0;i<100;i++)waiting.update(.1);assert.equal(waiting.state.waiting,false);
 // Closing a door must also protect the robot when the visitor is elsewhere.
-const door=doors.doors[0],d=door.layout,u=(d.start+d.end)/2;
+const door=doors.sliding.doors[0],d=door.layout,u=(d.start+d.end)/2;
 doors.setOpen(d.id,true);for(let i=0;i<20;i++)doors.update(.1);doors.setOpen(d.id,false);
 for(let i=0;i<40;i++)doors.update(.1,[{x:9,z:14,r:.2},{x:d.x+d.ux*u,z:d.z+d.uz*u,r:robotLayout.clearance}]);
 assert.equal(door.progress,1,'Door reopens for the robot occupant');

@@ -14,7 +14,9 @@ import {kitchenVariants,getKitchenVariant,getDiningConfiguration} from './kitche
 import {createKitchen} from './kitchen.js?v=20261015-1';
 import {createTelevisionVideo} from './television-video.js?v=20261014-2';
 import {createInteriorLighting,createCeiling} from './interior-lighting.js?v=20261016-1';
-import {createSlidingDoors} from './sliding-doors.js?v=20261016-2';
+import {createDoors} from './doors.js?v=20261019-1';
+import {hingedDoorLayout} from './hinged-doors.js';
+import {createBathroomTiles} from './bathroom-tiles.js?v=20261019-1';
 import {createRobotVacuum} from './robot-vacuum.js?v=20261016-2';
 import {createRobotController,robotLayout,robotDockCollider} from './robot-navigation.js?v=20261016-2';
 import {parquetRoomIds,parquetPolygons} from './floor-layout.js?v=20261016-1';
@@ -66,6 +68,7 @@ const trim=new THREE.MeshStandardMaterial({color:'#edece6',roughness:.6});
 const cap=new THREE.MeshStandardMaterial({color:'#9faeb5',roughness:.95});
 const frame=new THREE.MeshStandardMaterial({color:'#526169',roughness:.5,metalness:.25});
 const glass=new THREE.MeshPhysicalMaterial({color:'#c3dfed',transparent:true,opacity:.22,roughness:.12,metalness:.08,depthWrite:false});
+const hingedTrim=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:.57});
 const doorMaterial=new THREE.MeshStandardMaterial({color:'#d2c6b4',roughness:.75});
 const GROUND_Y=-.20;
 let tileSize=.6;
@@ -171,8 +174,11 @@ function buildOpenings(w){
    }
    if(o.kind==='window')box(e-s+.08,.035,w.t+.10,trim,(s+e)/2,o.sill-.02,0,group);
   }else{
-   for(const x of [s-.018,e+.018])box(.035,o.h+.035,w.t+.04,trim,x,o.h/2,0,group);
-   box(e-s+.07,.04,w.t+.04,trim,(s+e)/2,o.h+.02,0,group);
+   const isHinged=hingedDoorLayout.some(d=>d.wallStart[0]===w.a[0]&&d.wallStart[1]===w.a[1]);
+   const doorTrim=isHinged?hingedTrim:trim;
+   if(isHinged)for(const x of [s+.012,e-.012])box(.024,o.h,w.t,hingedTrim,x,o.h/2,0,group);
+   for(const x of [s-.018,e+.018])box(.035,o.h+.035,w.t+.04,doorTrim,x,o.h/2,0,group);
+   box(e-s+.07,.04,w.t+.04,doorTrim,(s+e)/2,o.h+.02,0,group);
    if(o.kind==='entry'){
     box(e-s,o.h,.065,doorMaterial,(s+e)/2,o.h/2,0,group);
     box(.035,.17,.09,frame,e-.10,1,.075,group);
@@ -181,6 +187,7 @@ function buildOpenings(w){
  }
 }
 walls.forEach(buildOpenings);
+createBathroomTiles(model,renderer.capabilities.getMaxAnisotropy());
 
 // First furniture layout, following the annotated plan: media wall to the west and
 // a generous L-shaped sectional opposite it, while keeping the hall route clear.
@@ -567,23 +574,23 @@ function syncDoorControls(door){
  const button=doorButtons.get(door.id);
  button.textContent=`${door.targetOpen?'Chiudi':'Apri'} ${door.name}`;
  button.setAttribute('aria-pressed',String(door.targetOpen));button.dataset.state=door.moving?'moving':door.open?'open':'closed';
- $('#door-status').textContent=door.obstructed?'Passaggio occupato: la porta si riapre.':`${door.name}: ${door.moving?(door.targetOpen?'apertura…':'chiusura…'):(door.open?'aperta':'chiusa')}`;
+ $('#door-status').textContent=door.obstructed?(door.kind==='hinged'&&!door.reopening?'Spazio occupato: allontanati dall’anta per aprirla.':'Passaggio occupato: la porta si riapre.'):`${door.name}: ${door.moving?(door.targetOpen?'apertura…':'chiusura…'):(door.open?'aperta':'chiusa')}`;
 }
 // Dynamic leaves stay outside the static furniture batches.
-const slidingDoors=createSlidingDoors(scene,{onStateChange:syncDoorControls});
-setDoorCollisionTest(slidingDoors.blocksPoint);
-for(const door of slidingDoors.state)syncDoorControls(door);
-$('#door-status').textContent='Clicca una porta o usa questi pulsanti per aprirla e chiuderla.';
-for(const [id,button] of doorButtons)button.onclick=()=>slidingDoors.toggle(id);
+const doors=createDoors(scene,{onStateChange:syncDoorControls});
+setDoorCollisionTest(doors.blocksPoint);
+for(const door of doors.state)syncDoorControls(door);
+$('#door-status').textContent='Clicca una porta per aprirla o chiuderla. In Pianta gli archi indicano l’ingombro delle ante.';
+for(const [id,button] of doorButtons)button.onclick=()=>doors.toggle(id);
 const doorOccluders=[];model.traverse(o=>{if(o.isMesh)doorOccluders.push(o);});
 indoorLighting.group.traverse(o=>{if(o.isMesh)doorOccluders.push(o);});
 const vacuum=createRobotVacuum(scene);
-const robotStaticFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!intersects(robotDockCollider,x,z,r);
+const robotStaticFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!doors.blocksWhenOpen(x,z,r)&&!intersects(robotDockCollider,x,z,r);
 const robotController=createRobotController({
  isFree:robotStaticFree,
  canMove:(x,z,r)=>canWalk(x,z,r)&&!intersects(robotDockCollider,x,z,r)&&
   !(view==='walk'&&Math.hypot(x-perspective.position.x,z-perspective.position.z)<r+.20),
- prepareStep:(x,z,r)=>{for(const id of slidingDoors.blockingDoors(x,z,r))slidingDoors.setOpen(id,true);},
+ prepareStep:doors.prepareRobotStep,
  onChange:syncRobotControls
 });
 function syncRobotControls(state){
@@ -688,7 +695,7 @@ function resetMovement(){keys.clear();touchKeys.clear();movement.reset();drag=nu
 function stopWalk(){walkActive=false;resetMovement();$('#enter-walk').hidden=view!=='walk';$('#crosshair').hidden=true;if(document.pointerLockElement===renderer.domElement)document.exitPointerLock();}
 function setView(mode){
  if(!['orbit','plan','walk'].includes(mode))return;
- stopWalk();if(measuring)toggleMeasure(false);view=mode;$('#viewer').classList.toggle('walk-mode',view==='walk');
+ stopWalk();if(measuring)toggleMeasure(false);view=mode;doors.setPlanVisible(view==='plan');$('#viewer').classList.toggle('walk-mode',view==='walk');
  document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-pressed',b.dataset.view===view);});
  const showCeiling=view==='walk';
  if(ceiling.visible!==showCeiling){ceiling.visible=showCeiling;renderer.shadowMap.needsUpdate=true;}
@@ -793,9 +800,9 @@ renderer.domElement.addEventListener('click',e=>{
  if(document.pointerLockElement===renderer.domElement)pointer.set(0,0);
  else pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);
  camera.updateMatrixWorld();raycaster.setFromCamera(pointer,camera);
- const doorHit=slidingDoors.pick(raycaster,doorOccluders),robotHit=vacuum.pick(raycaster,doorOccluders);
+ const doorHit=doors.pick(raycaster,doorOccluders),robotHit=vacuum.pick(raycaster,doorOccluders);
  if(robotHit&&(!doorHit||robotHit.distance<doorHit.distance))robotController.toggle();
- else if(doorHit)slidingDoors.toggle(doorHit.id);
+ else if(doorHit)doors.toggle(doorHit.id);
 });
 renderer.domElement.addEventListener('click',e=>{if(!measuring)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(floorObjects)[0];if(!hit)return;if(measurePoints.length===2)clearMeasurements();const p=hit.point.clone();p.y=.055;measurePoints.push(p);const dot=new THREE.Mesh(new THREE.SphereGeometry(.055,12,8),new THREE.MeshBasicMaterial({color:'#286eaa',depthTest:false,depthWrite:false}));dot.position.copy(p);dot.renderOrder=10;measurementGroup.add(dot);if(measurePoints.length===1){$('#measure-result').textContent='Seleziona il secondo punto';return;}const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(measurePoints),new THREE.LineBasicMaterial({color:'#286eaa',depthTest:false,depthWrite:false}));line.renderOrder=10;measurementGroup.add(line);const dist=measurePoints[0].distanceTo(measurePoints[1]);$('#measure-result').textContent=dist.toFixed(2).replace('.',',')+' m · Clicca per una nuova misura';});
 renderer.domElement.addEventListener('wheel',e=>{if(view==='plan'){e.preventDefault();orthographic.zoom=THREE.MathUtils.clamp(orthographic.zoom*Math.exp(-e.deltaY*.001),.45,4);orthographic.updateProjectionMatrix();}},{passive:false});
@@ -825,7 +832,7 @@ function animate(now){
  move(dt);
  const robotState=robotController.state,occupants=[{x:robotState.x,z:robotState.z,r:robotLayout.clearance}];
  if(view==='walk')occupants.push({x:perspective.position.x,z:perspective.position.z,r:.20});
- if(slidingDoors.update(dt,occupants)){
+ if(doors.update(dt,occupants)){
   indoorLighting.invalidateShadows();renderer.shadowMap.needsUpdate=true;renderState.invalidate();
  }
  if(robotController.update(dt)){vacuum.sync(robotController.state,dt);updateRobotMarker();renderState.invalidate();}
