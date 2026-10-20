@@ -45,6 +45,7 @@ jobs:
           node --check dist/room3.js
           node --check dist/media-layout.js
           node --check dist/media-station.js
+          node --check dist/tv-console.js
           node --check dist/television-video.js
           node --check dist/interior-lighting.js
           node --check dist/sliding-doors.js
@@ -78,6 +79,7 @@ jobs:
           node tests/sofa.mjs
           node tests/room3.mjs
           node tests/media-station.mjs
+          node tests/tv-console.mjs
           node tests/television-video.mjs
           node tests/interior-lighting.mjs
           node tests/sliding-doors.mjs

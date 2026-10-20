@@ -1,6 +1,6 @@
 import {getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261015-1';
 import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {mediaCollider} from './media-layout.js?v=20261013-1';
+import {mediaCollider} from './media-layout.js?v=20261020-1';
 import {room3Colliders} from './room3-layout.js?v=20261015-1';
 import {sanitaryColliders} from './sanitary-layout.js?v=20261016-4';
 import {wineCabinetCollider} from './wine-cabinet-layout.js?v=20261016-5';
@@ -30,7 +30,7 @@ furnitureColliders.push(...sofaColliders);
 furnitureColliders.push(circle(sofaCoffeeTable.x,sofaCoffeeTable.z,sofaCoffeeTable.r));
 furnitureColliders.push(circle(1.275,12.25,.425));
 for(const z of [11.76,12.74])furnitureColliders.push(circle(1.275,z,.275));
-for(const [x,z,r] of [[3.47,8.34,.24*.86],[.18,10.83,.24]])furnitureColliders.push(circle(x,z,r));
+furnitureColliders.push(circle(.18,10.83,.24));
 furnitureColliders.push(...room3Colliders);
 for(const z of [1.96,4.14])furnitureColliders.push(rect(4.535,4.985,z-.225,z+.225));
 furnitureColliders.push(rect(.11,.69,8.565,8.815));

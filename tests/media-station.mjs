@@ -112,6 +112,6 @@ station.traverse(o=>{
  }
 });
 assert.ok(triangles<45000,'Static gaming details stay within a modest geometry budget');
-for(const id of ['1','2']){setKitchenCollisionVariant(id);assert.equal(canWalk(mediaConsole.x,mediaConsole.z),false,'Console remains solid in both kitchens');assert.equal(canWalk(3.75,9.72),true,'Path in front of the console remains open');}
+for(const id of ['1','2','3']){setKitchenCollisionVariant(id);assert.equal(canWalk(mediaConsole.x,mediaConsole.z),false,'Console remains solid in all kitchens');assert.equal(canWalk(3.75,9.72),true,'Path in front of the console remains open');}
 setKitchenCollisionVariant('1');
 console.log(`PASS: centred LG C1 185.1 × 106.2 cm, console-supported PC/PS4 Pro/docked Deck/controllers, connected central raceway, wall clearance; ${triangles} triangles.`);

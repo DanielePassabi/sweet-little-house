@@ -221,3 +221,11 @@ Collisioni aggiornate durante l’animazione, riapertura in caso di ostacolo dur
 Solo il Bagno 1 riceve il rivestimento delle foto: gres beige-grigio chiaro, opaco e leggermente nuvolato, lastre orizzontali **120 × 60 cm stimate**, fughe da circa **2 mm**, quattro corsi fino a **2,40 m stimati** e fascia bianca superiore. Tagli attorno a porta e finestra, senza distanziatori o clip da cantiere. Le dimensioni sono dedotte dalle proporzioni fotografiche, non da una scheda prodotto. Il formato del rivestimento è indipendente dal selettore dei pavimenti.
 
 Verifiche: `tests/hinged-doors.mjs`, `tests/bathroom-tiles.mjs`, estensione del giro completo del robot a tutte e sette le porte e controlli visivi di apertura/chiusura e rivestimento.
+
+### Mobile TV in noce — 20 ottobre 2026
+
+Il mobile sotto la TV riprende la foto fornita: **240 cm di larghezza × 43 cm di profondità × 44 cm di altezza**, piedini compresi. Finitura in noce, tre ante con sottili scanalature verticali, prese incassate fra le due ante di destra e due vani centrali realmente aperti, separati da un ripiano. Sei piedini sottili sostengono la struttura; il pannello posteriore ha un foro passacavi e il vano inferiore contiene due libri.
+
+Il mobile conserva il centro della TV e il bordo posteriore, mentre PC, PS4 Pro, Steam Deck e controller seguono la nuova altezza del piano. Rimossa la pianta adiacente e il suo ingombro di collisione per fare spazio alla maggiore larghezza. Il passaggio davanti al mobile rimane libero nelle tre configurazioni di cucina.
+
+Geometrie in `dist/tv-console.js`, misure e collisioni condivise in `dist/media-layout.js`. Scanalature e piedini sono istanziati: 6.464 triangoli complessivi, senza nuove luci. `tests/tv-console.mjs` verifica dimensioni effettive, appoggio dei piedini, vani aperti, incassi, foro passacavi, allineamento con la TV e passaggi. Controllati anche l’appoggio dei dispositivi, tutti i test esistenti e la resa nella visita dell’anteprima locale.

@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct} from './media-layout.js?v=20261013-1';
+import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct} from './media-layout.js?v=20261020-1';
 
 // Local X = width seen from the sofa, +Z = toward the viewer, Y = vertical.
 export function createMediaStation(parent,box,{black,screen,wall}){
