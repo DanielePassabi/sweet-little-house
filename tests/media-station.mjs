@@ -27,7 +27,7 @@ for(const name of ['desktop-pc','ps4-pro','steam-deck-docked',...gameControllers
 const ps4=bounds('ps4-pro'),deck=bounds('steam-deck-docked'),whitePad=bounds('white-controller'),greyPad=bounds('grey-controller');
 assert.ok(ps4.max.y<screen.min.y&&deck.max.y<screen.min.y,'New devices leave the television unobstructed');
 // Local +X points to the viewer's right and maps to decreasing world Z.
-assert.ok(ps4.max.z<pc.min.z&&ps4.min.z>whitePad.max.z,'PS4 fits between PC and controllers');
+assert.ok(pc.max.z<deck.min.z&&ps4.min.z>whitePad.max.z,'PC is at the far right; other equipment remains separate');
 assert.ok(deck.max.z<greyPad.min.z,'Docked Steam Deck stays to the right of both controllers');
 const ps4Tiers=new THREE.Box3();station.getObjectByName('ps4-pro-chassis').traverse(o=>{if(o.name==='ps4-tier')ps4Tiers.union(new THREE.Box3().setFromObject(o));});
 const ps4Size=ps4Tiers.getSize(new THREE.Vector3());
@@ -42,9 +42,9 @@ const dockSize=bounds('steam-dock').getSize(new THREE.Vector3());
 assert.ok(dockSize.z<=steamDock.width+.001&&dockSize.x<=steamDock.depth+.002,'Dock follows the official footprint including ports');
 const usb=station.getObjectByName('deck-dock-usb-c-cable'),usbEnd=usb.geometry.parameters.path.getPoint(1).applyMatrix4(usb.matrixWorld);
 assert.ok(bounds('deck-usb-c-plug').containsPoint(usbEnd),'Dock USB-C cable meets the handheld plug');
-for(const name of ['ps4-hdmi-cable','dock-hdmi-cable']){
+for(const name of ['ps4-hdmi-cable','dock-hdmi-cable','pc-hdmi-cable','pc-power-cable']){
  const cable=station.getObjectByName(name),start=cable.geometry.parameters.path.getPoint(0).applyMatrix4(cable.matrixWorld);
- const port=bounds(name==='ps4-hdmi-cable'?'ps4-hdmi-plug':'dock-hdmi-port').expandByScalar(.001);
+ const port=bounds({'ps4-hdmi-cable':'ps4-hdmi-plug','dock-hdmi-cable':'dock-hdmi-port','pc-hdmi-cable':'pc-hdmi-plug','pc-power-cable':'pc-power-plug'}[name]).expandByScalar(.001);
  assert.ok(port.containsPoint(start),'HDMI lead starts at its device connector');
 }
 for(const name of ['ps4-power-cable','dock-power-cable']){
@@ -52,6 +52,12 @@ for(const name of ['ps4-power-cable','dock-power-cable']){
  assert.ok(Math.abs(end.x)+.002<cableDuct.width/2&&Math.abs(end.z-cableDuct.z)+.002<cableDuct.depth/2&&end.y<mediaConsole.top,'Power lead joins the lower cable bundle behind the console');
 }
 assert.ok(station.getObjectByName('pc-tempered-glass').material.transparent,'PC interior is visible through the glass panel');
+const tower=station.getObjectByName('desktop-pc'),glass=station.getObjectByName('pc-tempered-glass');
+const glassNormal=new THREE.Vector3(0,0,1).transformDirection(glass.matrixWorld);
+assert.ok(Math.abs(tower.rotation.y+Math.PI/2)<1e-8&&glassNormal.z>.999,'Quarter turn exposes LEDs to the left, towards the TV');
+const blackSide=station.getObjectByName('pc-back-side');
+assert.ok(!blackSide.material.transparent&&bounds('pc-back-side').max.z<pc.getCenter(new THREE.Vector3()).z,'Opaque black side faces the right wall');
+assert.ok(pc.getSize(new THREE.Vector3()).z<.24,'Silhouette from the sofa is about 23 cm instead of 44 cm');
 for(const name of ['ram-light','graphics-card','coolant-tube','case-fan-rings'])assert.ok(station.getObjectByName(name),name);
 assert.equal(gameControllers.length,2);
 for(const controller of gameControllers){
@@ -112,6 +118,6 @@ station.traverse(o=>{
  }
 });
 assert.ok(triangles<45000,'Static gaming details stay within a modest geometry budget');
-for(const id of ['1','2','3']){setKitchenCollisionVariant(id);assert.equal(canWalk(mediaConsole.x,mediaConsole.z),false,'Console remains solid in all kitchens');assert.equal(canWalk(3.75,9.72),true,'Path in front of the console remains open');}
+for(const id of ['1','2','3']){setKitchenCollisionVariant(id);assert.equal(canWalk(mediaConsole.x,mediaConsole.z),false,'Console remains solid in all kitchens');assert.equal(canWalk(3.82,9.72),true,'Path in front of the console remains open');}
 setKitchenCollisionVariant('1');
 console.log(`PASS: centred LG C1 185.1 × 106.2 cm, console-supported PC/PS4 Pro/docked Deck/controllers, connected central raceway, wall clearance; ${triangles} triangles.`);

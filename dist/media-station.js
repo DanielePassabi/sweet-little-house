@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct} from './media-layout.js?v=20261020-1';
+import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct} from './media-layout.js?v=20261028-1';
 
 // Local X = width seen from the sofa, +Z = toward the viewer, Y = vertical.
 export function createMediaStation(parent,box,{black,screen,wall}){
@@ -32,7 +32,7 @@ export function createMediaStation(parent,box,{black,screen,wall}){
  const seam=new THREE.MeshStandardMaterial({color:'#b9bdb9',roughness:.9});
  for(const x of [-.018,.018])block(station,'duct-cover-seam',.0007,.48,.001,seam,x,.69,duct.z+duct.depth/2+.001);
 
- const tower=new THREE.Group();tower.name='desktop-pc';tower.position.set(pc.x,pc.bottom,pc.z);station.add(tower);
+ const tower=new THREE.Group();tower.name='desktop-pc';tower.position.set(pc.x,pc.bottom,pc.z);tower.rotation.y=pc.rotation;station.add(tower);
  const w=pc.width,h=pc.height,d=pc.depth;
  for(const x of [-w/2+.045,w/2-.045])for(const z of [-d/2+.035,d/2-.035])block(tower,'pc-foot',.036,.016,.031,rubber,x,.008,z);
  block(tower,'pc-floor',w,.016,d,black,0,.024,0);
@@ -146,8 +146,13 @@ export function createMediaStation(parent,box,{black,screen,wall}){
  tube(station,'dock-power-cable',[[deck.x+.021,dock.bottom+.007,deck.z+dockPortZ],[deck.x+.045,.48,.07],[.28,.47,-.064],[.015,.43,duct.z],[.015,.30,duct.z]],.0018,rubber);
 
  // HDMI goes to the TV centre; both power leads disappear behind the cabinet.
+ tower.updateMatrix();
+ const pcConnector=(y,z)=>new THREE.Vector3(-w/2-.002,y,z).applyMatrix4(tower.matrix).toArray();
+ const pcVideoPort=pcConnector(.18,0),pcPowerPort=pcConnector(.06,-.05);
+ block(tower,'pc-hdmi-plug',.009,.008,.014,graphite,-w/2-.003,.18,0);
+ block(tower,'pc-power-plug',.009,.014,.018,rubber,-w/2-.003,.06,-.05);
  const hdmiPath=new THREE.CurvePath();
- hdmiPath.add(new THREE.CatmullRomCurve3([[pc.x-w/2-.002,pc.bottom+.18,pc.z],[pc.x-w/2-.035,.56,.03],[-.84,.48,-.045],[-.20,.47,-.074],[-.008,.51,duct.z]].map(p=>new THREE.Vector3(...p))));
+ hdmiPath.add(new THREE.CatmullRomCurve3([pcVideoPort,[pcVideoPort[0],.56,-.072],[.90,.48,-.074],[-.20,.47,-.074],[-.008,.51,duct.z]].map(p=>new THREE.Vector3(...p))));
  hdmiPath.add(new THREE.LineCurve3(new THREE.Vector3(-.008,.51,duct.z),new THREE.Vector3(-.008,1.41,duct.z)));
  hdmiPath.add(new THREE.LineCurve3(new THREE.Vector3(-.008,1.41,duct.z),new THREE.Vector3(0,tv.centerY,-.055)));
  tube(station,'pc-hdmi-cable',hdmiPath,.003,rubber);
@@ -155,7 +160,7 @@ export function createMediaStation(parent,box,{black,screen,wall}){
  powerPath.add(new THREE.LineCurve3(new THREE.Vector3(.008,.23,duct.z),new THREE.Vector3(.008,1.39,duct.z)));
  powerPath.add(new THREE.LineCurve3(new THREE.Vector3(.008,1.39,duct.z),new THREE.Vector3(.04,tv.centerY,-.055)));
  tube(station,'tv-power-cable',powerPath,.0025,rubber);
- tube(station,'pc-power-cable',[[pc.x-w/2-.002,pc.bottom+.06,pc.z-.05],[-.99,.48,.012],[-.94,.36,-.075],[-.80,.20,-.078]],.0035,rubber);
+ tube(station,'pc-power-cable',[pcPowerPort,[pcPowerPort[0],.48,-.075],[pcPowerPort[0],.36,-.078],[pcPowerPort[0],.20,-.078]],.0035,rubber);
 
  // A shared curved silhouette and two moulded wings form each DualSense-style pad.
  function extrude(shape,depth,bevel=.002){const g=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelSize:bevel,bevelThickness:bevel,bevelSegments:2,steps:1,curveSegments:10});g.rotateX(-Math.PI/2);return g;}

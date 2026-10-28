@@ -229,3 +229,9 @@ Il mobile sotto la TV riprende la foto fornita: **240 cm di larghezza × 43 cm d
 Il mobile conserva il centro della TV e il bordo posteriore, mentre PC, PS4 Pro, Steam Deck e controller seguono la nuova altezza del piano. Rimossa la pianta adiacente e il suo ingombro di collisione per fare spazio alla maggiore larghezza. Il passaggio davanti al mobile rimane libero nelle tre configurazioni di cucina.
 
 Geometrie in `dist/tv-console.js`, misure e collisioni condivise in `dist/media-layout.js`. Scanalature e piedini sono istanziati: 6.464 triangoli complessivi, senza nuove luci. `tests/tv-console.mjs` verifica dimensioni effettive, appoggio dei piedini, vani aperti, incassi, foro passacavi, allineamento con la TV e passaggi. Controllati anche l’appoggio dei dispositivi, tutti i test esistenti e la resa nella visita dell’anteprima locale.
+
+### Composizione TV con colonna a destra — 28 ottobre 2026
+
+Sostituito il precedente mobile scanalato con la nuova foto di riferimento: base in rovere con frontali lisci alle estremità, tre vani centrali aperti e colonna a giorno a destra della TV. Le misure illustrative sono **280 × 48 cm**, base alta **44 cm** e colonna alta **236 cm**: la maggiore larghezza consente di affiancare la colonna senza coprire il televisore, mentre la profondità sostiene il PC ruotato. Libri e piccoli oggetti ceramici completano i ripiani; nessun alberello.
+
+PC all’estrema destra nel vano inferiore della colonna, ruotato di 90°: vetro e LED verso sinistra, lato nero opaco verso la parete destra, ingombro frontale ridotto a circa 23 cm. Cavi ricollocati sui connettori ruotati, retro del vano aperto e oltre 10 cm liberi sopra il case. TV, PS4, Steam Deck e controller conservano le rispettive posizioni. Verificati gli ingombri reali, la separazione tra dispositivi e ripiani, la visibilità dello schermo e tutti i test, incluso il giro del robot nelle tre cucine; controllo visivo nell’anteprima locale senza errori.
