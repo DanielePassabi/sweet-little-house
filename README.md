@@ -243,3 +243,13 @@ Aggiunta sulla parete corta accanto alla porta d’ingresso una scarpiera sospes
 Davanti alla scarpiera, tappeto color corda da **146 × 70 cm stimati**, con trama di juta intrecciata e bordatura marrone scuro. La trama è procedurale, senza immagini esterne. L’ingombro della scarpiera comprende la ribalta aperta e lascia oltre **80 cm** liberi fino alla parete opposta; il tappeto resta attraversabile. Porta, pareti e passaggio verso il soggiorno conservati.
 
 Geometrie in `dist/entryway.js` e misure condivise in `dist/entryway-layout.js`. Scarpe istanziate, nessuna nuova luce e 9.780 triangoli complessivi. `tests/entryway.mjs` controlla sospensione, cassetto realmente aperto, scarpe, tappeto, contenimento nelle collisioni e accesso dalla porta nelle tre cucine. Verificata la resa in Visita e ripetuta l’intera suite, incluso il giro completo del robot: tutti i controlli superati.
+
+#### Apertura della scarpiera, tappeto e cablaggio TV — 28 ottobre 2026
+
+La scarpiera ora parte **chiusa a ogni caricamento**. Un clic sul cassetto o sulla ribalta apre e richiude quella parte, anche dai due pulsanti nel pannello **L’ingresso**. Il cassetto esce di 19 cm e la ribalta ruota di 35°: nel modello, la profondità passa da **25 cm chiusa a circa 65 cm con la ribalta aperta** (44 cm con il solo cassetto). Il pannello mostra l’ingombro durante il movimento. Le dimensioni restano illustrative, dedotte dalla foto. Collisioni e ombre seguono l’animazione; l’apertura si ferma se incontra visitatore o robot, e il percorso del robot considera lo spazio di apertura completo. Rimangono oltre 65 cm fino alla parete opposta.
+
+Il tappeto è centrato fra gli stipiti della porta d’ingresso, con il lato lungo nella direzione di accesso e il bordo a 10 cm dalla soglia. La PS4 è nel vano del PC, centrata nello spazio libero alla sua sinistra, con circa 8 cm di separazione per lato.
+
+I cavi del PC e della PS4 scendono dietro al mobile; quelli della dock attraversano un piccolo foro sotto il dispositivo e un foro nel pannello posteriore. I tratti orizzontali sono sotto il livello del piano, sul retro, e raggiungono la canaletta centrale. La canaletta da 12 mm entra nello spazio posteriore da 15 mm e copre i collegamenti fino alla TV. Nessun filo attraversa in diagonale il piano a vista.
+
+Verifiche dedicate su clic e occlusioni, animazione dopo il congelamento delle matrici, sospensione davanti agli ostacoli, ingombri intermedi, posizione del tappeto, centratura della PS4 e passaggio dei cavi attraverso le aperture. Superata l’intera suite, compresi i giri del robot nelle tre cucine; verificati nel browser i clic sui frontali e la composizione TV.

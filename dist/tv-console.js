@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {mediaConsole as layout,mediaBookcase as bookcase} from './media-layout.js?v=20261028-1';
+import {mediaConsole as layout,mediaBookcase as bookcase,television as tv,dockCableHole} from './media-layout.js?v=20261028-4';
 
 // Local X runs from left to right when looking at the TV from the sofa.
 export function createTVConsole(parent,box){
@@ -13,7 +13,11 @@ export function createTVConsole(parent,box){
  const block=(name,w,h,d,m,x,y,z)=>{const p=box(w,h,d,m,x,y,z,root);p.name=name;return p;};
  const part=(name,g,m,x,y,z)=>{const p=new THREE.Mesh(g,m);p.name=name;p.position.set(x,y,z);p.castShadow=p.receiveShadow=true;root.add(p);return p;};
  const half=layout.width/2,rear=-layout.depth/2;
- block('continuous-oak-top',layout.width,.024,layout.depth,oak,0,layout.top-.012,0);
+ const holeX=dockCableHole.x-(tv.centerZ-layout.z),holeZ=dockCableHole.z-(layout.x-tv.frontX);
+ const topShape=new THREE.Shape();topShape.moveTo(-half,rear);topShape.lineTo(half,rear);topShape.lineTo(half,-rear);topShape.lineTo(-half,-rear);topShape.closePath();
+ const topHole=new THREE.Path();topHole.absarc(holeX,holeZ,dockCableHole.radius,0,Math.PI*2,true);topShape.holes.push(topHole);
+ const topGeometry=new THREE.ExtrudeGeometry(topShape,{depth:.024,bevelEnabled:false,curveSegments:16});topGeometry.rotateX(Math.PI/2);
+ part('continuous-oak-top',topGeometry,oak,0,layout.top,0);
  block('cabinet-base',layout.width,.022,layout.depth,oak,0,.101,0);
  for(const x of [-half+.011,half-.011])block('cabinet-side',.022,.304,layout.depth,oak,x,.264,0);
  for(const x of [-.77,.80])block('base-divider',.022,.304,.458,oak,x,.264,-.011);
@@ -23,6 +27,7 @@ export function createTVConsole(parent,box){
  for(const x of [-.32,.36])block('open-niche-divider',.018,.304,.445,oak,x,.264,-.013);
  const rearShape=new THREE.Shape();rearShape.moveTo(-half+.022,.112);rearShape.lineTo(half-.022,.112);rearShape.lineTo(half-.022,.416);rearShape.lineTo(-half+.022,.416);rearShape.closePath();
  const cableHole=new THREE.Path();cableHole.absarc(-.20,.34,.025,0,Math.PI*2,true);rearShape.holes.push(cableHole);
+ const dockRearHole=new THREE.Path();dockRearHole.absarc(holeX,dockCableHole.rearY,dockCableHole.radius,0,Math.PI*2,true);rearShape.holes.push(dockRearHole);
  part('rear-panel-with-cable-hole',new THREE.ExtrudeGeometry(rearShape,{depth:.012,bevelEnabled:false,curveSegments:12}),interior,0,0,rear);
  for(const x of [-1.26,0,1.26])for(const z of [-.17,.17])block('recessed-oak-foot',.028,.09,.028,oak,x,.045,z);
  // The tall part is mirrored to the RIGHT of the TV. Its first shelf leaves

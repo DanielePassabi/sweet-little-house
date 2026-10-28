@@ -1,10 +1,10 @@
 import {getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261015-1';
 import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {mediaCollider} from './media-layout.js?v=20261028-1';
+import {mediaCollider} from './media-layout.js?v=20261028-4';
 import {room3Colliders} from './room3-layout.js?v=20261015-1';
 import {sanitaryColliders} from './sanitary-layout.js?v=20261016-4';
 import {wineCabinetCollider} from './wine-cabinet-layout.js?v=20261016-5';
-import {shoeCabinetCollider} from './entryway-layout.js?v=20261028-2';
+import {shoeCabinetCollider,shoeCabinetOpenCollider} from './entryway-layout.js?v=20261028-4';
 import {canStand,point,insidePolygon} from './model.js';
 
 
@@ -61,11 +61,13 @@ export function setKitchenCollisionVariant(id){
  const variant=getKitchenVariant(id);
  furnitureColliders.splice(0,furnitureColliders.length,...permanentFurnitureColliders,...getDiningConfiguration(variant).colliders,...variant.colliders);
  buckets.clear();
- for(const c of furnitureColliders)for(let x=Math.floor(c.minX);x<=Math.floor(c.maxX);x++)for(let z=Math.floor(c.minZ);z<=Math.floor(c.maxZ);z++){
+ for(const c of furnitureColliders)for(let x=Math.floor(c.minX);x<=Math.floor(c.maxX);x++)for(let z=Math.floor(c.minZ);z<=Math.floor(c===shoeCabinetCollider?shoeCabinetOpenCollider.maxZ:c.maxZ);z++){
   const key=x+','+z;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(c);
  }
 }
 setKitchenCollisionVariant('1');
+// Indexed against the full motion envelope; only the actual front is solid.
+export function setShoeCabinetExtent(maxZ){shoeCabinetCollider.maxZ=Math.max(shoeCabinetCollider.minZ+.25,Math.min(shoeCabinetOpenCollider.maxZ,maxZ));}
 let doorCollisionTest=()=>false;
 export function setDoorCollisionTest(test){doorCollisionTest=test??(()=>false);}
 export function canWalk(x,z,r=.18){

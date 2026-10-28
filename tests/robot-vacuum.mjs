@@ -6,8 +6,9 @@ import {createRobotController,clearRobotSegment,robotLayout,robotDockCollider} f
 import {createRobotVacuum} from '../dist/robot-vacuum.js';
 import {createDoors} from '../dist/doors.js';
 import {freezeStaticTransforms} from '../dist/render-state.js';
+import {shoeCabinetOpenCollider} from '../dist/entryway-layout.js';
 
-const isFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!doors.blocksWhenOpen(x,z,r)&&!intersects(robotDockCollider,x,z,r);
+const isFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!doors.blocksWhenOpen(x,z,r)&&!intersects(robotDockCollider,x,z,r)&&!intersects(shoeCabinetOpenCollider,x,z,r);
 assert.ok(insidePolygon(robotLayout.dock.x,robotLayout.dock.z,rooms.find(r=>r.id==='utility').polygon));
 
 assert.equal(clearRobotSegment({x:0,z:0},{x:1,z:0},x=>Math.abs(x-.5)>.03),false,'Swept check catches an obstacle between clear endpoints');

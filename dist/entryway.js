@@ -1,7 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import {shoeCabinet as layout,entryRug} from './entryway-layout.js?v=20261028-2';
+import {shoeCabinet as layout,entryRug} from './entryway-layout.js?v=20261028-4';
+import {createEntrywayMotion} from './entryway-motion.js?v=20261028-4';
 
-export function createEntryway(parent,box){
+export function createEntryway(parent,box,options){
  const root=new THREE.Group();root.name='entryway-furniture';parent.add(root);
  const cabinet=new THREE.Group();cabinet.name='wall-hung-shoe-cabinet';cabinet.position.set(layout.x,0,layout.z);root.add(cabinet);
  const oak=new THREE.MeshStandardMaterial({color:'#c7a77c',roughness:.8});
@@ -18,12 +19,12 @@ export function createEntryway(parent,box){
  for(const y of [layout.bottom+.011,layout.top-.011])block(cabinet,'shoe-cabinet-horizontal',w-.044,.022,d,oak,0,y,0);
  block(cabinet,'shoe-cabinet-back',w-.044,h-.044,.012,inside,0,(layout.top+layout.bottom)/2,-d/2+.006);
  block(cabinet,'drawer-support-shelf',w-.044,.018,d-.012,oak,0,.944,.006);
- // A shallow, partly pulled-out top drawer with individual organiser cells.
- const drawer=new THREE.Group();drawer.name='ajar-key-drawer';drawer.position.set(0,.978,.095);cabinet.add(drawer);
- block(drawer,'drawer-bottom',w-.065,.012,.224,inside,0,0,0);
- block(drawer,'drawer-front',w-.052,.157,.022,oak,0,.066,.123);
- block(drawer,'drawer-back',w-.075,.12,.012,inside,0,.054,-.106);
- for(const x of [-(w-.075)/2,(w-.075)/2])block(drawer,'drawer-side',.012,.12,.224,oak,x,.054,0);
+ // Closed by default, with an independent sliding organiser drawer.
+ const drawer=new THREE.Group();drawer.name='key-drawer';drawer.position.set(0,.978,-.009);cabinet.add(drawer);
+ block(drawer,'drawer-bottom',w-.065,.012,.214,inside,0,0,.005);
+ block(drawer,'drawer-front',w-.052,.190,.022,oak,0,.080,.123);
+ block(drawer,'drawer-back',w-.075,.12,.012,inside,0,.054,-.096);
+ for(const x of [-(w-.075)/2,(w-.075)/2])block(drawer,'drawer-side',.012,.12,.214,oak,x,.054,.005);
  for(const x of [-.30,-.10,.10,.30])block(drawer,'organiser-divider',.008,.05,.20,inside,x,.031,0);
  const silver=new THREE.MeshStandardMaterial({color:'#a8aaa7',metalness:.75,roughness:.3});
  const keyRing=part(drawer,'key-ring',new THREE.TorusGeometry(.020,.002,6,16),silver,.20,.011,.043);keyRing.rotation.x=-Math.PI/2;
@@ -31,7 +32,8 @@ export function createEntryway(parent,box){
  for(const x of [-.235,-.17]){const lens=part(drawer,'sunglasses-lens',new THREE.SphereGeometry(1,12,6),charcoal,x,.015,.03);lens.scale.set(.029,.006,.022);}
  block(drawer,'sunglasses-bridge',.016,.006,.004,charcoal,-.2025,.016,.03);
  // The flap and its two shoe racks tilt together around the lower pivot.
- const flap=new THREE.Group();flap.name='tilted-shoe-compartment';flap.position.set(0,.231,.115);flap.rotation.x=layout.tilt;cabinet.add(flap);
+ const flap=new THREE.Group();flap.name='tilted-shoe-compartment';flap.position.set(0,.231,layout.flapPivotZ);cabinet.add(flap);
+ block(cabinet,'bottom-front-rail',w-.052,.026,.022,oak,0,.215,.114);
  block(flap,'shoe-flap-front',w-.052,.70,.022,oak,0,.35,.009);
  for(const y of [.09,.42]){
   block(flap,'shoe-rack',w-.13,.016,.20,charcoal,0,y,-.107);
@@ -39,7 +41,7 @@ export function createEntryway(parent,box){
  }
  for(const x of [-(w-.105)/2,(w-.105)/2])block(flap,'tilt-support',.012,.62,.13,charcoal,x,.32,-.07);
  const pin=new THREE.CylinderGeometry(.012,.012,.022,12);
- for(const x of [-(w-.045)/2,(w-.045)/2]){const p=part(cabinet,'flap-pivot',pin,silver,x,.231,.115);p.rotation.z=Math.PI/2;}
+ for(const x of [-(w-.045)/2,(w-.045)/2]){const p=part(cabinet,'flap-pivot',pin,silver,x,.231,layout.flapPivotZ);p.rotation.z=Math.PI/2;}
  // Reuse geometry and materials for the shoe uppers, soles and dark collars.
  const pooled=new Map(),dummy=new THREE.Object3D(),sphere=new THREE.SphereGeometry(1,14,8),upper=new THREE.SphereGeometry(1,14,8,0,Math.PI*2,0,Math.PI/2),lace=new THREE.CylinderGeometry(.0016,.0016,1,6);
  function instance(name,g,m,x,y,z,sx,sy,sz,rz=0){
@@ -77,5 +79,5 @@ export function createEntryway(parent,box){
  block(rug,'woven-jute-centre',entryRug.width-.054,.004,entryRug.depth-.054,jute,0,.020,0);
  for(const x of [-(entryRug.width-.027)/2,(entryRug.width-.027)/2])block(rug,'bound-rug-edge',.027,.005,entryRug.depth,border,x,.0205,0);
  for(const z of [-(entryRug.depth-.027)/2,(entryRug.depth-.027)/2])block(rug,'bound-rug-edge',entryRug.width-.054,.005,.027,border,0,.0205,z);
- root.updateMatrixWorld(true);return root;
+ root.updateMatrixWorld(true);root.userData.controller=createEntrywayMotion(cabinet,drawer,flap,options);return root;
 }

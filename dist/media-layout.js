@@ -13,10 +13,14 @@ export const gameControllers=[{name:'white-controller',x:.10,z:.18,angle:-.15,co
  {name:'grey-controller',x:.36,z:.17,angle:.12,color:'#888981',retro:true}];
 // Official chassis sizes; the PS4 vertical support is illustrative.
 // https://www.playstation.com/en-au/ps4/tech-specs/
-export const ps4Pro={x:-.28,z:.115,width:.055,height:.295,depth:.327,bottom:mediaConsole.top,standHeight:.009};
+const bayLeft=television.centerZ-mediaConsole.z+mediaBookcase.x-mediaBookcase.width/2+.024;
+const pcLeft=desktopPC.x-desktopPC.depth/2-.003;
+export const ps4Pro={x:(bayLeft+pcLeft)/2,z:.115,width:.055,height:.295,depth:.327,bottom:mediaConsole.top,standHeight:.009};
 // https://www.steamdeck.com/en/tech / https://www.steamdeck.com/en/tech/dock
 export const steamDeck={x:.72,z:.155,width:.298,height:.117,depth:.049,tilt:-Math.PI/15};
 export const steamDock={width:.117,height:.029,depth:.0505,bottom:mediaConsole.top};
-export const cableDuct={x:0,z:-.0875,width:.04,depth:.019,bottom:.43,top:television.centerY};
+// The 12 mm raceway fits the 15 mm gap between the wall and the cabinet back.
+export const cableDuct={x:0,z:-.0925,width:.04,depth:.012,bottom:.23,top:television.centerY};
+export const dockCableHole={x:steamDeck.x,z:steamDeck.z-steamDock.depth/2-.009,radius:.032,rearY:.36};
 export const mediaCollider={minX:mediaConsole.x-mediaConsole.depth/2,maxX:mediaConsole.x+mediaConsole.depth/2,
  minZ:mediaConsole.z-mediaConsole.width/2,maxZ:mediaConsole.z+mediaConsole.width/2};

@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct} from './media-layout.js?v=20261028-1';
+import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct,dockCableHole} from './media-layout.js?v=20261028-4';
 
 // Local X = width seen from the sofa, +Z = toward the viewer, Y = vertical.
 export function createMediaStation(parent,box,{black,screen,wall}){
@@ -129,21 +129,35 @@ export function createMediaStation(parent,box,{black,screen,wall}){
  block(handheld,'deck-usb-c-plug',.011,.006,.009,graphite,.024,deck.height/2+.004,0);
  tube(deckSetup,'deck-dock-usb-c-cable',[[.042,.009,-dock.depth/2],[.055,.045,-.055],[.043,.11,-.055],[usbTip.x,usbTip.y+.012,usbTip.z-.01],usbTip.toArray()],.0018,rubber);
 
- // Each new HDMI cable runs behind the console, then inside its own duct lane.
- function videoCable(name,connector,entryX){
-  const path=new THREE.CurvePath();
-  path.add(new THREE.CatmullRomCurve3([connector,[connector[0],.477,-.065],[connector[0]*.45,.474,duct.z],[entryX,.51,duct.z]].map(p=>new THREE.Vector3(...p))));
-  path.add(new THREE.LineCurve3(new THREE.Vector3(entryX,.51,duct.z),new THREE.Vector3(entryX,1.40,duct.z)));
-  path.add(new THREE.LineCurve3(new THREE.Vector3(entryX,1.40,duct.z),new THREE.Vector3(entryX,tv.centerY,-.055)));
-  tube(station,name,path,.0022,rubber);
+ // Short leads drop immediately behind each device. Horizontal runs stay BELOW
+ // the top, in the wall gap; only the covered raceway rises towards the TV.
+ // Rounded polyline corners cannot overshoot onto the visible worktop.
+ function cableRoute(points){
+  const path=new THREE.CurvePath(),p=points.map(v=>new THREE.Vector3(...v));let start=p[0];
+  for(let i=1;i<p.length-1;i++){
+   const trim=Math.min(.008,p[i].distanceTo(p[i-1])/3,p[i].distanceTo(p[i+1])/3);
+   const before=p[i].clone().addScaledVector(p[i-1].clone().sub(p[i]).normalize(),trim);
+   const after=p[i].clone().addScaledVector(p[i+1].clone().sub(p[i]).normalize(),trim);
+   path.add(new THREE.LineCurve3(start,before));path.add(new THREE.QuadraticBezierCurve3(before,p[i],after));start=after;
+  }
+  path.add(new THREE.LineCurve3(start,p.at(-1)));return path;
  }
+ const rearLead=connector=>[connector,[connector[0],connector[1],duct.z],[connector[0],.34,duct.z]];
+ const dockLead=connector=>[connector,[connector[0],.39,dockCableHole.z],[connector[0],dockCableHole.rearY,duct.z]];
+ function videoCable(name,lead,entryX,radius=.0022){
+  const path=new THREE.CurvePath();
+  path.add(cableRoute([...lead,[entryX,.34,duct.z]]));
+  path.add(new THREE.LineCurve3(new THREE.Vector3(entryX,.34,duct.z),new THREE.Vector3(entryX,1.40,duct.z)));
+  path.add(new THREE.LineCurve3(new THREE.Vector3(entryX,1.40,duct.z),new THREE.Vector3(entryX,tv.centerY,-.055)));
+  tube(station,name,path,radius,rubber);
+ }
+ function powerCable(name,lead,lane,radius){tube(station,name,cableRoute([...lead,[lane,.30,duct.z],[lane,.25,duct.z]]),radius,rubber);}
  const ps4Port=[ps4.x,ps4.bottom+ps4.standHeight+.06,ps4.z-ps4.depth/2-.003];
  block(playstation,'ps4-hdmi-plug',.012,.007,.009,graphite,0,ps4.standHeight+.06,-ps4.depth/2-.0045);
- videoCable('ps4-hdmi-cable',ps4Port,-.014);
- videoCable('dock-hdmi-cable',[deck.x-.023,dock.bottom+.007,deck.z+dockPortZ],0);
- // Power leads join the lower duct behind the cabinet, below the visible risers.
- tube(station,'ps4-power-cable',[[ps4.x+.012,ps4.bottom+ps4.standHeight+.032,ps4.z-ps4.depth/2],[ps4.x+.012,.474,-.069],[-.018,.44,duct.z],[-.016,.30,duct.z]],.002,rubber);
- tube(station,'dock-power-cable',[[deck.x+.021,dock.bottom+.007,deck.z+dockPortZ],[deck.x+.045,.48,.07],[.28,.47,-.064],[.015,.43,duct.z],[.015,.30,duct.z]],.0018,rubber);
+ videoCable('ps4-hdmi-cable',rearLead(ps4Port),-.014);
+ videoCable('dock-hdmi-cable',dockLead([deck.x-.023,dock.bottom+.007,deck.z+dockPortZ]),0);
+ powerCable('ps4-power-cable',rearLead([ps4.x+.012,ps4.bottom+ps4.standHeight+.032,ps4.z-ps4.depth/2]),-.016,.002);
+ powerCable('dock-power-cable',dockLead([deck.x+.021,dock.bottom+.007,deck.z+dockPortZ]),.015,.0018);
 
  // HDMI goes to the TV centre; both power leads disappear behind the cabinet.
  tower.updateMatrix();
@@ -151,16 +165,12 @@ export function createMediaStation(parent,box,{black,screen,wall}){
  const pcVideoPort=pcConnector(.18,0),pcPowerPort=pcConnector(.06,-.05);
  block(tower,'pc-hdmi-plug',.009,.008,.014,graphite,-w/2-.003,.18,0);
  block(tower,'pc-power-plug',.009,.014,.018,rubber,-w/2-.003,.06,-.05);
- const hdmiPath=new THREE.CurvePath();
- hdmiPath.add(new THREE.CatmullRomCurve3([pcVideoPort,[pcVideoPort[0],.56,-.072],[.90,.48,-.074],[-.20,.47,-.074],[-.008,.51,duct.z]].map(p=>new THREE.Vector3(...p))));
- hdmiPath.add(new THREE.LineCurve3(new THREE.Vector3(-.008,.51,duct.z),new THREE.Vector3(-.008,1.41,duct.z)));
- hdmiPath.add(new THREE.LineCurve3(new THREE.Vector3(-.008,1.41,duct.z),new THREE.Vector3(0,tv.centerY,-.055)));
- tube(station,'pc-hdmi-cable',hdmiPath,.003,rubber);
+ videoCable('pc-hdmi-cable',rearLead(pcVideoPort),-.008,.003);
  const powerPath=new THREE.CurvePath();
  powerPath.add(new THREE.LineCurve3(new THREE.Vector3(.008,.23,duct.z),new THREE.Vector3(.008,1.39,duct.z)));
  powerPath.add(new THREE.LineCurve3(new THREE.Vector3(.008,1.39,duct.z),new THREE.Vector3(.04,tv.centerY,-.055)));
  tube(station,'tv-power-cable',powerPath,.0025,rubber);
- tube(station,'pc-power-cable',[pcPowerPort,[pcPowerPort[0],.48,-.075],[pcPowerPort[0],.36,-.078],[pcPowerPort[0],.20,-.078]],.0035,rubber);
+ powerCable('pc-power-cable',rearLead(pcPowerPort),.008,.0035);
 
  // A shared curved silhouette and two moulded wings form each DualSense-style pad.
  function extrude(shape,depth,bevel=.002){const g=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelSize:bevel,bevelThickness:bevel,bevelSegments:2,steps:1,curveSegments:10});g.rotateX(-Math.PI/2);return g;}

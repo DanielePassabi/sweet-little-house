@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
 import {createMediaStation} from '../dist/media-station.js';
-import {television,mediaConsole,mediaCollider,cableDuct,gameControllers,ps4Pro,steamDeck,steamDock} from '../dist/media-layout.js';
+import {television,mediaConsole,mediaBookcase,mediaCollider,cableDuct,dockCableHole,gameControllers,ps4Pro,steamDeck,steamDock} from '../dist/media-layout.js';
 import {canStand} from '../dist/model.js';
 import {canWalk,setKitchenCollisionVariant} from '../dist/furniture-collisions.js';
 
@@ -27,7 +27,10 @@ for(const name of ['desktop-pc','ps4-pro','steam-deck-docked',...gameControllers
 const ps4=bounds('ps4-pro'),deck=bounds('steam-deck-docked'),whitePad=bounds('white-controller'),greyPad=bounds('grey-controller');
 assert.ok(ps4.max.y<screen.min.y&&deck.max.y<screen.min.y,'New devices leave the television unobstructed');
 // Local +X points to the viewer's right and maps to decreasing world Z.
-assert.ok(pc.max.z<deck.min.z&&ps4.min.z>whitePad.max.z,'PC is at the far right; other equipment remains separate');
+assert.ok(pc.max.z<ps4.min.z&&ps4.max.z<deck.min.z,'PS4 occupies the same bay, to the left of the PC');
+const bayLeftZ=mediaConsole.z-(mediaBookcase.x-mediaBookcase.width/2+.024);
+const leftGap=bayLeftZ-ps4.max.z,rightGap=ps4.min.z-pc.max.z;
+assert.ok(leftGap>.07&&Math.abs(leftGap-rightGap)<1e-6,'PS4 and its stand are centred in the remaining bay width');
 assert.ok(deck.max.z<greyPad.min.z,'Docked Steam Deck stays to the right of both controllers');
 const ps4Tiers=new THREE.Box3();station.getObjectByName('ps4-pro-chassis').traverse(o=>{if(o.name==='ps4-tier')ps4Tiers.union(new THREE.Box3().setFromObject(o));});
 const ps4Size=ps4Tiers.getSize(new THREE.Vector3());
@@ -104,6 +107,25 @@ for(const name of ['pc-hdmi-cable','ps4-hdmi-cable','dock-hdmi-cable','tv-power-
  assert.ok(checkedRings>=3,'Check multiple complete cable cross-sections inside the raceway');
 }
 assert.ok(station.getObjectByName('pc-power-cable'),'PC power cable runs behind the console');
+// Check the actual tube vertices, including their thickness, against the wood
+// and the exposed top. This catches long diagonal runs and curve overshoot.
+const rearZ=mediaConsole.x-mediaConsole.depth/2-television.frontX;
+for(const name of ['pc-hdmi-cable','ps4-hdmi-cable','dock-hdmi-cable','tv-power-cable','pc-power-cable','ps4-power-cable','dock-power-cable']){
+ const cable=station.getObjectByName(name),p=cable.geometry.attributes.position;
+ for(let i=0;i<p.count;i++){
+  const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+  if(y>mediaConsole.top-.024&&y<mediaConsole.top&&z>rearZ){
+   assert.ok(Math.hypot(x-dockCableHole.x,z-dockCableHole.z)<dockCableHole.radius,`${name} passes through the top opening, not through wood`);
+  }
+  if(z>rearZ&&z<rearZ+.012&&y>.112&&y<.416){
+   assert.ok(Math.hypot(x-dockCableHole.x,y-dockCableHole.rearY)<dockCableHole.radius||Math.hypot(x,y-.34)<.025,`${name} passes through a rear opening`);
+  }
+  if(y>mediaConsole.top+.003&&y<.92&&x>.04&&x<1.02){
+   assert.ok(name.startsWith('dock-')&&Math.abs(x-steamDeck.x)<.04&&y<mediaConsole.top+.012,`${name} cannot cross the visible top above the cabinet`);
+  }
+ }
+}
+assert.ok(bounds('central-cable-duct').max.x<mediaCollider.minX,'Raceway fits behind the cabinet without entering its wood');
 const v=new THREE.Vector3(),instance=new THREE.Matrix4();let triangles=0;
 station.traverse(o=>{
  if(!o.isMesh)return;

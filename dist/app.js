@@ -21,17 +21,18 @@ import {createRobotVacuum} from './robot-vacuum.js?v=20261016-2';
 import {createRobotController,robotLayout,robotDockCollider} from './robot-navigation.js?v=20261016-2';
 import {parquetRoomIds,parquetPolygons} from './floor-layout.js?v=20261016-1';
 import {optimizeLightingMaterials} from './lighting-performance.js?v=20261014-4';
-import {createMediaStation} from './media-station.js?v=20261028-1';
-import {createTVConsole} from './tv-console.js?v=20261028-1';
-import {createEntryway} from './entryway.js?v=20261028-2';
-import {television,gameControllers} from './media-layout.js?v=20261028-1';
+import {createMediaStation} from './media-station.js?v=20261028-4';
+import {createTVConsole} from './tv-console.js?v=20261028-4';
+import {createEntryway} from './entryway.js?v=20261028-4';
+import {shoeCabinetOpenCollider} from './entryway-layout.js?v=20261028-4';
+import {television,gameControllers} from './media-layout.js?v=20261028-4';
 import {createSofa} from './sofa.js?v=20261012-1';
 import {createRoom3} from './room3.js?v=20261015-1';
 import {createBed} from './bed.js?v=20261016-3';
 import {createSanitaryFixtures} from './sanitary.js?v=20261016-4';
 import {createWineCabinet} from './wine-cabinet.js?v=20261016-5';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261028-2';
+import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest,setShoeCabinetExtent} from './furniture-collisions.js?v=20261028-4';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -215,7 +216,8 @@ const livingRugMaterial=new THREE.MeshStandardMaterial({color:'#e6ddcc',roughnes
 furnitureBox(2.50,.014,2.62,livingRugMaterial,6.10,.014,9.53);
 
 const detailedTVConsole=createTVConsole(furniture,box);
-const entrywayFurniture=createEntryway(furniture,box);
+const entrywayFurniture=createEntryway(furniture,box,{onExtentChange:setShoeCabinetExtent,onStateChange:syncEntrywayControls});
+const entryCabinet=entrywayFurniture.userData.controller;
 const mediaStation=createMediaStation(furniture,box,{black:furnitureBlack,screen:screenMaterial,wall:white});
 const televisionVideo=createTelevisionVideo({host,screen:mediaStation.getObjectByName('oled-screen'),invalidate:()=>renderState.invalidate(),controls:{power:$('#tv-power'),audio:$('#tv-audio'),play:$('#tv-play'),status:$('#tv-status'),link:$('#tv-external')}});
 
@@ -527,7 +529,7 @@ const assetInstanceStats=flushStaticInstances();
 const furnitureObjectCount=furniture.children.length,utilityObjectCount=utilityFixtures.children.length,terraceObjectCount=terraceFurniture.children.length;
 function batchStaticBoxes(root=model){
  root.updateMatrixWorld(true);
- const boxes=[];root.traverse(object=>{if(object.isMesh&&!object.isInstancedMesh&&object.geometry===unitBoxGeometry&&!object.material.transparent)boxes.push(object);});
+ const boxes=[];root.traverse(object=>{if(object.isMesh&&!object.isInstancedMesh&&!object.userData.dynamicFurniture&&object.geometry===unitBoxGeometry&&!object.material.transparent)boxes.push(object);});
  const groups=new Map();for(const mesh of boxes){const key=mesh.material.uuid;if(!groups.has(key))groups.set(key,{material:mesh.material,meshes:[]});groups.get(key).meshes.push(mesh);}
  const rootInverse=root.matrixWorld.clone().invert(),matrix=new THREE.Matrix4();
  for(const {material,meshes} of groups.values()){
@@ -583,7 +585,7 @@ for(const [id,button] of doorButtons)button.onclick=()=>doors.toggle(id);
 const doorOccluders=[];model.traverse(o=>{if(o.isMesh)doorOccluders.push(o);});
 indoorLighting.group.traverse(o=>{if(o.isMesh)doorOccluders.push(o);});
 const vacuum=createRobotVacuum(scene);
-const robotStaticFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!doors.blocksWhenOpen(x,z,r)&&!intersects(robotDockCollider,x,z,r);
+const robotStaticFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!doors.blocksWhenOpen(x,z,r)&&!intersects(robotDockCollider,x,z,r)&&!intersects(shoeCabinetOpenCollider,x,z,r);
 const robotController=createRobotController({
  isFree:robotStaticFree,
  canMove:(x,z,r)=>canWalk(x,z,r)&&!intersects(robotDockCollider,x,z,r)&&
@@ -604,6 +606,18 @@ function syncRobotControls(state){
  vacuum.sync(state);renderState.invalidate();
 }
 syncRobotControls(robotController.state);
+function syncEntrywayControls(){
+ for(const state of entryCabinet.state){
+  const button=$(`[data-shoe-part="${state.id}"]`),name=state.id==='drawer'?'cassetto':'ribalta';
+  button.textContent=`${state.targetOpen?'Chiudi':'Apri'} ${name}`;button.setAttribute('aria-pressed',String(state.targetOpen));
+  button.dataset.state=state.moving?'moving':state.open?'open':'closed';
+ }
+ $('#shoe-depth').textContent=`Profondità occupata: ${Math.round(entryCabinet.depth*100)} cm`;
+ $('#shoe-status').textContent=entryCabinet.state.some(p=>p.obstructed)?'Spazio occupato: allontanati dal mobile per aprirlo.':'Clicca il frontale della ribalta o del cassetto per aprire e chiudere.';
+ renderState.invalidate();
+}
+for(const button of document.querySelectorAll('[data-shoe-part]'))button.onclick=()=>entryCabinet.toggle(button.dataset.shoePart);
+syncEntrywayControls();
 $('#robot-toggle').onclick=()=>robotController.toggle();
 $('#robot-home').onclick=()=>robotController.returnHome();
 $('#robot-focus').onclick=()=>{
@@ -798,9 +812,9 @@ renderer.domElement.addEventListener('click',e=>{
  if(document.pointerLockElement===renderer.domElement)pointer.set(0,0);
  else pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);
  camera.updateMatrixWorld();raycaster.setFromCamera(pointer,camera);
- const doorHit=doors.pick(raycaster,doorOccluders),robotHit=vacuum.pick(raycaster,doorOccluders);
- if(robotHit&&(!doorHit||robotHit.distance<doorHit.distance))robotController.toggle();
- else if(doorHit)doors.toggle(doorHit.id);
+ const candidates=[['door',doors.pick(raycaster,doorOccluders)],['robot',vacuum.pick(raycaster,doorOccluders)],['cabinet',entryCabinet.pick(raycaster,doorOccluders)]];
+ const nearest=candidates.filter(([,hit])=>hit).sort((a,b)=>a[1].distance-b[1].distance)[0];
+ if(nearest){const [kind,hit]=nearest;if(kind==='robot')robotController.toggle();else if(kind==='door')doors.toggle(hit.id);else entryCabinet.toggle(hit.id);}
 });
 renderer.domElement.addEventListener('click',e=>{if(!measuring)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(floorObjects)[0];if(!hit)return;if(measurePoints.length===2)clearMeasurements();const p=hit.point.clone();p.y=.055;measurePoints.push(p);const dot=new THREE.Mesh(new THREE.SphereGeometry(.055,12,8),new THREE.MeshBasicMaterial({color:'#286eaa',depthTest:false,depthWrite:false}));dot.position.copy(p);dot.renderOrder=10;measurementGroup.add(dot);if(measurePoints.length===1){$('#measure-result').textContent='Seleziona il secondo punto';return;}const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(measurePoints),new THREE.LineBasicMaterial({color:'#286eaa',depthTest:false,depthWrite:false}));line.renderOrder=10;measurementGroup.add(line);const dist=measurePoints[0].distanceTo(measurePoints[1]);$('#measure-result').textContent=dist.toFixed(2).replace('.',',')+' m · Clicca per una nuova misura';});
 renderer.domElement.addEventListener('wheel',e=>{if(view==='plan'){e.preventDefault();orthographic.zoom=THREE.MathUtils.clamp(orthographic.zoom*Math.exp(-e.deltaY*.001),.45,4);orthographic.updateProjectionMatrix();}},{passive:false});
@@ -832,6 +846,9 @@ function animate(now){
  if(view==='walk')occupants.push({x:perspective.position.x,z:perspective.position.z,r:.20});
  if(doors.update(dt,occupants)){
   indoorLighting.invalidateShadows();renderer.shadowMap.needsUpdate=true;renderState.invalidate();
+ }
+ if(entryCabinet.update(dt,occupants)){
+  syncEntrywayControls();indoorLighting.invalidateShadows();renderer.shadowMap.needsUpdate=true;renderState.invalidate();
  }
  if(robotController.update(dt)){vacuum.sync(robotController.state,dt);updateRobotMarker();renderState.invalidate();}
  if(solarPending){solarPending=false;updateDaylight();}
