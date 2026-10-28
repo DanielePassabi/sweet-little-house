@@ -4,6 +4,7 @@ import {mediaCollider} from './media-layout.js?v=20261028-1';
 import {room3Colliders} from './room3-layout.js?v=20261015-1';
 import {sanitaryColliders} from './sanitary-layout.js?v=20261016-4';
 import {wineCabinetCollider} from './wine-cabinet-layout.js?v=20261016-5';
+import {shoeCabinetCollider} from './entryway-layout.js?v=20261028-2';
 import {canStand,point,insidePolygon} from './model.js';
 
 
@@ -13,6 +14,7 @@ const circle=(x,z,r)=>({x,z,r,minX:x-r,maxX:x+r,minZ:z-r,maxZ:z+r});
 export const furnitureColliders=[
  mediaCollider,
  wineCabinetCollider,
+ shoeCabinetCollider,
  {minX:.86,maxX:1.62,minZ:8.56,maxZ:9.10},
  {minX:1.70,maxX:2.45,minZ:8.56,maxZ:9.26},
  {minX:-.08,maxX:2.60,minZ:14.05,maxZ:14.88},

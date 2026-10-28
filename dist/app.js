@@ -23,6 +23,7 @@ import {parquetRoomIds,parquetPolygons} from './floor-layout.js?v=20261016-1';
 import {optimizeLightingMaterials} from './lighting-performance.js?v=20261014-4';
 import {createMediaStation} from './media-station.js?v=20261028-1';
 import {createTVConsole} from './tv-console.js?v=20261028-1';
+import {createEntryway} from './entryway.js?v=20261028-2';
 import {television,gameControllers} from './media-layout.js?v=20261028-1';
 import {createSofa} from './sofa.js?v=20261012-1';
 import {createRoom3} from './room3.js?v=20261015-1';
@@ -30,7 +31,7 @@ import {createBed} from './bed.js?v=20261016-3';
 import {createSanitaryFixtures} from './sanitary.js?v=20261016-4';
 import {createWineCabinet} from './wine-cabinet.js?v=20261016-5';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261028-1';
+import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setDoorCollisionTest} from './furniture-collisions.js?v=20261028-2';
 import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
@@ -214,6 +215,7 @@ const livingRugMaterial=new THREE.MeshStandardMaterial({color:'#e6ddcc',roughnes
 furnitureBox(2.50,.014,2.62,livingRugMaterial,6.10,.014,9.53);
 
 const detailedTVConsole=createTVConsole(furniture,box);
+const entrywayFurniture=createEntryway(furniture,box);
 const mediaStation=createMediaStation(furniture,box,{black:furnitureBlack,screen:screenMaterial,wall:white});
 const televisionVideo=createTelevisionVideo({host,screen:mediaStation.getObjectByName('oled-screen'),invalidate:()=>renderState.invalidate(),controls:{power:$('#tv-power'),audio:$('#tv-audio'),play:$('#tv-play'),status:$('#tv-status'),link:$('#tv-external')}});
 
@@ -516,7 +518,7 @@ const readingFabric=new THREE.MeshStandardMaterial({color:'#c8b599',roughness:1}
 const room3Furniture=createRoom3(model,box,{wood:deskWood,black:furnitureBlack,upholstery:gamingUpholstery,accent:gamingAccent,sofaFabric:readingFabric,screen:screenMaterial});
 
 const bathroomFixtureCount=bathroomFixtures.children.length,bedroomObjectCount=bedroomFurniture.children.length,diningObjectCount=diningGroups.get(activeKitchen.id).children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
-applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial,bedUpholstery],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,bedLinen,...detailedBed.userData.fabricMaterials,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown,...detailedTVConsole.userData.woodMaterials],metal:[bathroomMetal,kitchenSteel,applianceTrim],glass:[glass,showerGlass]},renderer);
+applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial,bedUpholstery],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,lilacBedding,lilacAccent,bedLinen,...detailedBed.userData.fabricMaterials,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown,...detailedTVConsole.userData.woodMaterials,...entrywayFurniture.userData.woodMaterials],metal:[bathroomMetal,kitchenSteel,applianceTrim],glass:[glass,showerGlass]},renderer);
 const assetInstanceStats=flushStaticInstances();
 
 // Most architectural details and furniture share the same cube geometry. Batch
