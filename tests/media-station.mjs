@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
 import {createMediaStation} from '../dist/media-station.js';
-import {television,mediaConsole,mediaBookcase,mediaCollider,cableDuct,dockCableHole,gameControllers,ps4Pro,steamDeck,steamDock} from '../dist/media-layout.js';
+import {television,mediaConsole,mediaCollider,cableDuct,dockCableHole,desktopPC,gameControllers,ps4Pro,steamDeck,steamDock} from '../dist/media-layout.js';
 import {canStand} from '../dist/model.js';
 import {canWalk,setKitchenCollisionVariant} from '../dist/furniture-collisions.js';
 
@@ -16,7 +16,7 @@ assert.ok(Math.abs(size.x-.0553)<.00002,'TV depth follows LG dimensions without 
 assert.ok(Math.abs(centre.z-9.72)<1e-8&&Math.abs(centre.y-1.47)<1e-8,'Previous TV centre is preserved');
 const pc=bounds('desktop-pc');
 assert.ok(pc.min.y>=mediaConsole.top-1e-6&&pc.min.y<mediaConsole.top+.001,'Tower feet rest on the console');
-assert.ok(pc.max.y<screen.min.y,'Tower leaves the screen unobstructed');
+assert.ok(screen.min.z-pc.max.z>.09,'Raised PC is entirely beside the TV, with over 9 cm horizontal clearance');
 for(const name of ['desktop-pc','ps4-pro','steam-deck-docked',...gameControllers.map(c=>c.name)]){
  const b=bounds(name);
  assert.ok(b.min.x>=mediaConsole.x-mediaConsole.depth/2&&b.max.x<=mediaConsole.x+mediaConsole.depth/2,'Devices fit the console depth');
@@ -27,10 +27,24 @@ for(const name of ['desktop-pc','ps4-pro','steam-deck-docked',...gameControllers
 const ps4=bounds('ps4-pro'),deck=bounds('steam-deck-docked'),whitePad=bounds('white-controller'),greyPad=bounds('grey-controller');
 assert.ok(ps4.max.y<screen.min.y&&deck.max.y<screen.min.y,'New devices leave the television unobstructed');
 // Local +X points to the viewer's right and maps to decreasing world Z.
-assert.ok(pc.max.z<ps4.min.z&&ps4.max.z<deck.min.z,'PS4 occupies the same bay, to the left of the PC');
-const bayLeftZ=mediaConsole.z-(mediaBookcase.x-mediaBookcase.width/2+.024);
-const leftGap=bayLeftZ-ps4.max.z,rightGap=ps4.min.z-pc.max.z;
-assert.ok(leftGap>.07&&Math.abs(leftGap-rightGap)<1e-6,'PS4 and its stand are centred in the remaining bay width');
+assert.ok(pc.max.z<ps4.min.z&&ps4.max.z<deck.min.z,'PS4 stays next to the PC, between it and the Deck');
+const leftGap=deck.min.z-ps4.max.z,rightGap=ps4.min.z-pc.max.z;
+assert.ok(leftGap>.05&&Math.abs(leftGap-rightGap)<1e-6,'PS4 and its stand are centred between devices with over 5 cm either side');
+assert.ok(screen.min.y-ps4.max.y>.03,'PS4 retains over 3 cm clearance beneath the TV');
+// Project the complete device bounds onto the screen plane from seats across
+// the sofa, including the forward chaise: physical separation alone is not
+// enough if a closer device can still hide a corner of the picture.
+for(const [eyeX,eyeZ] of [[7.1,8.4],[6.1,8.4],[7.1,9.45],[7.1,10.5]]){
+ const eye=new THREE.Vector3(eyeX,1.15,eyeZ);
+ for(const b of [pc,ps4,deck]){
+  const projected=new THREE.Box3();
+  for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])for(const z of [b.min.z,b.max.z]){
+   const corner=new THREE.Vector3(x,y,z),ratio=(television.frontX-eye.x)/(x-eye.x);
+   projected.expandByPoint(corner.sub(eye).multiplyScalar(ratio).add(eye));
+  }
+  assert.ok(projected.max.z<screen.min.z||projected.max.y<screen.min.y,'All devices leave the full screen visible from the sofa and chaise');
+ }
+}
 assert.ok(deck.max.z<greyPad.min.z,'Docked Steam Deck stays to the right of both controllers');
 const ps4Tiers=new THREE.Box3();station.getObjectByName('ps4-pro-chassis').traverse(o=>{if(o.name==='ps4-tier')ps4Tiers.union(new THREE.Box3().setFromObject(o));});
 const ps4Size=ps4Tiers.getSize(new THREE.Vector3());
@@ -117,11 +131,14 @@ for(const name of ['pc-hdmi-cable','ps4-hdmi-cable','dock-hdmi-cable','tv-power-
   if(y>mediaConsole.top-.024&&y<mediaConsole.top&&z>rearZ){
    assert.ok(Math.hypot(x-dockCableHole.x,z-dockCableHole.z)<dockCableHole.radius,`${name} passes through the top opening, not through wood`);
   }
-  if(z>rearZ&&z<rearZ+.012&&y>.112&&y<.416){
+  if(z>rearZ&&z<rearZ+.012&&y>.112&&y<mediaConsole.top-.024){
    assert.ok(Math.hypot(x-dockCableHole.x,y-dockCableHole.rearY)<dockCableHole.radius||Math.hypot(x,y-.34)<.025,`${name} passes through a rear opening`);
   }
-  if(y>mediaConsole.top+.003&&y<.92&&x>.04&&x<1.02){
-   assert.ok(name.startsWith('dock-')&&Math.abs(x-steamDeck.x)<.04&&y<mediaConsole.top+.012,`${name} cannot cross the visible top above the cabinet`);
+  if(y>mediaConsole.top+.003&&y<.92&&Math.abs(x)>.04&&z>rearZ){
+   const behindDock=name.startsWith('dock-')&&Math.abs(x-steamDeck.x)<.04&&y<mediaConsole.top+.012;
+   const behindPS4=name.startsWith('ps4-')&&Math.abs(x-ps4Pro.x)<.02&&z<ps4Pro.z-ps4Pro.depth/2+.003;
+   const behindPC=name.startsWith('pc-')&&Math.abs(x-desktopPC.x)<.065&&z<desktopPC.z-desktopPC.width/2+.003;
+   assert.ok(behindDock||behindPS4||behindPC,`${name} cannot cross the visible top above the cabinet`);
   }
  }
 }

@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct,dockCableHole} from './media-layout.js?v=20261028-4';
+import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct,dockCableHole} from './media-layout.js?v=20261029-1';
 
 // Local X = width seen from the sofa, +Z = toward the viewer, Y = vertical.
 export function createMediaStation(parent,box,{black,screen,wall}){
@@ -143,7 +143,7 @@ export function createMediaStation(parent,box,{black,screen,wall}){
   path.add(new THREE.LineCurve3(start,p.at(-1)));return path;
  }
  const rearLead=connector=>[connector,[connector[0],connector[1],duct.z],[connector[0],.34,duct.z]];
- const dockLead=connector=>[connector,[connector[0],.39,dockCableHole.z],[connector[0],dockCableHole.rearY,duct.z]];
+ const dockLead=connector=>[connector,[connector[0],dock.bottom-.05,dockCableHole.z],[connector[0],dockCableHole.rearY,duct.z]];
  function videoCable(name,lead,entryX,radius=.0022){
   const path=new THREE.CurvePath();
   path.add(cableRoute([...lead,[entryX,.34,duct.z]]));

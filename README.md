@@ -253,3 +253,11 @@ Il tappeto è centrato fra gli stipiti della porta d’ingresso, con il lato lun
 I cavi del PC e della PS4 scendono dietro al mobile; quelli della dock attraversano un piccolo foro sotto il dispositivo e un foro nel pannello posteriore. I tratti orizzontali sono sotto il livello del piano, sul retro, e raggiungono la canaletta centrale. La canaletta da 12 mm entra nello spazio posteriore da 15 mm e copre i collegamenti fino alla TV. Nessun filo attraversa in diagonale il piano a vista.
 
 Verifiche dedicate su clic e occlusioni, animazione dopo il congelamento delle matrici, sospensione davanti agli ostacoli, ingombri intermedi, posizione del tappeto, centratura della PS4 e passaggio dei cavi attraverso le aperture. Superata l’intera suite, compresi i giri del robot nelle tre cucine; verificati nel browser i clic sui frontali e la composizione TV.
+
+### Mobile TV centrato da 260 cm, senza colonna — 29 ottobre 2026
+
+Rimossa la colonna a destra con i suoi ripiani e oggetti. Il mobile in rovere misura ora **260 cm di larghezza × 48 cm di profondità × 60 cm di altezza**, piedini compresi, ed è centrato esattamente sotto la TV. Conserva due ante laterali lisce, tre vani centrali aperti, libri e piccolo vaso. La TV mantiene posizione e dimensioni.
+
+Il PC ruotato rimane all’estrema destra del piano: circa **9,7 cm** di separazione orizzontale dallo schermo e **4,2 cm** dal bordo del mobile. La PS4 è centrata fra Steam Deck e PC, con circa **5,7 cm** liberi per lato; la sua sommità resta **3,5 cm** sotto il televisore. L’altezza di 60 cm permette quindi di rialzare il mobile conservando tutti i dispositivi sul piano e lo schermo libero. Profondità e altezza sono scelte progettuali del modello, non quote di un prodotto acquistato.
+
+I passacavi della dock seguono la nuova posizione e altezza, mantenendo i tratti orizzontali nascosti dietro al mobile e la risalita dentro la canaletta. Aggiornati gli ingombri condivisi con la navigazione. I test controllano le dimensioni effettive, la centratura, l’appoggio e separazione dei dispositivi, lo schermo libero anche visto dai posti sul divano e dalla chaise longue, i passacavi e i passaggi. Superata l’intera suite, inclusi i giri del robot nelle tre cucine; verificata la resa in Visita.

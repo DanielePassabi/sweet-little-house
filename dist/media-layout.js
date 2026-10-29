@@ -1,26 +1,25 @@
 // LG OLED83C14LA, dimensions without stand, from LG's specification sheet:
 // https://www.lg.com/uk/tvs/oled-tv/oled83c14la/
 export const television={model:'LG C1 83',width:1.851,height:1.062,depth:.0553,centerY:1.47,centerZ:9.72,frontX:3.175};
-// Revised photo: low oak base with a right-hand bookcase. Estimated dimensions
-// accommodate the existing TV and the PC's full depth after its quarter turn.
-export const mediaConsole={x:3.33,z:9.52,depth:.48,width:2.80,top:.44};
-export const mediaBookcase={x:1.10,width:.60,depth:.40,height:2.36,shelves:[1.04,1.48,1.88,2.36]};
+// Centred 260 cm oak console without a tower. The 60 cm top leaves the PS4
+// below the TV while the taller PC fits entirely to the right of the screen.
+export const mediaConsole={x:3.33,z:television.centerZ,depth:.48,width:2.60,top:.60};
 // The PC and controllers are estimated from the photographs. Local X runs along
 // the TV, local Z faces the sofa. The rotated glass side faces left, towards the
 // television; the solid black side faces right towards the adjacent wall.
-export const desktopPC={x:1.43,z:.155,rotation:-Math.PI/2,width:.44,depth:.23,height:.46,bottom:mediaConsole.top};
+export const desktopPC={x:1.14,z:.155,rotation:-Math.PI/2,width:.44,depth:.23,height:.46,bottom:mediaConsole.top};
 export const gameControllers=[{name:'white-controller',x:.10,z:.18,angle:-.15,color:'#eeeae2'},
  {name:'grey-controller',x:.36,z:.17,angle:.12,color:'#888981',retro:true}];
-// Official chassis sizes; the PS4 vertical support is illustrative.
-// https://www.playstation.com/en-au/ps4/tech-specs/
-const bayLeft=television.centerZ-mediaConsole.z+mediaBookcase.x-mediaBookcase.width/2+.024;
-const pcLeft=desktopPC.x-desktopPC.depth/2-.003;
-export const ps4Pro={x:(bayLeft+pcLeft)/2,z:.115,width:.055,height:.295,depth:.327,bottom:mediaConsole.top,standHeight:.009};
 // https://www.steamdeck.com/en/tech / https://www.steamdeck.com/en/tech/dock
-export const steamDeck={x:.72,z:.155,width:.298,height:.117,depth:.049,tilt:-Math.PI/15};
+export const steamDeck={x:.63,z:.155,width:.298,height:.117,depth:.049,tilt:-Math.PI/15};
 export const steamDock={width:.117,height:.029,depth:.0505,bottom:mediaConsole.top};
+// Official chassis sizes; the PS4 vertical support is illustrative. Centre it
+// between the Deck and the rotated PC, with clear space on both sides.
+// https://www.playstation.com/en-au/ps4/tech-specs/
+const deckRight=steamDeck.x+steamDeck.width/2,pcLeft=desktopPC.x-desktopPC.depth/2-.003;
+export const ps4Pro={x:(deckRight+pcLeft)/2,z:.115,width:.055,height:.295,depth:.327,bottom:mediaConsole.top,standHeight:.009};
 // The 12 mm raceway fits the 15 mm gap between the wall and the cabinet back.
 export const cableDuct={x:0,z:-.0925,width:.04,depth:.012,bottom:.23,top:television.centerY};
-export const dockCableHole={x:steamDeck.x,z:steamDeck.z-steamDock.depth/2-.009,radius:.032,rearY:.36};
+export const dockCableHole={x:steamDeck.x,z:steamDeck.z-steamDock.depth/2-.009,radius:.032,rearY:mediaConsole.top-.08};
 export const mediaCollider={minX:mediaConsole.x-mediaConsole.depth/2,maxX:mediaConsole.x+mediaConsole.depth/2,
  minZ:mediaConsole.z-mediaConsole.width/2,maxZ:mediaConsole.z+mediaConsole.width/2};
