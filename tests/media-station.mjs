@@ -27,10 +27,9 @@ for(const name of ['desktop-pc','ps4-pro','steam-deck-docked',...gameControllers
 const ps4=bounds('ps4-pro'),deck=bounds('steam-deck-docked'),whitePad=bounds('white-controller'),greyPad=bounds('grey-controller');
 assert.ok(ps4.max.y<screen.min.y&&deck.max.y<screen.min.y,'New devices leave the television unobstructed');
 // Local +X points to the viewer's right and maps to decreasing world Z.
-assert.ok(pc.max.z<ps4.min.z&&ps4.max.z<deck.min.z,'PS4 stays next to the PC, between it and the Deck');
-const leftGap=deck.min.z-ps4.max.z,rightGap=ps4.min.z-pc.max.z;
-assert.ok(leftGap>.05&&Math.abs(leftGap-rightGap)<1e-6,'PS4 and its stand are centred between devices with over 5 cm either side');
-assert.ok(screen.min.y-ps4.max.y>.03,'PS4 retains over 3 cm clearance beneath the TV');
+assert.ok(ps4.min.z-whitePad.max.z>.20&&ps4.min.z>greyPad.max.z,'Flat PS4 sits left of both controllers with clear space');
+assert.ok(screen.min.y-ps4.max.y>.25,'Low horizontal console leaves generous space below the screen');
+assert.equal(station.getObjectByName('ps4-vertical-stand'),undefined,'No vertical stand remains');
 // Project the complete device bounds onto the screen plane from seats across
 // the sofa, including the forward chaise: physical separation alone is not
 // enough if a closer device can still hide a corner of the picture.
@@ -48,8 +47,8 @@ for(const [eyeX,eyeZ] of [[7.1,8.4],[6.1,8.4],[7.1,9.45],[7.1,10.5]]){
 assert.ok(deck.max.z<greyPad.min.z,'Docked Steam Deck stays to the right of both controllers');
 const ps4Tiers=new THREE.Box3();station.getObjectByName('ps4-pro-chassis').traverse(o=>{if(o.name==='ps4-tier')ps4Tiers.union(new THREE.Box3().setFromObject(o));});
 const ps4Size=ps4Tiers.getSize(new THREE.Vector3());
-assert.ok(Math.abs(ps4Size.y-ps4Pro.height)<1e-6&&Math.abs(ps4Size.x-ps4Pro.depth)<1e-6&&Math.abs(ps4Size.z-ps4Pro.width)<1e-6,'Vertical PS4 uses the official 295 × 327 × 55 mm chassis');
-assert.ok(Math.abs(ps4Tiers.min.y-bounds('ps4-vertical-stand').max.y)<1e-6,'PS4 chassis touches its stand');
+assert.ok(Math.abs(ps4Size.y-.055)<1e-6&&Math.abs(ps4Size.x-.327)<1e-6&&Math.abs(ps4Size.z-.295)<1e-6,'Horizontal PS4 uses the official 295 × 327 × 55 mm chassis');
+let ps4Feet=0;station.getObjectByName('ps4-pro').traverse(o=>{if(o.name==='ps4-rubber-foot'){ps4Feet++;const b=new THREE.Box3().setFromObject(o);assert.ok(Math.abs(b.min.y-mediaConsole.top)<1e-6&&Math.abs(b.max.y-ps4Tiers.min.y)<1e-6,'Rubber feet support the chassis on the console');}});assert.equal(ps4Feet,4);
 const deckBody=station.getObjectByName('steam-deck'),deckShell=deckBody.getObjectByName('deck-shell');deckShell.geometry.computeBoundingBox();
 const deckSize=deckShell.geometry.boundingBox.getSize(new THREE.Vector3());
 assert.ok(Math.abs(deckSize.x-steamDeck.width)<1e-6&&Math.abs(deckSize.y-steamDeck.height)<1e-6,'Deck shell retains full 298 × 117 mm dimensions');
@@ -59,9 +58,9 @@ const dockSize=bounds('steam-dock').getSize(new THREE.Vector3());
 assert.ok(dockSize.z<=steamDock.width+.001&&dockSize.x<=steamDock.depth+.002,'Dock follows the official footprint including ports');
 const usb=station.getObjectByName('deck-dock-usb-c-cable'),usbEnd=usb.geometry.parameters.path.getPoint(1).applyMatrix4(usb.matrixWorld);
 assert.ok(bounds('deck-usb-c-plug').containsPoint(usbEnd),'Dock USB-C cable meets the handheld plug');
-for(const name of ['ps4-hdmi-cable','dock-hdmi-cable','pc-hdmi-cable','pc-power-cable']){
+for(const name of ['ps4-hdmi-cable','ps4-power-cable','dock-hdmi-cable','pc-hdmi-cable','pc-power-cable']){
  const cable=station.getObjectByName(name),start=cable.geometry.parameters.path.getPoint(0).applyMatrix4(cable.matrixWorld);
- const port=bounds({'ps4-hdmi-cable':'ps4-hdmi-plug','dock-hdmi-cable':'dock-hdmi-port','pc-hdmi-cable':'pc-hdmi-plug','pc-power-cable':'pc-power-plug'}[name]).expandByScalar(.001);
+ const port=bounds({'ps4-hdmi-cable':'ps4-hdmi-plug','ps4-power-cable':'ps4-power-plug','dock-hdmi-cable':'dock-hdmi-port','pc-hdmi-cable':'pc-hdmi-plug','pc-power-cable':'pc-power-plug'}[name]).expandByScalar(.001);
  assert.ok(port.containsPoint(start),'HDMI lead starts at its device connector');
 }
 for(const name of ['ps4-power-cable','dock-power-cable']){
@@ -136,7 +135,7 @@ for(const name of ['pc-hdmi-cable','ps4-hdmi-cable','dock-hdmi-cable','tv-power-
   }
   if(y>mediaConsole.top+.003&&y<.92&&Math.abs(x)>.04&&z>rearZ){
    const behindDock=name.startsWith('dock-')&&Math.abs(x-steamDeck.x)<.04&&y<mediaConsole.top+.012;
-   const behindPS4=name.startsWith('ps4-')&&Math.abs(x-ps4Pro.x)<.02&&z<ps4Pro.z-ps4Pro.depth/2+.003;
+   const behindPS4=name.startsWith('ps4-')&&Math.abs(x-ps4Pro.x)<.08&&z<ps4Pro.z-ps4Pro.depth/2+.003;
    const behindPC=name.startsWith('pc-')&&Math.abs(x-desktopPC.x)<.065&&z<desktopPC.z-desktopPC.width/2+.003;
    assert.ok(behindDock||behindPS4||behindPC,`${name} cannot cross the visible top above the cabinet`);
   }

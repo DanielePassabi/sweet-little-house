@@ -1,14 +1,13 @@
 import * as THREE from './vendor/three.module.js';
-import {mediaConsole as layout,television as tv,dockCableHole} from './media-layout.js?v=20261029-1';
+import {createBerserkCollection} from './berserk-books.js?v=20261029-2';
+import {mediaConsole as layout,television as tv,dockCableHole} from './media-layout.js?v=20261029-2';
 
 // Local X runs from left to right when looking at the TV from the sofa.
 export function createTVConsole(parent,box){
  const root=new THREE.Group();root.name='oak-tv-console';root.position.set(layout.x,0,layout.z);root.rotation.y=Math.PI/2;parent.add(root);
  const oak=new THREE.MeshStandardMaterial({color:'#b28a59',roughness:.78});
  const interior=new THREE.MeshStandardMaterial({color:'#9b764d',roughness:.84});
- const dark=new THREE.MeshStandardMaterial({color:'#66503b',roughness:.9});
  const ceramic=new THREE.MeshStandardMaterial({color:'#d5c7ae',roughness:.85});
- const pages=new THREE.MeshStandardMaterial({color:'#e0d6bd',roughness:1});
  root.userData.woodMaterials=[oak,interior];
  const block=(name,w,h,d,m,x,y,z)=>{const p=box(w,h,d,m,x,y,z,root);p.name=name;return p;};
  const part=(name,g,m,x,y,z)=>{const p=new THREE.Mesh(g,m);p.name=name;p.position.set(x,y,z);p.castShadow=p.receiveShadow=true;root.add(p);return p;};
@@ -31,7 +30,7 @@ export function createTVConsole(parent,box){
  const dockRearHole=new THREE.Path();dockRearHole.absarc(holeX,dockCableHole.rearY,dockCableHole.radius,0,Math.PI*2,true);rearShape.holes.push(dockRearHole);
  part('rear-panel-with-cable-hole',new THREE.ExtrudeGeometry(rearShape,{depth:.012,bevelEnabled:false,curveSegments:12}),interior,0,0,rear);
  for(const x of [-half+.14,0,half-.14])for(const z of [-.17,.17])block('recessed-oak-foot',.028,.09,.028,oak,x,.045,z);
- for(let i=0;i<2;i++)block('base-book',.24,.026,.18,i?pages:dark,-.48,.125+i*.026,.085);
+ createBerserkCollection(root,oak);
  const vaseProfile=[[0,0],[.043,0],[.055,.025],[.058,.10],[.040,.16],[.022,.18],[.022,.23],[.018,.235],[.016,.23],[.016,.18],[.034,.157],[.050,.095],[.047,.03],[0,.012]];
  const vase=new THREE.LatheGeometry(vaseProfile.map(p=>new THREE.Vector2(...p)),24);
  const lowVase=part('base-ceramic-vase',vase,ceramic,.48,bodyBottom,.07);lowVase.scale.set(.65,.8,.65);

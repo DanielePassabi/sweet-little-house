@@ -17,7 +17,10 @@ const top=new THREE.Box3().setFromObject(cabinet.getObjectByName('continuous-oak
 assert.ok(Math.abs(top.max.y-mediaConsole.top)<1e-6,'Top supports devices at 60 cm');
 assert.ok(Math.abs(bounds.min.x-3.09)<1e-6,'Rear cable space remains intact');
 const look=(x,y)=>new THREE.Raycaster(cabinet.localToWorld(new THREE.Vector3(x,y,.6)),new THREE.Vector3(-1,0,0)).intersectObject(cabinet,true);
-for(const x of [-.48,0,.48])assert.equal(look(x,.40)[0].object.name,'rear-panel-with-cable-hole','Three real open base niches');
+for(const x of [0,.48])assert.equal(look(x,.40)[0].object.name,'rear-panel-with-cable-hole','Unoccupied niches remain open');
+const manga=cabinet.getObjectByName('berserk-collection-1-43');
+assert.equal(look(manga.userData.volumes[10].x,.40)[0].object.name,'berserk-numbered-spines','Berserk replaces the generic books in the left niche');
+assert.equal(cabinet.getObjectByName('base-book'),undefined);
 assert.equal(look(0,.34).length,0,'Centred base cable hole passes through');
 const holeX=dockCableHole.x-(television.centerZ-mediaConsole.z),holeZ=dockCableHole.z-(mediaConsole.x-television.frontX);
 assert.equal(look(holeX,dockCableHole.rearY).length,0,'Dock cables have a real opening in the back panel');
@@ -30,9 +33,10 @@ cabinet.traverse(o=>{
  const b=new THREE.Box3().setFromObject(o),p=o.geometry.attributes.position;
  if(o.name==='recessed-oak-foot'){feet++;assert.ok(Math.abs(b.max.y-.09)<1e-6&&Math.abs(b.min.y)<1e-6);}
  assert.ok(!b.intersectsBox(tv),'Cabinet cannot cover the TV screen');
- triangles+=(o.geometry.index?.count??p.count)/3;
- for(let i=0;i<p.count;i++){
-  const v=new THREE.Vector3().fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld);
+ triangles+=(o.geometry.index?.count??p.count)/3*(o.count??1);
+ for(let instance=0;instance<(o.count??1);instance++)for(let i=0;i<p.count;i++){
+  const matrix=new THREE.Matrix4();if(o.isInstancedMesh)o.getMatrixAt(instance,matrix);
+  const v=new THREE.Vector3().fromBufferAttribute(p,i).applyMatrix4(matrix).applyMatrix4(o.matrixWorld);
   assert.ok(Number.isFinite(v.x+v.y+v.z)&&canStand(v.x,v.z,0),'Finite geometry clear of architecture');
   assert.ok(intersects(mediaCollider,v.x,v.z,.00001),'Cabinet fits the shared collision bounds');
  }

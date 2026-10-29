@@ -1,6 +1,6 @@
 import {getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261015-1';
 import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {mediaCollider} from './media-layout.js?v=20261029-1';
+import {mediaCollider} from './media-layout.js?v=20261029-2';
 import {room3Colliders} from './room3-layout.js?v=20261015-1';
 import {sanitaryColliders} from './sanitary-layout.js?v=20261016-4';
 import {wineCabinetCollider} from './wine-cabinet-layout.js?v=20261016-5';

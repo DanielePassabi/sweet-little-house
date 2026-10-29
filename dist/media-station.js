@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct,dockCableHole} from './media-layout.js?v=20261029-1';
+import {television as tv,desktopPC as pc,gameControllers,ps4Pro as ps4,steamDeck as deck,steamDock as dock,cableDuct as duct,dockCableHole} from './media-layout.js?v=20261029-2';
 
 // Local X = width seen from the sofa, +Z = toward the viewer, Y = vertical.
 export function createMediaStation(parent,box,{black,screen,wall}){
@@ -86,15 +86,15 @@ export function createMediaStation(parent,box,{black,screen,wall}){
   return add(root,name,geometry,material,x,y,z);
  }
  const playstation=new THREE.Group();playstation.name='ps4-pro';playstation.position.set(ps4.x,ps4.bottom,ps4.z);station.add(playstation);
- block(playstation,'ps4-vertical-stand',.13,ps4.standHeight,.26,matte,0,ps4.standHeight/2,0);
- const ps4Body=new THREE.Group();ps4Body.name='ps4-pro-chassis';ps4Body.position.y=ps4.standHeight;playstation.add(ps4Body);
- // Three stacked tiers become three vertical slabs when stood on its side.
- block(ps4Body,'ps4-recessed-core',.051,ps4.height-.012,ps4.depth-.010,rubber,0,ps4.height/2,0);
- for(const x of [-.0195,0,.0195])roundedShell(ps4Body,'ps4-tier',.016,ps4.height,ps4.depth,.003,matte,x,ps4.height/2,0);
- block(ps4Body,'ps4-disc-slot',.002,.14,.001,rubber,-.00975,.185,ps4.depth/2+.0005);
- block(ps4Body,'ps4-status-light',.001,.10,.001,whiteLED,.00975,.21,ps4.depth/2+.0005);
- for(const y of [.039,.059])block(ps4Body,'ps4-front-usb',.008,.012,.001,rubber,.004,y,ps4.depth/2+.0005);
- for(let j=0;j<13;j++)for(const x of [-.030,.030])block(playstation,'ps4-stand-vent',.009,.0008,.003,graphite,x,ps4.standHeight+.0004,-.10+j*.016);
+ for(const x of [-.105,.105])for(const z of [-.115,.115])block(playstation,'ps4-rubber-foot',.018,ps4.footHeight,.018,rubber,x,ps4.footHeight/2,z);
+ const ps4Body=new THREE.Group();ps4Body.name='ps4-pro-chassis';ps4Body.position.y=ps4.footHeight;playstation.add(ps4Body);
+ // Three horizontal tiers, separated by recessed ventilation channels.
+ block(ps4Body,'ps4-recessed-core',ps4.width-.012,.051,ps4.depth-.010,rubber,0,ps4.height/2,0);
+ for(const y of [.008,.0275,.047])roundedShell(ps4Body,'ps4-tier',ps4.width,.016,ps4.depth,.003,matte,0,y,0);
+ block(ps4Body,'ps4-disc-slot',.14,.002,.001,rubber,-.04,.01775,ps4.depth/2+.0005);
+ block(ps4Body,'ps4-status-light',.10,.001,.001,whiteLED,-.08,.03725,ps4.depth/2+.0005);
+ for(const x of [.060,.085])block(ps4Body,'ps4-front-usb',.012,.008,.001,rubber,x,.0275,ps4.depth/2+.0005);
+ for(let j=0;j<13;j++)for(const x of [-ps4.width/2,ps4.width/2])block(ps4Body,'ps4-side-vent',.001,.003,.006,graphite,x,.03725,-.12+j*.018);
 
  const deckSetup=new THREE.Group();deckSetup.name='steam-deck-docked';deckSetup.position.set(deck.x,dock.bottom,deck.z);station.add(deckSetup);
  const dockBody=new THREE.Group();dockBody.name='steam-dock';deckSetup.add(dockBody);
@@ -152,11 +152,12 @@ export function createMediaStation(parent,box,{black,screen,wall}){
   tube(station,name,path,radius,rubber);
  }
  function powerCable(name,lead,lane,radius){tube(station,name,cableRoute([...lead,[lane,.30,duct.z],[lane,.25,duct.z]]),radius,rubber);}
- const ps4Port=[ps4.x,ps4.bottom+ps4.standHeight+.06,ps4.z-ps4.depth/2-.003];
- block(playstation,'ps4-hdmi-plug',.012,.007,.009,graphite,0,ps4.standHeight+.06,-ps4.depth/2-.0045);
+ const ps4Port=[ps4.x-.06,ps4.bottom+ps4.footHeight+.025,ps4.z-ps4.depth/2-.003];
+ block(playstation,'ps4-hdmi-plug',.012,.007,.009,graphite,-.06,ps4.footHeight+.025,-ps4.depth/2-.0045);
+ block(playstation,'ps4-power-plug',.009,.006,.008,rubber,.07,ps4.footHeight+.018,-ps4.depth/2-.004);
  videoCable('ps4-hdmi-cable',rearLead(ps4Port),-.014);
  videoCable('dock-hdmi-cable',dockLead([deck.x-.023,dock.bottom+.007,deck.z+dockPortZ]),0);
- powerCable('ps4-power-cable',rearLead([ps4.x+.012,ps4.bottom+ps4.standHeight+.032,ps4.z-ps4.depth/2]),-.016,.002);
+ powerCable('ps4-power-cable',rearLead([ps4.x+.07,ps4.bottom+ps4.footHeight+.018,ps4.z-ps4.depth/2-.003]),-.016,.002);
  powerCable('dock-power-cable',dockLead([deck.x+.021,dock.bottom+.007,deck.z+dockPortZ]),.015,.0018);
 
  // HDMI goes to the TV centre; both power leads disappear behind the cabinet.

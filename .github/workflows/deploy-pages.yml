@@ -46,6 +46,7 @@ jobs:
           node --check dist/media-layout.js
           node --check dist/media-station.js
           node --check dist/tv-console.js
+          node --check dist/berserk-books.js
           node --check dist/entryway-layout.js
           node --check dist/entryway-motion.js
           node --check dist/entryway.js
@@ -83,6 +84,7 @@ jobs:
           node tests/room3.mjs
           node tests/media-station.mjs
           node tests/tv-console.mjs
+          node tests/berserk-books.mjs
           node tests/entryway.mjs
           node tests/television-video.mjs
           node tests/interior-lighting.mjs
