@@ -47,7 +47,7 @@ assert.equal(system.update(NaN),false);assert.throws(()=>system.toggle('none'),R
 assert.ok(events.some(s=>s.obstructed));
 system.setPlanVisible(true);assert.ok(system.doors.every(d=>d.arc.visible));system.setPlanVisible(false);
 const combined=createDoors(new THREE.Scene());setDoorCollisionTest(combined.blocksPoint);
-assert.equal(combined.state.length,7,'Four new hinged and three existing pocket doors');
+assert.equal(combined.state.length,8,'Four hinged, three pocket doors and the terrace slider');
 for(const room of rooms)assert.ok(canWalk(...safeRoomPosition(room)),`Safe spawn in ${room.id}`);
 for(const s of combined.state)combined.setOpen(s.id,true);for(let i=0;i<30;i++)combined.update(.1);
 for(const d of hingedDoorLayout){const p=hingedDoorPose(d,0),x=p.x+p.dx*d.width/2,z=p.z+p.dz*d.width/2;assert.ok(canWalk(x,z),'Doorway traversable when open');}

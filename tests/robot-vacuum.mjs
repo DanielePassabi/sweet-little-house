@@ -2,18 +2,21 @@ import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
 import {rooms,insidePolygon} from '../dist/model.js';
 import {canWalk,canWalkWithoutDoors,intersects,setKitchenCollisionVariant,setDoorCollisionTest} from '../dist/furniture-collisions.js';
-import {createRobotController,clearRobotSegment,robotLayout,robotDockCollider} from '../dist/robot-navigation.js';
+import {createRobotController,clearRobotSegment,robotLayout,robotDockCollider,robotRoomOrder,isRobotArea,createRobotNavigation} from '../dist/robot-navigation.js';
 import {createRobotVacuum} from '../dist/robot-vacuum.js';
 import {createDoors} from '../dist/doors.js';
 import {freezeStaticTransforms} from '../dist/render-state.js';
 import {shoeCabinetOpenCollider} from '../dist/entryway-layout.js';
 
 const isFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!doors.blocksWhenOpen(x,z,r)&&!intersects(robotDockCollider,x,z,r)&&!intersects(shoeCabinetOpenCollider,x,z,r);
-assert.ok(insidePolygon(robotLayout.dock.x,robotLayout.dock.z,rooms.find(r=>r.id==='utility').polygon));
+assert.ok(insidePolygon(robotLayout.dock.x,robotLayout.dock.z,rooms.find(r=>r.id==='bath2').polygon));
 
 assert.equal(clearRobotSegment({x:0,z:0},{x:1,z:0},x=>Math.abs(x-.5)>.03),false,'Swept check catches an obstacle between clear endpoints');
 const scene=new THREE.Scene(),visual=createRobotVacuum(scene),doors=createDoors(scene);
 freezeStaticTransforms(scene);
+assert.equal(robotLayout.dock.yaw,-Math.PI/2,'Faces the shower from beside the toilet');
+const backBounds=new THREE.Box3().setFromObject(visual.dock.getObjectByName('charging-back'));
+for(const [key,actual] of [['minX',backBounds.min.x],['maxX',backBounds.max.x],['minZ',backBounds.min.z],['maxZ',backBounds.max.z]])assert.ok(Math.abs(robotDockCollider[key]-actual)<1e-6,'Rotated charger matches its collider');
 assert.ok(isFree(robotLayout.dock.x,robotLayout.dock.z,robotLayout.clearance),'Docked robot clears walls, utilities and charging station');
 const bodyBounds=new THREE.Box3().setFromObject(visual.robot);
 assert.ok(bodyBounds.max.y<.15&&bodyBounds.min.y>.005,'Small floor-level robot with raised LiDAR and mop pads');
@@ -27,6 +30,8 @@ const occluder=new THREE.Mesh(new THREE.BoxGeometry(.5,.1,.5),new THREE.MeshBasi
 occluder.position.set(robotLayout.dock.x,1,robotLayout.dock.z);occluder.updateMatrixWorld();
 assert.equal(visual.pick(ray,[occluder]),null,'Cannot click through a wall or furniture');
 occluder.visible=false;assert.ok(visual.pick(ray,[occluder]));
+const nav=createRobotNavigation(isFree);
+for(const target of [{x:1,z:11},{x:1,z:9.7}])assert.equal(nav.route(robotLayout.dock,target),null,'Excluded rooms cannot be route destinations');
 setDoorCollisionTest(doors.blocksPoint);
 const liveFree=(x,z,r)=>canWalk(x,z,r)&&!intersects(robotDockCollider,x,z,r);
 function controller(onChange=()=>{}){return createRobotController({isFree,canMove:liveFree,prepareStep:doors.prepareRobotStep,onChange});}
@@ -34,6 +39,7 @@ function advance(robot,dt=.1){
  const before=robot.state;
  doors.update(dt,[{x:before.x,z:before.z,r:robotLayout.clearance}]);robot.update(dt);
  const after=robot.state;
+ assert.ok(isRobotArea(after.x,after.z),'Robot never transits through excluded spaces');
  assert.ok(liveFree(after.x,after.z,robotLayout.radius),`No collision at ${after.x}, ${after.z}`);
  assert.ok(Math.hypot(after.x-before.x,after.z-before.z)<=robotLayout.speed*Math.min(dt,.1)+1e-8,'No teleport or tunnelling');
  return after;
@@ -47,12 +53,14 @@ for(const variant of ['1','2','3']){
  while(robot.state.mode!=='docked'&&frames++<16000)advance(robot);
  assert.equal(robot.state.mode,'docked',`Variant ${variant} completes tour and returns`);
  assert.equal(robot.state.completed,true);
- assert.deepEqual([...robot.state.visited].sort(),rooms.map(r=>r.id).sort(),`Variant ${variant}: every room is visited`);
- assert.ok(doors.state.every(d=>d.open),'All seven initially closed doors were opened along the route');
+ assert.deepEqual([...robot.state.visited].sort(),[...robotRoomOrder].sort(),`Variant ${variant}: every room is visited`);
+ assert.ok(doors.state.filter(d=>!['utility','terrace'].includes(d.id)).every(d=>d.open),'All six interior doors still open automatically');
+ assert.ok(doors.state.filter(d=>['utility','terrace'].includes(d.id)).every(d=>!d.open),'Excluded rooms do not need their doors opened');
+ assert.equal(robot.state.total,7);
  assert.ok(Math.hypot(robot.state.x-robotLayout.dock.x,robot.state.z-robotLayout.dock.z)<.005);
  assert.equal(robot.state.yaw,robotLayout.dock.yaw,'Faces out from charger after docking');
  assert.equal(robot.update(.1),false,'Completed tour stops rendering');
- console.log(`PASS: kitchen ${variant}, full collision-free tour of nine spaces and return (${(frames/10).toFixed(1)} simulated seconds).`);
+ console.log(`PASS: kitchen ${variant}, full collision-free tour of seven interior spaces and return (${(frames/10).toFixed(1)} simulated seconds).`);
 }
 const robot=controller();robot.toggle();for(let i=0;i<200;i++)advance(robot);
 robot.toggle();const paused=robot.state;assert.equal(paused.mode,'paused');

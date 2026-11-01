@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {robotLayout} from './robot-navigation.js';
+import {robotLayout} from './robot-navigation.js?v=20261101-1';
 
 export function createRobotVacuum(scene){
  const group=new THREE.Group();group.name='robot-vacuum';scene.add(group);
@@ -43,7 +43,8 @@ export function createRobotVacuum(scene){
   const material=new THREE.MeshBasicMaterial({color:'#192b32',transparent:true,opacity,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4});
   const mesh=add(contact,'soft-contact-shadow',new THREE.CircleGeometry(r,48),material,0,.009,0);mesh.rotation.x=-Math.PI/2;mesh.receiveShadow=false;
  }
- dock.position.set(.085,0,robotLayout.dock.z);
+ dock.position.set(robotLayout.dock.x-Math.sin(robotLayout.dock.yaw)*.275,0,robotLayout.dock.z-Math.cos(robotLayout.dock.yaw)*.275);
+ dock.rotation.y=robotLayout.dock.yaw-Math.PI/2;
  add(dock,'charging-back',new THREE.BoxGeometry(.13,.30,.44),white,0,.16,0);
  add(dock,'charging-sensor',new THREE.BoxGeometry(.006,.10,.31),black,.068,.19,0);
  add(dock,'charging-tray',new THREE.BoxGeometry(.49,.007,.45),black,.18,.007,0);

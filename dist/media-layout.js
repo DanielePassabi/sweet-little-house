@@ -3,7 +3,7 @@
 export const television={model:'LG C1 83',width:1.851,height:1.062,depth:.0553,centerY:1.47,centerZ:9.72,frontX:3.175};
 // Centred 260 cm oak console without a tower. The taller PC fits entirely
 // to the right of the screen; the PS4 lies flat to the left of the controllers.
-export const mediaConsole={x:3.33,z:television.centerZ,depth:.48,width:2.60,top:.60};
+export const mediaConsole={x:3.33,z:television.centerZ,depth:.48,width:2.60,top:.60,cornerRadius:.07};
 // The PC and controllers are estimated from the photographs. Local X runs along
 // the TV, local Z faces the sofa. The rotated glass side faces left, towards the
 // television; the solid black side faces right towards the adjacent wall.

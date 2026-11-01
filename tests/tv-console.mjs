@@ -15,6 +15,16 @@ assert.ok(Math.abs(bounds.getCenter(new THREE.Vector3()).z-television.centerZ)<1
 assert.equal(cabinet.getObjectByName('bookcase-side'),undefined,'Tall column has been removed');
 const top=new THREE.Box3().setFromObject(cabinet.getObjectByName('continuous-oak-top'));
 assert.ok(Math.abs(top.max.y-mediaConsole.top)<1e-6,'Top supports devices at 60 cm');
+for(const name of ['continuous-oak-top','cabinet-base','cabinet-side']){
+ for(const mesh of cabinet.children.filter(o=>o.name===name)){
+  const p=mesh.geometry.attributes.position,v=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){
+   v.fromBufferAttribute(p,i).applyMatrix4(mesh.matrixWorld);cabinet.worldToLocal(v);
+   assert.ok(!(Math.abs(v.x)>mediaConsole.width/2-.01&&Math.abs(v.z)>mediaConsole.depth/2-.01),'All four former square footprint corners are rounded');
+  }
+ }
+}
+for(const name of ['left-flat-door','right-flat-door'])assert.equal(cabinet.getObjectByName(name).geometry.type,'ExtrudeGeometry','Cupboard fronts have softened corners too');
 assert.ok(Math.abs(bounds.min.x-3.09)<1e-6,'Rear cable space remains intact');
 const look=(x,y)=>new THREE.Raycaster(cabinet.localToWorld(new THREE.Vector3(x,y,.6)),new THREE.Vector3(-1,0,0)).intersectObject(cabinet,true);
 for(const x of [0,.48])assert.equal(look(x,.40)[0].object.name,'rear-panel-with-cable-hole','Unoccupied niches remain open');
