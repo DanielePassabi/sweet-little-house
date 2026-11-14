@@ -1,7 +1,7 @@
 import {rooms,insidePolygon,point} from './model.js';
 
 const bathroomWall=point([712,125])[0]-.15;
-export const robotLayout={radius:.175,clearance:.195,speed:.42,turnSpeed:3,dock:{x:bathroomWall-.355,z:7.55,yaw:-Math.PI/2}};
+export const robotLayout={radius:.175,height:.15,clearance:.195,speed:.42,turnSpeed:3,dock:{x:bathroomWall-.355,z:7.55,yaw:-Math.PI/2}};
 export const robotDockCollider={minX:bathroomWall-.145,maxX:bathroomWall-.015,minZ:7.33,maxZ:7.77};
 export const robotRoomOrder=['bath2','hall','room3','bath1','room2','bedroom','living'];
 const roomOrder=robotRoomOrder;

@@ -5,6 +5,8 @@ import {room3Colliders} from './room3-layout.js?v=20261015-1';
 import {sanitaryColliders} from './sanitary-layout.js?v=20261016-4';
 import {wineCabinetCollider} from './wine-cabinet-layout.js?v=20261016-5';
 import {shoeCabinetCollider,shoeCabinetOpenCollider} from './entryway-layout.js?v=20261028-4';
+import {bedroomColliders} from './bedroom-layout.js';
+import {DEFAULT_EYE_HEIGHT} from './movement.js';
 import {canStand,point,insidePolygon} from './model.js';
 
 
@@ -24,8 +26,6 @@ export const furnitureColliders=[
  {minX:1.12,maxX:2.32,minZ:4.58,maxZ:5.08},
  {minX:6.11,maxX:7.21,minZ:5.175,maxZ:5.675},
  {minX:5.70,maxX:6.62,minZ:7.00,maxZ:7.91},
- {minX:4.34,maxX:6.35,minZ:2.12,maxZ:3.98},
- {minX:7.02,maxX:7.62,minZ:1.02,maxZ:5.04},
  {minX:point([529,632])[0]-.06-.55,maxX:point([529,632])[0]-.06,minZ:point([529,632])[1]+.06,maxZ:point([529,742])[1]-.06},
 ];
 furnitureColliders.push(...sofaColliders);
@@ -34,7 +34,6 @@ furnitureColliders.push(circle(1.275,12.25,.425));
 for(const z of [11.76,12.74])furnitureColliders.push(circle(1.275,z,.275));
 furnitureColliders.push(circle(.18,10.83,.24));
 furnitureColliders.push(...room3Colliders);
-for(const z of [1.96,4.14])furnitureColliders.push(rect(4.535,4.985,z-.225,z+.225));
 furnitureColliders.push(rect(.11,.69,8.565,8.815));
 furnitureColliders.push(...sanitaryColliders);
 export function intersects(c,x,z,r){
@@ -57,27 +56,34 @@ export function intersects(c,x,z,r){
 // Spatial buckets avoid scanning every furnishing for each physics substep.
 const buckets=new Map();
 const permanentFurnitureColliders=[...furnitureColliders];
-export function setKitchenCollisionVariant(id){
- const variant=getKitchenVariant(id);
- furnitureColliders.splice(0,furnitureColliders.length,...permanentFurnitureColliders,...getDiningConfiguration(variant).colliders,...variant.colliders);
+let bedroomType='2',variant=getKitchenVariant('1');
+function rebuildFurnitureIndex(){
+ furnitureColliders.splice(0,furnitureColliders.length,...permanentFurnitureColliders,...bedroomColliders[bedroomType],...getDiningConfiguration(variant).colliders,...variant.colliders);
  buckets.clear();
  for(const c of furnitureColliders)for(let x=Math.floor(c.minX);x<=Math.floor(c.maxX);x++)for(let z=Math.floor(c.minZ);z<=Math.floor(c===shoeCabinetCollider?shoeCabinetOpenCollider.maxZ:c.maxZ);z++){
   const key=x+','+z;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(c);
  }
 }
-setKitchenCollisionVariant('1');
+export function setKitchenCollisionVariant(id){
+ variant=getKitchenVariant(id);rebuildFurnitureIndex();
+}
+export function setBedroomCollisionVariant(id){
+ if(id!=='1'&&id!=='2')throw new RangeError('Unknown bedroom type: '+id);
+ bedroomType=id;rebuildFurnitureIndex();
+}
+rebuildFurnitureIndex();
 // Indexed against the full motion envelope; only the actual front is solid.
 export function setShoeCabinetExtent(maxZ){shoeCabinetCollider.maxZ=Math.max(shoeCabinetCollider.minZ+.25,Math.min(shoeCabinetOpenCollider.maxZ,maxZ));}
 let doorCollisionTest=()=>false;
 export function setDoorCollisionTest(test){doorCollisionTest=test??(()=>false);}
-export function canWalk(x,z,r=.18){
- return !doorCollisionTest(x,z,r)&&canWalkWithoutDoors(x,z,r);
+export function canWalk(x,z,r=.18,top=DEFAULT_EYE_HEIGHT+.12){
+ return !doorCollisionTest(x,z,r)&&canWalkWithoutDoors(x,z,r,top);
 }
 // Route planning may ignore movable doors; actual movement still checks them.
-export function canWalkWithoutDoors(x,z,r=.18){
+export function canWalkWithoutDoors(x,z,r=.18,top=DEFAULT_EYE_HEIGHT+.12){
  if(!canStand(x,z,r))return false;
  for(let gx=Math.floor(x-r);gx<=Math.floor(x+r);gx++)for(let gz=Math.floor(z-r);gz<=Math.floor(z+r);gz++){
-  for(const c of buckets.get(gx+','+gz)??[])if(intersects(c,x,z,r))return false;
+  for(const c of buckets.get(gx+','+gz)??[])if(top>(c.base??0)&&intersects(c,x,z,r))return false;
  }
  return true;
 }

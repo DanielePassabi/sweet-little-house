@@ -8,7 +8,7 @@ import {createDoors} from '../dist/doors.js';
 import {freezeStaticTransforms} from '../dist/render-state.js';
 import {shoeCabinetOpenCollider} from '../dist/entryway-layout.js';
 
-const isFree=(x,z,r)=>canWalkWithoutDoors(x,z,r)&&!doors.blocksWhenOpen(x,z,r)&&!intersects(robotDockCollider,x,z,r)&&!intersects(shoeCabinetOpenCollider,x,z,r);
+const isFree=(x,z,r)=>canWalkWithoutDoors(x,z,r,robotLayout.height)&&!doors.blocksWhenOpen(x,z,r)&&!intersects(robotDockCollider,x,z,r)&&!intersects(shoeCabinetOpenCollider,x,z,r);
 assert.ok(insidePolygon(robotLayout.dock.x,robotLayout.dock.z,rooms.find(r=>r.id==='bath2').polygon));
 
 assert.equal(clearRobotSegment({x:0,z:0},{x:1,z:0},x=>Math.abs(x-.5)>.03),false,'Swept check catches an obstacle between clear endpoints');
@@ -33,7 +33,7 @@ occluder.visible=false;assert.ok(visual.pick(ray,[occluder]));
 const nav=createRobotNavigation(isFree);
 for(const target of [{x:1,z:11},{x:1,z:9.7}])assert.equal(nav.route(robotLayout.dock,target),null,'Excluded rooms cannot be route destinations');
 setDoorCollisionTest(doors.blocksPoint);
-const liveFree=(x,z,r)=>canWalk(x,z,r)&&!intersects(robotDockCollider,x,z,r);
+const liveFree=(x,z,r)=>canWalk(x,z,r,robotLayout.height)&&!intersects(robotDockCollider,x,z,r);
 function controller(onChange=()=>{}){return createRobotController({isFree,canMove:liveFree,prepareStep:doors.prepareRobotStep,onChange});}
 function advance(robot,dt=.1){
  const before=robot.state;
