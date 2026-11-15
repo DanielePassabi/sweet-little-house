@@ -16,7 +16,7 @@ Il sito è pubblicato su GitHub Pages all'indirizzo https://danielepassabi.githu
 
 - Panoramica: trascinare per ruotare, rotella/pinch per avvicinarsi, tasto destro per spostare il centro.
 - Pianta: vista dall’alto, rotella per zoom. Selezione ambiente dalla lista.
-- Visita: clic su Entra nella casa, WASD/frecce per camminare (1,5 m/s), Shift per correre (3 m/s), Spazio per un salto breve, mouse per guardarsi intorno, Esc per mettere in pausa. Su dispositivi touch: frecce a schermo, Salta, Corri tenuto premuto e trascinamento. Altezza occhi iniziale: 1,75 m. Alla perdita del focus la visita va in pausa; Entra nella casa la riattiva. Se il blocco del mouse non è disponibile, si può trascinare nella scena.
+- **Visita** apre direttamente la stanza selezionata. Usa WASD o le frecce per camminare (1,5 m/s), Shift per correre (3 m/s), Spazio per saltare e il mouse per guardarti intorno. Se il browser lascia libero il puntatore, trascina nella scena. Su touch la leva a sinistra regola direzione e velocità, l’altro dito controlla la visuale. A destra trovi Salta e Corri. Esc o il cambio di finestra mettono in pausa. **Riprendi la visita** riattiva i comandi dalla stessa posizione.
 - Righello: selezionare due punti del pavimento in panoramica o pianta.
 
 ## Riferimenti e approssimazioni

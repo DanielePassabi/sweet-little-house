@@ -5,7 +5,8 @@ import { wallVolumes, unionSurface } from './wall-geometry.js?v=20260915-1';
 
 import { createLandscape } from './landscape.js?v=20260915-3';
 
-import { createMovement, DEFAULT_EYE_HEIGHT, movementCodes } from './movement.js?v=20260916-1';
+import { createMovement, createWalkLook, DEFAULT_EYE_HEIGHT, movementCodes } from './movement.js?v=20261115-visit';
+import {createWalkControls} from './walk-controls.js?v=20261115-visit';
 
 import { createRenderState, freezeStaticTransforms, indexStaticSurface } from './render-state.js?v=20260916-3';
 
@@ -721,8 +722,10 @@ function currentOverhead(){
  return volumes;
 }
 let overheadVolumes=currentOverhead();
+const walkLook=createWalkLook();
+let frameRobot=robotController.state;
 const movement=createMovement((x,z,r=.18)=>{
- const robot=robotController.state;
+ const robot=frameRobot;
  return canWalk(x,z,r,eyeHeight+.12)&&!intersects(robotDockCollider,x,z,r)&&Math.hypot(x-robot.x,z-robot.z)>r+robotLayout.radius;
 },(x,z,eye)=>{
  let ceilingHeight=HEIGHT;
@@ -783,11 +786,11 @@ function applyRenderProfile(mode){
 function resetOverview(){controls.target.set(4.6,0,7.35);const widthRatio=Math.max(1,1.03/(host.clientWidth/host.clientHeight));perspective.position.set(4.6+12*widthRatio,17*widthRatio,7.35+16*widthRatio);controls.update();}
 function resetPlan(){orthographic.position.set(4.8,24,7.4);orthographic.up.set(0,0,-1);orthographic.lookAt(4.8,0,7.4);orthographic.zoom=Math.min(.80,(host.clientWidth/host.clientHeight)*1.5);orthographic.updateProjectionMatrix();}
 function applyLook(){perspective.rotation.order='YXZ';perspective.rotation.set(pitch,yaw,0);}
-function resetMovement(){keys.clear();touchKeys.clear();movement.reset();drag=null;if(view==='walk')perspective.position.y=eyeHeight;}
-function stopWalk(){walkActive=false;resetMovement();$('#enter-walk').hidden=view!=='walk';$('#crosshair').hidden=true;if(document.pointerLockElement===renderer.domElement)document.exitPointerLock();}
+function resetMovement(){keys.clear();walkControls.reset();walkLook.reset();movement.reset();if(view==='walk')perspective.position.y=eyeHeight;}
+function stopWalk(){walkActive=false;resetMovement();$('#touch-controls').hidden=true;$('#enter-walk').hidden=view!=='walk';$('#crosshair').hidden=true;if(document.pointerLockElement===renderer.domElement)document.exitPointerLock();}
 function setView(mode){
  if(!['orbit','plan','walk'].includes(mode))return;
- stopWalk();if(measuring)toggleMeasure(false);view=mode;doors.setPlanVisible(view==='plan');$('#viewer').classList.toggle('walk-mode',view==='walk');
+ stopWalk();if(measuring)toggleMeasure(false);view=mode;doors.setPlanVisible(view==='plan');$('#viewer').classList.toggle('walk-mode',view==='walk');$('#labels').hidden=view==='walk';
  document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===view);b.setAttribute('aria-pressed',b.dataset.view===view);});
  const showCeiling=view==='walk';
  if(ceiling.visible!==showCeiling){ceiling.visible=showCeiling;renderer.shadowMap.needsUpdate=true;}
@@ -799,25 +802,45 @@ function setView(mode){
  $('#measure').disabled=view==='walk';$('#touch-controls').hidden=!(view==='walk'&&isTouch);
  $('#enter-walk').hidden=view!=='walk'||isTouch;
  $('#view-title').textContent=view==='walk'?'A casa, un passo alla volta.':view==='plan'?'Ogni ambiente, al suo posto.':'Uno spazio tutto da immaginare.';
- $('#view-help').textContent=view==='walk'?(isTouch?'Frecce · Salta · Tieni premuto Corri · Trascina per guardare':'WASD / frecce · Shift per correre · Spazio per saltare · Esc per pausa'):view==='plan'?'Rotella per lo zoom · Seleziona una stanza a destra':isTouch?'Un dito per ruotare · Due dita per zoom e spostamento':'Trascina per ruotare · Rotella per avvicinarti';
- if(view==='orbit')resetOverview();else if(view==='plan')resetPlan();else{const r=rooms.find(r=>r.id===selected)??rooms[0];const[x,z]=safeRoomPosition(r);perspective.position.set(x,eyeHeight,z);yaw=.3;pitch=0;if(r.id==='bedroom')faceBedroom(x,z);applyLook();updateSelection(r.id);walkActive=isTouch;}
+ if(view!=='walk')$('#view-help').textContent=view==='plan'?'Rotella per lo zoom · Seleziona una stanza a destra':isTouch?'Un dito per ruotare · Due dita per zoom e spostamento':'Trascina per ruotare · Rotella per avvicinarti';
+ if(view==='orbit')resetOverview();else if(view==='plan')resetPlan();else{const r=rooms.find(r=>r.id===selected)??rooms[0];const[x,z]=safeRoomPosition(r);perspective.position.set(x,eyeHeight,z);yaw=.3;pitch=0;if(r.id==='bedroom')faceBedroom(x,z);applyLook();updateSelection(r.id);}
  mapMarker.style.display=view==='walk'?'':'none';
 }
-document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
-$('#reset').onclick=()=>{updateSelection(null);setView(view);};
-function activateWalk(){if(view!=='walk'||document.hidden)return;walkActive=true;$('#enter-walk').hidden=true;$('#crosshair').hidden=false;renderer.domElement.focus({preventScroll:true});}
-renderer.domElement.tabIndex=0;
-renderer.domElement.setAttribute('aria-label','Visita 3D: WASD o frecce, Shift per correre, Spazio per saltare, Esc per pausa');
-$('#enter-walk').onclick=async()=>{
- activateWalk();
- try{await renderer.domElement.requestPointerLock();if(view!=='walk'&&document.pointerLockElement===renderer.domElement)document.exitPointerLock();}
- catch{if(view==='walk'&&walkActive)$('#view-help').textContent='Trascina per guardare · WASD / frecce · Shift per correre · Spazio per saltare · Esc per pausa';}
-};
-document.addEventListener('pointerlockchange',()=>{
- if(document.pointerLockElement===renderer.domElement){if(view==='walk')activateWalk();else document.exitPointerLock();}
- else if(view==='walk')stopWalk();
+document.querySelectorAll('[data-view]').forEach(button=>button.onclick=()=>{
+ if(view!==button.dataset.view)setView(button.dataset.view);
+ if(view==='walk'&&!walkActive)enterWalk();
 });
-const keys=new Set(),touchKeys=new Set();
+$('#reset').onclick=()=>{updateSelection(null);setView(view);if(view==='walk')enterWalk();};
+const canvas=renderer.domElement;
+canvas.tabIndex=0;
+canvas.setAttribute('aria-label','Visita 3D. WASD o frecce per muoverti, Shift per correre, Spazio per saltare, Esc per la pausa.');
+function updateWalkHelp(){
+ const locked=document.pointerLockElement===canvas;
+ $('#crosshair').hidden=!locked;
+ $('#view-help').textContent=isTouch?'Leva per muoverti · Trascina per guardare':
+  (locked?'Mouse':'Trascina')+' per guardare · WASD / frecce · Shift per correre · Spazio per saltare · Esc per pausa';
+}
+function enterWalk(){
+ if(view!=='walk'||document.hidden)return;
+ walkActive=true;$('#enter-walk').hidden=true;$('#touch-controls').hidden=!isTouch;
+ canvas.focus({preventScroll:true});updateWalkHelp();
+ if(!isTouch&&canvas.requestPointerLock){
+  // Drag-to-look is already available when pointer lock is unsupported or denied.
+  try{canvas.requestPointerLock()?.catch(()=>{});}catch{}
+ }
+}
+$('#enter-walk').onclick=enterWalk;
+document.addEventListener('pointerlockchange',()=>{
+ if(document.pointerLockElement===canvas){
+  if(view==='walk'&&walkActive)updateWalkHelp();else document.exitPointerLock();
+ }else if(view==='walk')stopWalk();
+});
+const keys=new Set();
+const walkControls=createWalkControls({
+ canvas,pad:$('#walk-stick'),buttons:document.querySelectorAll('[data-move]'),
+ active:()=>view==='walk'&&walkActive,jump:()=>movement.jump(),
+ turn:(dx,dy,sensitivity)=>walkLook.turn(dx,dy,sensitivity,pitch)
+});
 window.addEventListener('keydown',e=>{
  if(view!=='walk'||!walkActive)return;
  if(e.code==='Escape'){e.preventDefault();stopWalk();return;}
@@ -828,26 +851,14 @@ window.addEventListener('keyup',e=>keys.delete(e.code));
 window.addEventListener('blur',()=>{if(view==='walk')stopWalk();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&view==='walk')stopWalk();});
 document.addEventListener('focusin',e=>{if(e.target!==renderer.domElement)resetMovement();});
-function rotateLook(dx,dy,sensitivity){
- const safeX=THREE.MathUtils.clamp(Number.isFinite(dx)?dx:0,-90,90),safeY=THREE.MathUtils.clamp(Number.isFinite(dy)?dy:0,-90,90);
- yaw=THREE.MathUtils.euclideanModulo(yaw-safeX*sensitivity+Math.PI,Math.PI*2)-Math.PI;
- pitch=THREE.MathUtils.clamp(pitch-safeY*sensitivity,-1.35,1.35);applyLook();
+function applyLookDelta(dx,dy){
+ yaw=THREE.MathUtils.euclideanModulo(yaw+dx+Math.PI,Math.PI*2)-Math.PI;
+ pitch+=dy;applyLook();
 }
-document.addEventListener('mousemove',e=>{if(view==='walk'&&document.pointerLockElement===renderer.domElement)rotateLook(e.movementX,e.movementY,.002);});
-let drag=null;
-renderer.domElement.addEventListener('pointerdown',e=>{if(view==='walk'&&walkActive&&document.pointerLockElement!==renderer.domElement){renderer.domElement.focus({preventScroll:true});drag={x:e.clientX,y:e.clientY};renderer.domElement.setPointerCapture(e.pointerId);}});
-renderer.domElement.addEventListener('pointermove',e=>{if(!drag||view!=='walk')return;rotateLook(e.clientX-drag.x,e.clientY-drag.y,.004);drag={x:e.clientX,y:e.clientY};});
-renderer.domElement.addEventListener('pointerup',()=>drag=null);renderer.domElement.addEventListener('pointercancel',()=>drag=null);renderer.domElement.addEventListener('lostpointercapture',()=>drag=null);
-const moveCodes={forward:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',run:'ShiftLeft'};
-for(const b of document.querySelectorAll('[data-move]')){
- b.onpointerdown=e=>{if(view!=='walk')return;e.preventDefault();activateWalk();b.setPointerCapture(e.pointerId);if(b.dataset.move==='jump')movement.jump();else touchKeys.add(moveCodes[b.dataset.move]);};
- b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>touchKeys.delete(moveCodes[b.dataset.move]);
-}
-const activeKeys=new Set();
 function move(dt){
  if(view!=='walk'||!walkActive)return;
- activeKeys.clear();for(const key of keys)activeKeys.add(key);for(const key of touchKeys)activeKeys.add(key);
- movement.update(dt,activeKeys,yaw,perspective.position,eyeHeight);
+ walkLook.update(dt,applyLookDelta);
+ movement.update(dt,keys,yaw,perspective.position,eyeHeight,walkControls.stick);
 }
 bedroomSelector.onchange=()=>{
  if(bedroomSelector.value===bedroomType)return;
@@ -936,22 +947,28 @@ function updatePerformanceText(){
  if(!showPerformance)return;
  performanceText.textContent=`${idle?'A riposo · nessun ridisegno':currentFps.toFixed(0)+' FPS'}\n${renderer.info.render.calls} draw call · ${renderer.info.render.triangles.toLocaleString('it-IT')} triangoli\nCPU invio frame: ${cpuRenderMs.toFixed(1)} ms`;
 }
+let lastObjectShadow=-Infinity,shadowPending=false;
 function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.min((now-last)/1000,.1);last=now;
  if(document.hidden)return;
  if(view==='orbit'&&controls.enabled)controls.update();
+ frameRobot=robotController.state;
  move(dt);
- const robotState=robotController.state,occupants=[{x:robotState.x,z:robotState.z,r:robotLayout.clearance}];
+ const occupants=[{x:frameRobot.x,z:frameRobot.z,r:robotLayout.clearance}];
  if(view==='walk')occupants.push({x:perspective.position.x,z:perspective.position.z,r:.20});
  const doorsChanged=doors.update(dt,occupants);
  const bedChanged=bedLift.update(dt);
  const windowsChanged=windows.update(dt,view==='walk'?[{x:perspective.position.x,z:perspective.position.z,r:.20,top:perspective.position.y+.15,bottom:movement.jumpHeight}]:[]);
- if(doorsChanged||windowsChanged||bedChanged){
+ const cabinetChanged=entryCabinet.update(dt,occupants);
+ if(cabinetChanged)syncEntrywayControls();
+ const objectsMoved=doorsChanged||windowsChanged||bedChanged||cabinetChanged;
+ if(objectsMoved){shadowPending=true;renderState.invalidate();}
+ // Draw each pose, but share expensive shadow passes across walking frames.
+ // Flush the last pose even when the camera and the animated object have stopped.
+ if(shadowPending&&(view!=='walk'||!objectsMoved||now-lastObjectShadow>=100)){
   indoorLighting.invalidateShadows();renderer.shadowMap.needsUpdate=true;renderState.invalidate();
- }
- if(entryCabinet.update(dt,occupants)){
-  syncEntrywayControls();indoorLighting.invalidateShadows();renderer.shadowMap.needsUpdate=true;renderState.invalidate();
+  shadowPending=false;lastObjectShadow=now;
  }
  if(robotController.update(dt)){vacuum.sync(robotController.state,dt);updateRobotMarker();renderState.invalidate();}
  if(solarPending){solarPending=false;updateDaylight();}
@@ -959,7 +976,7 @@ function animate(now){
   const renderStart=performance.now();
   const labelElevation=(perspective.position.y-controls.target.y)/perspective.position.distanceTo(controls.target);
   const showLabels=view!=='walk'&&(view==='plan'||labelElevation>.28)&&showLabelsInput.checked;
-  for(const {room,el,at:[x,z]} of labelAnchors){
+  if(view!=='walk')for(const {room,el,at:[x,z]} of labelAnchors){
    const compactHidden=viewportWidth<600&&['hall','bath1','bath2','utility'].includes(room.id)&&selected!==room.id;
    const inspectingBedroom=room.id==='bedroom'&&selected===room.id;
    el.hidden=!showLabels||compactHidden||inspectingBedroom;if(el.hidden)continue;

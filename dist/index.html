@@ -5,7 +5,7 @@
  <title>Sweet Little House · La tua casa in 3D</title>
  <meta name="description" content="Esplora il modello in scala della tua casa: ambienti arredati, materiali e giardino.">
  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23203140'/%3E%3Cpath d='M7 15L16 7l9 8v11h-7v-8h-4v8H7z' fill='%23e9f0ed'/%3E%3C/svg%3E">
- <link rel="stylesheet" href="./style.css?v=20261016-2">
+ <link rel="stylesheet" href="./style.css?v=20261115-visit">
  <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/controls/OrbitControls.js":"./vendor/OrbitControls.js"}}</script>
 </head>
 <body>
@@ -18,12 +18,15 @@
    <div id="labels" role="group" aria-label="Inquadra un ambiente"></div>
    <div id="performance-overlay" hidden aria-label="Prestazioni della scena"><strong>Prestazioni</strong><div id="performance-values"></div></div>
    <div id="crosshair" hidden>+</div>
-   <button id="enter-walk" hidden>Entra nella casa <span>WASD / frecce · Shift per correre<br>Spazio per saltare · Esc per pausa</span></button>
+   <button id="enter-walk" hidden>Riprendi la visita</button>
    <div id="measure-result" role="status" hidden></div>
    <div class="map-card"><div class="map-heading"><span>ORIENTAMENTO</span><span id="current-room">Intero appartamento</span></div><svg id="minimap" viewBox="0 0 930 1420" role="img" aria-label="Posizione nella planimetria"></svg><div class="map-foot">PIANTA <span>Subalterno 4</span></div></div>
    <div class="view-caption"><strong id="view-title">Uno spazio tutto da immaginare.</strong><span id="view-help">Trascina per ruotare · Rotella per avvicinarti</span></div>
    <div class="scale-tag"><span class="scale-line"></span>Modello in metri</div>
-   <div id="touch-controls" hidden><div><button data-move="forward" aria-label="Avanti">↑</button><div><button data-move="left" aria-label="Sinistra">←</button><button data-move="back" aria-label="Indietro">↓</button><button data-move="right" aria-label="Destra">→</button></div></div><div><button data-move="jump" aria-label="Salta">Salta</button><br><button data-move="run" aria-label="Tieni premuto per correre">Corri</button></div><span>Trascina per guardarti intorno</span></div>
+   <div id="touch-controls" hidden>
+    <div id="walk-stick" role="group" aria-label="Leva di movimento"><i aria-hidden="true"></i></div>
+    <div class="walk-actions"><button data-move="jump" type="button">Salta</button><button data-move="run" type="button" aria-label="Tieni premuto per correre">Corri</button></div>
+   </div>
    <div id="error" role="alert" hidden></div>
   </section>
   <aside id="panel">
@@ -45,5 +48,5 @@
     <div class="panel-footer"><span class="empty-icon">◇</span><span>Arredo in corso<br><strong>Zona giorno, terrazza, locale tecnico, bagni e camere.</strong></span></div>
   </aside>
  </main>
- <script type="module" src="./app.js?v=20261114-3"></script>
+ <script type="module" src="./app.js?v=20261115-visit"></script>
 </body></html>
