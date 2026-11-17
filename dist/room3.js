@@ -1,5 +1,50 @@
 import * as THREE from './vendor/three.module.js';
-import {room3Desk as desk,room3Monitor as monitor,room3Laptop as laptop,room3Chair as chair,room3Sofa as sofa} from './room3-layout.js?v=20261015-1';
+import {room3Desk as desk,room3Monitor as monitor,room3Laptop as laptop,room3Chair as chair,room3Armchair as armchair} from './room3-layout.js?v=20261117-1';
+
+import {cushionGeometry} from './cushion-geometry.js';
+import {windowLayout} from './windows.js?v=20261101-1';
+
+export function createRoom3Picture(parent,doorFinish,photoTexture){
+ const opening=windowLayout.find(w=>w.roomId==='room3');
+ const picture=new THREE.Group();picture.name='room3-framed-photo';
+ // Looking out through the west window, left is towards increasing Z.
+ picture.position.set(opening.x+opening.wallThickness/2+.0005,1.58,opening.z+opening.width+.50);
+ picture.rotation.y=Math.PI/2;parent.add(picture);
+
+ const width=.34,height=.42;
+ // Sweep the cross-section around four mitred rails. Each pair is the inset
+ // from the outside edge and the depth towards the viewer, in metres.
+ function rim(profile){
+  const rings=profile.map(([inset,depth])=>{
+   const x=width/2-inset,y=height/2-inset;
+   return [[-x,-y,depth],[x,-y,depth],[x,y,depth],[-x,y,depth]];
+  });
+  const vertices=[];
+  for(let i=1;i<rings.length;i++){
+   const outer=rings[i-1],inner=rings[i];
+   for(let side=0;side<4;side++){
+    const next=(side+1)%4;
+    vertices.push(...outer[side],...outer[next],...inner[next],...outer[side],...inner[next],...inner[side]);
+   }
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.computeVertexNormals();
+  return geometry;
+ }
+ // A rounded outer bead, a shallow cove and a fine carved inner fillet.
+ const frame=new THREE.Mesh(rim([[0,0],[0,.014],[.001,.018],[.003,.020],[.005,.020],
+  [.007,.018],[.008,.015],[.009,.014],[.011,.0155],[.013,.0155],[.015,.013],
+  [.018,.011],[.021,.0105],[.0225,.012],[.024,.014],[.026,.014],[.028,.011],[.028,.0055]]),doorFinish);
+ frame.name='white-carved-frame';frame.castShadow=frame.receiveShadow=true;picture.add(frame);
+ const mat=new THREE.Mesh(rim([[.027,.007],[.049,.007],[.050,.006]]),
+  new THREE.MeshStandardMaterial({color:'#f7f4eb',roughness:1}));
+ mat.name='bevelled-photo-mat';mat.receiveShadow=true;picture.add(mat);
+ // The opening is 24 × 32 cm, the same 3:4 portrait ratio as the supplied print.
+ const print=new THREE.Mesh(new THREE.PlaneGeometry(.24,.32),
+  new THREE.MeshStandardMaterial({map:photoTexture,roughness:.89}));
+ print.name='portrait-print';print.position.z=.006;print.receiveShadow=true;picture.add(print);
+ return picture;
+}
 
 export function createRoom3(parent,box,{wood,black,upholstery,accent,sofaFabric,screen}){
  const room=new THREE.Group();room.name='room3-furniture';parent.add(room);
@@ -133,21 +178,26 @@ export function createRoom3(parent,box,{wood,black,upholstery,accent,sofaFabric,
   cable(seat,'chair-seat-stitching',[[side*.20,.566,.18],[side*.218,.574,0],[side*.21,.567,-.235]],.0014,stitching);
  }
 
- const couch=group(room,'room3-corner-sofa',sofa.minX,0,sofa.minZ);
- // Two rectangular legs form a real L; the inside corner remains walkable.
- soft(couch,'sofa-main-base',sofa.width,.26,sofa.depth,.055,sofaFabric,sofa.width/2,.25,sofa.depth/2);
- soft(couch,'sofa-return-base',sofa.depth,.26,sofa.length-sofa.depth,.055,sofaFabric,sofa.depth/2,.25,(sofa.length+sofa.depth)/2);
- soft(couch,'sofa-back-top-wall',sofa.width,.70,.16,.055,sofaFabric,sofa.width/2,.56,.08);
- soft(couch,'sofa-back-window-wall',.16,.70,sofa.length-.16,.055,sofaFabric,.08,.56,(sofa.length+.16)/2);
- for(const [x,z,w,d] of [[.405,.405,.45,.45],[1.04,.405,.78,.45],[.405,1.06,.45,.81]]){
-  soft(couch,'corner-sofa-seat',w,.14,d,.045,sofaFabric,x,sofa.seatHeight-.07,z);
+ // A low seat cradled by a fan of progressively taller upholstered lobes.
+ const readingChair=group(room,'boucle-reading-chair',armchair.x,0,armchair.z);
+ const lobe=cushionGeometry(1,1,1,2.48,[12,12,12],p=>{
+  // A slight waist where the upholstery is pulled under the lower edge.
+  const tuck=Math.exp(-((p.y+.34)**2)/.0018);
+  p.x*=1-.035*tuck;p.z*=1-.035*tuck;
+  return 1-.09*tuck;
+ });
+ const lobes=[];
+ function pad(x,y,z,w,h,d,tilt=0,turn=0){
+  lobes.push({p:[x,y,z],s:[w,h,d],r:[0,turn,tilt]});
  }
- for(const [x,z,w,d] of [[.49,.19,.57,.15],[1.16,.19,.70,.15],[.19,.95,.15,.73]]){
-  soft(couch,'corner-sofa-back-cushion',w,.41,d,.045,sofaFabric,x,.69,z);
+ pad(0,.19,-.135,1.18,.38,.72); // Upholstered support, set behind the front rolls.
+ pad(0,.20,.13,.61,.40,armchair.depth-.26);
+ pad(0,.64,-.305,.59,2*(armchair.height-.64),.43);
+ for(const side of [-1,1]){
+  pad(side*.439,.234,.15,.442,.468,.69,0,side*.07);
+  pad(side*.485,.425,-.038,.35,.44,.53,side*-.07,side*.12);
+  pad(side*.328,.545,-.255,.45,.52,.45,side*-.18,side*.19);
  }
- soft(couch,'sofa-end-arm',.16,.36,.57,.06,sofaFabric,sofa.width-.08,.47,.365);
- soft(couch,'sofa-return-arm',.57,.36,.16,.06,sofaFabric,.365,.47,sofa.length-.08);
- const sofaFeet=[[.13,.13],[sofa.width-.13,.13],[sofa.width-.13,.52],[.13,sofa.length-.13],[.52,sofa.length-.13],[.52,.52]];
- batch(couch,'corner-sofa-feet',new THREE.CylinderGeometry(.023,.018,.13,10),black,sofaFeet.map(([x,z])=>({p:[x,.065,z]})));
+ batch(readingChair,'boucle-upholstered-lobes',lobe,sofaFabric,lobes);
  return room;
 }

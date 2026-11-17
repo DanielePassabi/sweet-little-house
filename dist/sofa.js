@@ -1,73 +1,78 @@
 import * as THREE from './vendor/three.module.js';
 import {sofaLayout,sofaPumpkins} from './sofa-layout.js?v=20261012-1';
 
-// Soft channel upholstery, three tufted backs and a right-hand chaise from the photo.
+import {cushionGeometry} from './cushion-geometry.js';
+
+// Two loose back cushions over a continuous quilted seat and a wall-side chaise.
 export function createSofa(parent,materials){
  const {width,depth,chaiseDepth,chaiseWidth,backX,minZ,seatHeight}=sofaLayout;
  const group=new THREE.Group();group.name='purchased-sofa';
  group.position.set(backX,0,minZ+width/2);group.rotation.y=-Math.PI/2;parent.add(group);
  // Mirror the complete sofa, including its cushions and plush pumpkins.
  group.scale.x=-1;
- const cache=new Map(),repeated=new Map(),dummy=new THREE.Object3D();
- function softGeometry(w,h,d,r,tufted=false){
-  const key=[w,h,d,r,tufted].join(',');if(cache.has(key))return cache.get(key);
-  const geometry=new THREE.BoxGeometry(w,h,d,tufted?40:12,tufted?28:12,12);
-  const positions=geometry.attributes.position,normals=geometry.attributes.normal;
-  const half=new THREE.Vector3(w/2-r,h/2-r,d/2-r),low=half.clone().negate();
-  const v=new THREE.Vector3(),core=new THREE.Vector3(),n=new THREE.Vector3();
-  function tuft(x,y){
-   let indent=0;
-   for(const tx of [-w*.24,w*.24])for(const ty of [-h*.20,h*.20]){
-    const dx=x-tx,dy=y-ty;
-    indent+=.021*Math.exp(-(dx*dx+dy*dy)/.00055);
-    indent+=.004*Math.exp(-dx*dx/.00009-dy*dy/.011);
-    indent+=.003*Math.exp(-dx*dx/.011-dy*dy/.00009);
-   }
-   return -indent;
-  }
-  for(let i=0;i<positions.count;i++){
-   v.fromBufferAttribute(positions,i);core.copy(v).clamp(low,half);n.copy(v).sub(core).normalize();v.copy(core).addScaledVector(n,r);
-   if(tufted&&n.z>.5){
-    const strength=n.z;v.z+=tuft(v.x,v.y)*strength;
-    n.x-=(tuft(v.x+.001,v.y)-tuft(v.x-.001,v.y))/.002*strength;
-    n.y-=(tuft(v.x,v.y+.001)-tuft(v.x,v.y-.001))/.002*strength;n.normalize();
-   }
-   positions.setXYZ(i,v.x,v.y,v.z);normals.setXYZ(i,n.x,n.y,n.z);
-  }
-  geometry.computeBoundingBox();geometry.computeBoundingSphere();cache.set(key,geometry);return geometry;
+ function place(name,geometry,material,positions){
+  const mesh=new THREE.InstancedMesh(geometry,material,positions.length),dummy=new THREE.Object3D();
+  mesh.name=name;mesh.castShadow=mesh.receiveShadow=true;
+  positions.forEach(([x,y,z,rx=0,ry=0,rz=0],i)=>{
+   dummy.position.set(x,y,z);dummy.rotation.set(rx,ry,rz);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+  });
+  mesh.computeBoundingBox();mesh.computeBoundingSphere();group.add(mesh);
  }
- function cushion(name,w,h,d,r,material,x,y,z,rx=0,ry=0,rz=0,tufted=false){
-  const geometry=softGeometry(w,h,d,r,tufted),key=geometry.uuid+material.uuid;
-  if(!repeated.has(key))repeated.set(key,{name,geometry,material,matrices:[]});
-  dummy.position.set(x,y,z);dummy.rotation.set(rx,ry,rz);dummy.scale.set(1,1,1);dummy.updateMatrix();
-  repeated.get(key).matrices.push(dummy.matrix.clone());
+ // The inset bases disappear into shadow beneath the upholstered waterfall front.
+ const chaiseX=(width-chaiseWidth)/2;
+ place('sofa-shadow-base',cushionGeometry(width-.14,.085,depth-.14,8,[8,4,8]),materials.base,[[0,.059,depth/2]]);
+ place('chaise-shadow-base',cushionGeometry(chaiseWidth-.12,.085,chaiseDepth-.14,8,[8,4,8]),materials.base,[[chaiseX,.059,chaiseDepth/2]]);
+ place('sofa-back-frame',cushionGeometry(width-.13,.78,.24,5,[18,10,8]),materials.frame,[[0,.417,.12]]);
+
+ // One surface runs across each module and down its front. Stitching compresses
+ // the foam in both directions without opening gaps between adjacent squares.
+ function seamProfile(value,span,count){
+  const pitch=span/count,at=(value+span/2)/pitch,seam=Math.round(at);
+  if(seam<=0||seam>=count)return 0;
+  const offset=(at-seam)*pitch;
+  return .68*Math.exp(-((offset/.064)**2))+.32*Math.exp(-((offset/.020)**2));
  }
- // Recessed foot/base is almost hidden by the upholstery, as in the reference.
- cushion('sofa-shadow-base',width-.12,.08,depth-.10,.035,materials.base,0,.065,depth/2);
- cushion('chaise-shadow-base',chaiseWidth-.10,.08,chaiseDepth-.10,.035,materials.base,width/2-chaiseWidth/2,.065,chaiseDepth/2);
- cushion('sofa-back-frame',width-.08,.82,.21,.095,materials.frame,0,.46,.105);
- // Broad rounded arms stop at the seat front, leaving the end of the chaise open.
- for(const side of [-1,1])cushion('rounded-arms',.29,.65,depth,.14,materials.upholstery,side*(width/2-.145),.375,depth/2);
- const seatWidth=width-.56,pitch=seatWidth/9,start=.28;
- for(let i=0;i<9;i++){
-  const long=i>=6,end=long?chaiseDepth:depth;
-  cushion(long?'chaise-channels':'seat-channels',pitch-.004,.46,end-start,.11,materials.upholstery,
-   -seatWidth/2+(i+.5)*pitch,seatHeight-.23,(start+end)/2);
+ function quilt(w,h,d,columns,rows){
+  return cushionGeometry(w,h,d,5.8,[columns*16,10,rows*14],p=>{
+   const across=seamProfile(p.x,w,columns),along=seamProfile(p.z,d,rows);
+   const top=Math.max(0,2*p.y/h),front=Math.max(0,2*p.z/d),side=Math.abs(2*p.x/w);
+   p.y-=(.032*(across+along)+.009*across*along)*top*top;
+   p.z-=.039*across*front**5;
+   p.x*=1-.036*along*side**4;
+   return 1-.13*(across*Math.max(top,front)+along*Math.max(top,side));
+  });
  }
- // Continue the chaise to the outer edge of its arm, rather than narrowing its foot.
- cushion('chaise-outer-channel',.28,.46,chaiseDepth-1.10,.11,materials.upholstery,
-  width/2-.14,seatHeight-.23,(chaiseDepth+1.10)/2);
- const backWidth=(width-.52)/3;
- for(let i=0;i<3;i++)cushion('tufted-back-cushions',backWidth-.018,.57,.24,.08,materials.upholstery,
-  (i-1)*backWidth,.718,.265,-.10,0,0,true);
- // The two taupe scatter cushions shown in the photo remain in addition to the pumpkins.
- for(const side of [-1,1])cushion('taupe-scatter-cushions',.39,.39,.15,.065,materials.pillows,
-  side*.84,.66,.47,-.19,side*.08,side*-.12);
- for(const {name,geometry,material,matrices} of repeated.values()){
-  const instances=new THREE.InstancedMesh(geometry,material,matrices.length);instances.name=name;
-  matrices.forEach((matrix,i)=>instances.setMatrixAt(i,matrix));instances.castShadow=instances.receiveShadow=true;
-  instances.computeBoundingBox();instances.computeBoundingSphere();group.add(instances);
- }
+ const armWidth=.30,armX=(width-armWidth)/2,seatStart=.18,seatBottom=.026;
+ const seatH=seatHeight-seatBottom,seatY=seatBottom+seatH/2;
+ place('quilted-arms',quilt(armWidth,.61,depth,1,3),materials.upholstery,
+  [[-armX,.334,depth/2],[armX,.334,depth/2]]);
+ const mainWidth=width-chaiseWidth-armWidth,chaiseSeatWidth=chaiseWidth-armWidth;
+ place('quilted-seat',quilt(mainWidth,seatH,depth-seatStart,4,3),materials.upholstery,
+  [[-width/2+armWidth+mainWidth/2,seatY,(seatStart+depth)/2]]);
+ place('quilted-chaise',quilt(chaiseSeatWidth,seatH,chaiseDepth-seatStart,2,5),materials.upholstery,
+  [[width/2-armWidth-chaiseSeatWidth/2,seatY,(seatStart+chaiseDepth)/2]]);
+ const extensionStart=depth-.105;
+ place('chaise-outer-pad',quilt(armWidth,seatH,chaiseDepth-extensionStart,1,2),materials.upholstery,
+  [[armX,seatY,(extensionStart+chaiseDepth)/2]]);
+
+ const backW=(width-.46)/2,backH=.52,backD=.265;
+ const back=cushionGeometry(backW,backH,backD,4.4,[56,24,8],p=>{
+  // Two shallow, buttonless pulls gather the face of each broad pillow.
+  const dx=Math.abs(p.x)-backW*.237,dy=p.y+.006;
+  const dimple=Math.exp(-((dx/.059)**2+(dy/.050)**2));
+  const crease=Math.exp(-((dx/.024)**2+(dy/.125)**2));
+  const crossFold=Math.exp(-((dx/.14)**2+(dy/.024)**2));
+  const face=Math.max(0,2*p.z/backD);
+  p.z-=face*(.021*dimple+.006*crease+.005*crossFold);
+  const welt=Math.exp(-((p.z/.009)**2));
+  p.x*=1+.007*welt;p.y*=1+.011*welt;
+  return 1-.105*dimple*face-.022*crease*face;
+ });
+ place('tufted-back-cushions',back,materials.upholstery,
+  [[-backW/2,.713,.315,-.14,.012,.012],[backW/2,.706,.305,-.16,-.012,-.012]]);
+ // Taupe cushions nest against the rear edge, with one raised as in the photo.
+ place('taupe-scatter-cushions',cushionGeometry(.67,.218,.17,3.1,[18,10,8]),materials.pillows,
+  [[-backW/2,.90,.169,-.15,0,.012],[backW/2,.832,.17,-.14,0,-.023]]);
  // A continuous lobed surface gives each plush pumpkin soft ribs and a flattened base.
  const pumpkinGeometry=new THREE.SphereGeometry(1,64,32),p=pumpkinGeometry.attributes.position;
  for(let i=0;i<p.count;i++){

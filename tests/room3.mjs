@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
-import {createRoom3} from '../dist/room3.js';
-import {room3Desk,room3Monitor,room3Sofa,room3Colliders} from '../dist/room3-layout.js';
+import {createRoom3,createRoom3Picture} from '../dist/room3.js';
+import {windowLayout} from '../dist/windows.js';
+import {room3Desk,room3Monitor,room3Armchair,room3Colliders} from '../dist/room3-layout.js';
 import {canStand,insidePolygon,rooms} from '../dist/model.js';
 import {canWalk} from '../dist/furniture-collisions.js';
 
@@ -40,12 +41,13 @@ for(const x of [-.12,.12]){
  const origin=back.localToWorld(new THREE.Vector3(x,.585,-.3)),direction=new THREE.Vector3(0,0,1).transformDirection(back.matrixWorld);
  ray.set(origin,direction);assert.equal(ray.intersectObject(shell).length,0,'Harness slots stay open through the chair shell');
 }
-const sofa=bounds('room3-corner-sofa');
-close(sofa.max.x-sofa.min.x,room3Sofa.width,'L covers 160 cm along the top wall');
-close(sofa.max.z-sofa.min.z,room3Sofa.length,'L returns 150 cm along the window wall');
-assert.ok(sofa.max.y<1,'Backrest stays below the existing window sill');
-assert.equal(canWalk(.4,5.6),false);assert.equal(canWalk(.4,6.4),false);
-assert.equal(canWalk(1.05,6.35),true,'Inner space of the L is free');
+const reading=bounds('boucle-reading-chair');
+close(reading.max.y,room3Armchair.height,'Rounded central back reaches the design height');
+assert.ok(reading.max.y<1,'Backrest stays below the existing window sill');
+const lobes=object('boucle-upholstered-lobes');
+assert.ok(lobes.isInstancedMesh&&lobes.material===materials.sofaFabric,'Sculpted upholstery shares one fabric batch');
+assert.equal(canWalk(room3Armchair.x,room3Armchair.z),false);
+assert.equal(canWalk(room3Armchair.x,6.60),true,'The reading chair can be approached from the front');
 for(const p of [[2.60,6.25],[2.25,7.0],[.85,7.0]])assert.ok(canWalk(...p),'Door and workstation approaches remain open');
 
 const room=rooms.find(r=>r.id==='room3'),v=new THREE.Vector3(),matrix=new THREE.Matrix4();let triangles=0,draws=0;
@@ -63,4 +65,13 @@ furniture.traverse(mesh=>{
  }
 });
 assert.ok(draws<140&&triangles<40000,'Room details stay within a modest budget before global box batching');
-console.log(`PASS: joined 204 cm desk, central dual arm, 27-inch panel, left laptop, mechanical keyboard, single photo-inspired chair, low L sofa, clear architecture/collisions; ${draws} meshes, ${triangles} triangles.`);
+const opening=windowLayout.find(w=>w.roomId==='room3'),doorFinish=new THREE.MeshStandardMaterial(),portrait=new THREE.Texture();
+const picture=createRoom3Picture(scene,doorFinish,portrait),pictureBox=new THREE.Box3().setFromObject(picture);
+assert.ok(pictureBox.min.z>opening.z+opening.width,'Picture is left of the window when viewed from inside');
+close(pictureBox.min.x,opening.x+opening.wallThickness/2+.0005,'Frame is flush with the inner wall');
+assert.equal(picture.getObjectByName('white-carved-frame').material,doorFinish);
+const print=picture.getObjectByName('portrait-print'),printSize=new THREE.Box3().setFromObject(print).getSize(v);
+close(printSize.z/printSize.y,3/4,'Portrait keeps the proportions of the supplied photograph');
+assert.equal(print.material.map,portrait);
+assert.ok(print.getWorldDirection(v).x>.999,'Printed side faces into the room');
+console.log(`PASS: joined 204 cm desk, central dual arm, 27-inch panel, left laptop, mechanical keyboard, single photo-inspired chair, bouclé reading chair, clear architecture/collisions; ${draws} meshes, ${triangles} triangles.`);

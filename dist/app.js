@@ -28,8 +28,8 @@ import {createTVConsole} from './tv-console.js?v=20261101-2';
 import {createEntryway} from './entryway.js?v=20261028-4';
 import {shoeCabinetOpenCollider} from './entryway-layout.js?v=20261028-4';
 import {television,gameControllers} from './media-layout.js?v=20261101-2';
-import {createSofa} from './sofa.js?v=20261012-1';
-import {createRoom3} from './room3.js?v=20261015-1';
+import {createSofa} from './sofa.js?v=20261117-1';
+import {createRoom3,createRoom3Picture} from './room3.js?v=20261117-2';
 import {createBed} from './bed.js?v=20261114-3';
 import {createBedroomCabinets} from './bedroom-cabinets.js';
 import {createOriginalBed} from './original-bed.js?v=20261114-3';
@@ -37,8 +37,8 @@ import {bedLayout,bridge,originalBedroom} from './bedroom-layout.js';
 import {createSanitaryFixtures} from './sanitary.js?v=20261016-4';
 import {createWineCabinet} from './wine-cabinet.js?v=20261016-5';
 import {sofaLayout,sofaPumpkins,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
-import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setBedroomCollisionVariant,setDoorCollisionTest,setShoeCabinetExtent} from './furniture-collisions.js?v=20261114-1';
-import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261011-1';
+import {canWalk,canWalkWithoutDoors,intersects,furnitureColliders,safeRoomPosition,setKitchenCollisionVariant,setBedroomCollisionVariant,setDoorCollisionTest,setShoeCabinetExtent} from './furniture-collisions.js?v=20261117-1';
+import {applyMaterialDetails,applyKitchenMaterials} from './material-details.js?v=20261117-1';
 import {solarPosition,romeDate} from './solar.js?v=20260916-1';
 
 const renderState=createRenderState();
@@ -192,8 +192,8 @@ createBathroomTiles(model,renderer.capabilities.getMaxAnisotropy());
 // First furniture layout, following the annotated plan: media wall to the west and
 // a generous L-shaped sectional opposite it, while keeping the hall route clear.
 const furniture=new THREE.Group();model.add(furniture);
-const sofaFrameMaterial=new THREE.MeshStandardMaterial({color:'#dfd8cc',roughness:1});
-const sofaCushionMaterial=new THREE.MeshStandardMaterial({color:'#ebe5db',roughness:1});
+const sofaFrameMaterial=new THREE.MeshStandardMaterial({color:'#d5c7b3',roughness:1});
+const sofaCushionMaterial=new THREE.MeshStandardMaterial({color:'#eadac4',roughness:1});
 const sofaAccentMaterial=new THREE.MeshStandardMaterial({color:'#9c9285',roughness:1});
 const pumpkinWhite=new THREE.MeshPhysicalMaterial({color:'#f5f0e7',roughness:1,sheen:1,sheenColor:'#fffaf1',sheenRoughness:1});
 const pumpkinTan=new THREE.MeshPhysicalMaterial({color:'#c6a782',roughness:1,sheen:1,sheenColor:'#ddc6a6',sheenRoughness:1});
@@ -541,15 +541,19 @@ for(const side of [-1,1]){
 }
 hallWardrobeBox(hallWardrobeDepth,.08,hallWardrobeWidth,wardrobeFrontMaterial,(hallWardrobeFront+hallWardrobeBack)/2,2.52,hallWardrobeCenterZ);
 
-// Joined desks, one photo-inspired workstation/chair and a low corner sofa.
+// Joined desks, one workstation chair and a sculpted bouclé reading chair.
 const deskWood=new THREE.MeshStandardMaterial({color:'#d5ad78',roughness:.76});
 const gamingUpholstery=new THREE.MeshStandardMaterial({color:'#252a2f',roughness:.9});
 const gamingAccent=new THREE.MeshStandardMaterial({color:'#555c65',roughness:.88});
-const readingFabric=new THREE.MeshStandardMaterial({color:'#c8b599',roughness:1});
+const readingFabric=new THREE.MeshStandardMaterial({color:'#fff9ed',roughness:1});
 const room3Furniture=createRoom3(model,box,{wood:deskWood,black:furnitureBlack,upholstery:gamingUpholstery,accent:gamingAccent,sofaFabric:readingFabric,screen:screenMaterial});
+const portraitTexture=new THREE.TextureLoader().load(new URL('./assets/room3-portrait.jpg',import.meta.url).href,()=>renderState.invalidate());
+portraitTexture.colorSpace=THREE.SRGBColorSpace;
+portraitTexture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+createRoom3Picture(room3Furniture,hingedTrim,portraitTexture);
 
 const bathroomFixtureCount=bathroomFixtures.children.length,diningObjectCount=diningGroups.get(activeKitchen.id).children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
-applyMaterialDetails({upholstery:[readingFabric,sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial,bedUpholstery],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,taupeBedding,quiltFabric,bedLinen,...detailedBed.userData.fabricMaterials,...originalBed.userData.fabricMaterials,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown,...detailedTVConsole.userData.woodMaterials,...entrywayFurniture.userData.woodMaterials],metal:[bathroomMetal,kitchenSteel,applianceTrim],glass:[showerGlass]},renderer);
+applyMaterialDetails({boucle:readingFabric,sofaWeave:[sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],upholstery:[bedUpholstery],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,taupeBedding,quiltFabric,bedLinen,...detailedBed.userData.fabricMaterials,...originalBed.userData.fabricMaterials,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown,...detailedTVConsole.userData.woodMaterials,...entrywayFurniture.userData.woodMaterials],metal:[bathroomMetal,kitchenSteel,applianceTrim],glass:[showerGlass]},renderer);
 const assetInstanceStats=flushStaticInstances();
 
 // Most architectural details and furniture share the same cube geometry. Batch
@@ -1015,4 +1019,4 @@ renderer.compileAsync(scene,perspective).then(()=>requestAnimationFrame(animate)
  $('#error').hidden=false;$('#error').textContent='La vista 3D non si è avviata. Prova a ricaricare la pagina.';console.error(error);
 });
 // Small read-only diagnostics and deterministic spatial queries for validation.
-window.houseModel={get openings(){return {doors:doors.state,windows:windows.state};},get robot(){return robotController.state;},get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,interiorLighting:indoorLighting.state,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',parquetRoomIds:[...parquetRoomIds],nightFloor:'stoneware-with-bedroom-parquet',livingFloor:'dark-stoneware',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:sofaLayout.width,chaiseLength:sofaLayout.chaiseDepth,sofaDepth:sofaLayout.depth,sofaStyle:'ivory-channel-tufted-wall-side-chaise',plushPumpkinCount:sofaPumpkins.length,televisionModel:television.model,televisionWidth:television.width,televisionHeight:television.height,gameControllerCount:gameControllers.length,bedroomType,bedLength:bedroomType==='2'?bedLayout.length:2,bedOpen:bedLift.open,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount:(bedroomFurniture.visible?bedroomFurniture:originalFurniture).userData.objectCount,kitchenObjectCount:kitchenGroups.get(activeKitchen.id).userData.objectCount,diningObjectCount,kitchenType:activeKitchen.id,kitchenLayout:activeKitchen.description,kitchenWallCabinets:activeKitchen.wallCabinets.length,breakfastDiameter:activeKitchen.breakfast.r?activeKitchen.breakfast.r*2:null,breakfastWidth:activeKitchen.breakfast.w??activeKitchen.breakfast.r*2,breakfastHeight:activeKitchen.breakfast.bottom+activeKitchen.breakfast.h,diningDiameter:getDiningConfiguration(activeKitchen).table.r*2,diningChairCount:getDiningConfiguration(activeKitchen).chairs.length,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};
+window.houseModel={get openings(){return {doors:doors.state,windows:windows.state};},get robot(){return robotController.state;},get state(){return {view,selected,height:HEIGHT,sunDirection:currentSun?.direction,sunElevation:currentSun?currentSun.altitude*180/Math.PI:0,sunAzimuth:currentSun?.azimuth,solarDate:sunDateInput.value,solarMinutes:Number(sunTimeInput.value),ceilingShadows:ceiling.visible,interiorLighting:indoorLighting.state,tileSize,eyeHeight,jumpHeight:movement.jumpHeight,walkActive,position:perspective.position.toArray(),yaw,pitch,wallCount:walls.length,colliderCount:collisionWalls.length+furnitureColliders.length,nightRoomIds:[...nightRoomIds],ground:'grass',parquetRoomIds:[...parquetRoomIds],nightFloor:'stoneware-with-bedroom-parquet',livingFloor:'dark-stoneware',bathroomFloor:'dark-stoneware',furniture:'living-sectional-tv-utility-terrace-bathrooms-bedrooms-plants-kitchen-dining-and-hall-wardrobe',sofaLength:sofaLayout.width,chaiseLength:sofaLayout.chaiseDepth,sofaDepth:sofaLayout.depth,sofaStyle:'beige-woven-quilted-wall-side-chaise',plushPumpkinCount:sofaPumpkins.length,televisionModel:television.model,televisionWidth:television.width,televisionHeight:television.height,gameControllerCount:gameControllers.length,bedroomType,bedLength:bedroomType==='2'?bedLayout.length:2,bedOpen:bedLift.open,furnitureObjectCount,utilityObjectCount,terraceObjectCount,bathroomFixtureCount,bedroomObjectCount:(bedroomFurniture.visible?bedroomFurniture:originalFurniture).userData.objectCount,kitchenObjectCount:kitchenGroups.get(activeKitchen.id).userData.objectCount,diningObjectCount,kitchenType:activeKitchen.id,kitchenLayout:activeKitchen.description,kitchenWallCabinets:activeKitchen.wallCabinets.length,breakfastDiameter:activeKitchen.breakfast.r?activeKitchen.breakfast.r*2:null,breakfastWidth:activeKitchen.breakfast.w??activeKitchen.breakfast.r*2,breakfastHeight:activeKitchen.breakfast.bottom+activeKitchen.breakfast.h,diningDiameter:getDiningConfiguration(activeKitchen).table.r*2,diningChairCount:getDiningConfiguration(activeKitchen).chairs.length,hallWardrobeObjectCount,room3ObjectCount,plantCount,lemonPlantCount:0,treeCount,mountainCount,cloudCount,grassCount};},get performance(){return {fps:Number(currentFps.toFixed(1)),idle,renderedFrames,cpuRenderMs,frozenTransformCount,wallVertexStats,pixelRatio:renderPixelRatio,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,staticShadowMap:renderer.shadowMap.autoUpdate===false,batchedBoxes,assetInstanceStats};},canStand:canWalk,rooms:rooms.map(r=>({id:r.id,at:safeRoomPosition(r)}))};

@@ -26,7 +26,7 @@ sofa.traverse(mesh=>{
  }
 });
 assert.ok(draws<20&&triangles<75000,'Repeated upholstery stays batched within a modest render budget');
-assert.equal(sofa.getObjectByName('tufted-back-cushions').count,3,'Three tufted back pillows match the reference');
+assert.equal(sofa.getObjectByName('tufted-back-cushions').count,2,'Two broad tufted back pillows match the purchased sofa');
 assert.equal(sofa.getObjectByName('taupe-scatter-cushions').count,2);
 for(const pumpkin of sofaPumpkins){
  const plush=sofa.getObjectByName(pumpkin.name);assert.ok(plush?.isGroup,'Both named plush pumpkins exist');
