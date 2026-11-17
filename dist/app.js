@@ -28,8 +28,8 @@ import {createTVConsole} from './tv-console.js?v=20261101-2';
 import {createEntryway} from './entryway.js?v=20261028-4';
 import {shoeCabinetOpenCollider} from './entryway-layout.js?v=20261028-4';
 import {television,gameControllers} from './media-layout.js?v=20261101-2';
-import {createSofa} from './sofa.js?v=20261117-1';
-import {createRoom3,createRoom3Picture} from './room3.js?v=20261117-2';
+import {createSofa,createLivingRoomPicture} from './sofa.js?v=20261117-3';
+import {createRoom3,createRoom3Picture} from './room3.js?v=20261117-3';
 import {createBed} from './bed.js?v=20261114-3';
 import {createBedroomCabinets} from './bedroom-cabinets.js';
 import {createOriginalBed} from './original-bed.js?v=20261114-3';
@@ -207,6 +207,15 @@ createWineCabinet(furniture);
 // Purchased 270 × 180 cm sofa, mirrored with its chaise beside the partition.
 const purchasedSofa=createSofa(furniture,{frame:sofaFrameMaterial,upholstery:sofaCushionMaterial,pillows:sofaAccentMaterial,
  base:furnitureBlack,whitePumpkin:pumpkinWhite,tanPumpkin:pumpkinTan,stem:pumpkinStem});
+
+const printLoader=new THREE.TextureLoader();
+function loadPrintTexture(file){
+ const texture=printLoader.load(new URL(file,import.meta.url).href,()=>renderState.invalidate());
+ texture.colorSpace=THREE.SRGBColorSpace;
+ texture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+ return texture;
+}
+createLivingRoomPicture(furniture,hingedTrim,loadPrintTexture('./assets/starry-night.webp'));
 
 // Rectangular ivory rug: tucked beneath the seating, inside both sofa back edges.
 const livingRugMaterial=new THREE.MeshStandardMaterial({color:'#e6ddcc',roughness:1});
@@ -547,10 +556,7 @@ const gamingUpholstery=new THREE.MeshStandardMaterial({color:'#252a2f',roughness
 const gamingAccent=new THREE.MeshStandardMaterial({color:'#555c65',roughness:.88});
 const readingFabric=new THREE.MeshStandardMaterial({color:'#fff9ed',roughness:1});
 const room3Furniture=createRoom3(model,box,{wood:deskWood,black:furnitureBlack,upholstery:gamingUpholstery,accent:gamingAccent,sofaFabric:readingFabric,screen:screenMaterial});
-const portraitTexture=new THREE.TextureLoader().load(new URL('./assets/room3-portrait.jpg',import.meta.url).href,()=>renderState.invalidate());
-portraitTexture.colorSpace=THREE.SRGBColorSpace;
-portraitTexture.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
-createRoom3Picture(room3Furniture,hingedTrim,portraitTexture);
+createRoom3Picture(room3Furniture,hingedTrim,loadPrintTexture('./assets/room3-portrait.jpg'));
 
 const bathroomFixtureCount=bathroomFixtures.children.length,diningObjectCount=diningGroups.get(activeKitchen.id).children.length,hallWardrobeObjectCount=hallWardrobe.children.length,room3ObjectCount=room3Furniture.children.length,plantCount=plantData.length;
 applyMaterialDetails({boucle:readingFabric,sofaWeave:[sofaFrameMaterial,sofaCushionMaterial,sofaAccentMaterial],upholstery:[bedUpholstery],fabric:[pumpkinWhite,pumpkinTan,pumpkinStem,livingRugMaterial,vanityTowel,diningFabric,taupeBedding,quiltFabric,bedLinen,...detailedBed.userData.fabricMaterials,...originalBed.userData.fabricMaterials,gamingUpholstery,gamingAccent],striped:stripedUpholstery,wood:[vanityOak,outdoorWoodMaterial,deskWood,kitchenBrown,...detailedTVConsole.userData.woodMaterials,...entrywayFurniture.userData.woodMaterials],metal:[bathroomMetal,kitchenSteel,applianceTrim],glass:[showerGlass]},renderer);

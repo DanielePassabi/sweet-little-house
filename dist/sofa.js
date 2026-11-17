@@ -1,6 +1,8 @@
 import * as THREE from './vendor/three.module.js';
 import {sofaLayout,sofaPumpkins} from './sofa-layout.js?v=20261012-1';
 
+import {point,walls} from './model.js';
+import {createFramedPrint} from './framed-print.js';
 import {cushionGeometry} from './cushion-geometry.js';
 
 // Two loose back cushions over a continuous quilted seat and a wall-side chaise.
@@ -91,4 +93,14 @@ export function createSofa(parent,materials){
   group.add(plush);
  }
  return group;
+}
+
+// The sofa faces west. The hall doorway and the chaise are on its north side.
+export function createLivingRoomPicture(parent,doorFinish,texture){
+ const partition=walls.find(w=>w.a[1]===742&&w.b[1]===742);
+ const [,wallZ]=point(partition.a),printWidth=.90;
+ const picture=createFramedPrint(doorFinish,texture,printWidth,printWidth*483/612,'starry-night-print');
+ picture.name='living-room-starry-night';
+ picture.position.set(sofaLayout.backX-sofaLayout.chaiseDepth/2,1.63,wallZ+partition.t/2+.0005);
+ parent.add(picture);return picture;
 }

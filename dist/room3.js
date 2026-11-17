@@ -2,47 +2,16 @@ import * as THREE from './vendor/three.module.js';
 import {room3Desk as desk,room3Monitor as monitor,room3Laptop as laptop,room3Chair as chair,room3Armchair as armchair} from './room3-layout.js?v=20261117-1';
 
 import {cushionGeometry} from './cushion-geometry.js';
+import {createFramedPrint} from './framed-print.js';
 import {windowLayout} from './windows.js?v=20261101-1';
 
 export function createRoom3Picture(parent,doorFinish,photoTexture){
  const opening=windowLayout.find(w=>w.roomId==='room3');
- const picture=new THREE.Group();picture.name='room3-framed-photo';
+ const picture=createFramedPrint(doorFinish,photoTexture,.24,.32,'portrait-print');
+ picture.name='room3-framed-photo';
  // Looking out through the west window, left is towards increasing Z.
  picture.position.set(opening.x+opening.wallThickness/2+.0005,1.58,opening.z+opening.width+.50);
  picture.rotation.y=Math.PI/2;parent.add(picture);
-
- const width=.34,height=.42;
- // Sweep the cross-section around four mitred rails. Each pair is the inset
- // from the outside edge and the depth towards the viewer, in metres.
- function rim(profile){
-  const rings=profile.map(([inset,depth])=>{
-   const x=width/2-inset,y=height/2-inset;
-   return [[-x,-y,depth],[x,-y,depth],[x,y,depth],[-x,y,depth]];
-  });
-  const vertices=[];
-  for(let i=1;i<rings.length;i++){
-   const outer=rings[i-1],inner=rings[i];
-   for(let side=0;side<4;side++){
-    const next=(side+1)%4;
-    vertices.push(...outer[side],...outer[next],...inner[next],...outer[side],...inner[next],...inner[side]);
-   }
-  }
-  const geometry=new THREE.BufferGeometry();
-  geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.computeVertexNormals();
-  return geometry;
- }
- // A rounded outer bead, a shallow cove and a fine carved inner fillet.
- const frame=new THREE.Mesh(rim([[0,0],[0,.014],[.001,.018],[.003,.020],[.005,.020],
-  [.007,.018],[.008,.015],[.009,.014],[.011,.0155],[.013,.0155],[.015,.013],
-  [.018,.011],[.021,.0105],[.0225,.012],[.024,.014],[.026,.014],[.028,.011],[.028,.0055]]),doorFinish);
- frame.name='white-carved-frame';frame.castShadow=frame.receiveShadow=true;picture.add(frame);
- const mat=new THREE.Mesh(rim([[.027,.007],[.049,.007],[.050,.006]]),
-  new THREE.MeshStandardMaterial({color:'#f7f4eb',roughness:1}));
- mat.name='bevelled-photo-mat';mat.receiveShadow=true;picture.add(mat);
- // The opening is 24 × 32 cm, the same 3:4 portrait ratio as the supplied print.
- const print=new THREE.Mesh(new THREE.PlaneGeometry(.24,.32),
-  new THREE.MeshStandardMaterial({map:photoTexture,roughness:.89}));
- print.name='portrait-print';print.position.z=.006;print.receiveShadow=true;picture.add(print);
  return picture;
 }
 

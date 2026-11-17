@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
-import {createSofa} from '../dist/sofa.js';
+import {createSofa,createLivingRoomPicture} from '../dist/sofa.js';
 import {sofaLayout,sofaColliders,sofaPumpkins,sofaCoffeeTable} from '../dist/sofa-layout.js';
 import {canStand} from '../dist/model.js';
 import {canWalk,intersects} from '../dist/furniture-collisions.js';
+import {slidingDoorLayout} from '../dist/sliding-doors.js';
 
 const parent=new THREE.Group(),materials=Object.fromEntries(['frame','upholstery','pillows','base','whitePumpkin','tanPumpkin','stem'].map(n=>[n,new THREE.MeshStandardMaterial()]));
 const sofa=createSofa(parent,materials);parent.updateMatrixWorld(true);
@@ -38,4 +39,14 @@ for(const pumpkin of sofaPumpkins){
 assert.equal(canWalk(5.95,8.48),false,'Mirrored chaise beside the partition blocks walking');
 assert.equal(canWalk(5.95,10.35),true,'Previous right-hand chaise location is now open');
 assert.ok(!sofaColliders.some(c=>intersects(c,sofaCoffeeTable.x,sofaCoffeeTable.z,sofaCoffeeTable.r)),'Coffee table clears the new chaise');
+const hallDoor=slidingDoorLayout.find(d=>d.id==='hall'),doorFinish=new THREE.MeshStandardMaterial(),art=new THREE.Texture();
+const painting=createLivingRoomPicture(parent,doorFinish,art),frame=new THREE.Box3().setFromObject(painting);
+assert.ok(frame.min.z>hallDoor.z&&frame.max.z<bounds.min.z,'Picture sits on the living-room side of the partition, right of a viewer facing the TV');
+assert.ok(frame.min.x>hallDoor.x+hallDoor.end&&frame.min.x>bounds.min.x&&frame.max.x<bounds.max.x,'Picture spans the chaise and clears the doorway');
+assert.ok(frame.min.y>bounds.max.y,'Frame hangs above the sofa');
+const print=painting.getObjectByName('starry-night-print');
+assert.equal(print.material.map,art);
+assert.equal(painting.getObjectByName('white-carved-frame').material,doorFinish);
+assert.ok(print.getWorldDirection(vector).z>.999,'Painting faces into the living room');
+assert.ok(Math.abs(print.geometry.parameters.width/print.geometry.parameters.height-612/483)<1e-6,'Whole supplied landscape fits the mat');
 console.log(`PASS: 270 × 180 cm sofa, wall-side chaise, collision/wall clearance, two seated plush pumpkins; ${draws} draw calls, ${triangles} triangles.`);
