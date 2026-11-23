@@ -1,4 +1,4 @@
-import {getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261015-1';
+import {getKitchenVariant,getDiningConfiguration} from './kitchen-variants.js?v=20261123-3';
 import {sofaColliders,sofaCoffeeTable} from './sofa-layout.js?v=20261012-1';
 import {mediaCollider} from './media-layout.js?v=20261029-2';
 import {room3Colliders} from './room3-layout.js?v=20261117-1';
@@ -77,7 +77,7 @@ export function setShoeCabinetExtent(maxZ){shoeCabinetCollider.maxZ=Math.max(sho
 let doorCollisionTest=()=>false;
 export function setDoorCollisionTest(test){doorCollisionTest=test??(()=>false);}
 export function canWalk(x,z,r=.18,top=DEFAULT_EYE_HEIGHT+.12){
- return !doorCollisionTest(x,z,r)&&canWalkWithoutDoors(x,z,r,top);
+ return !doorCollisionTest(x,z,r,top)&&canWalkWithoutDoors(x,z,r,top);
 }
 // Route planning may ignore movable doors; actual movement still checks them.
 export function canWalkWithoutDoors(x,z,r=.18,top=DEFAULT_EYE_HEIGHT+.12){

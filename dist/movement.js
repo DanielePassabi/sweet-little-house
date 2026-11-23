@@ -12,9 +12,11 @@ export function createWalkLook(){
    if(Number.isFinite(dx))yawLeft-=dx*sensitivity;
    if(Number.isFinite(dy))pitchLeft=Math.max(-1.35,Math.min(1.35,pitch+pitchLeft-dy*sensitivity))-pitch;
   },
-  update(dt,apply){
+  update(dt,apply,smooth=true){
    if(!yawLeft&&!pitchLeft)return;
-   const blend=-Math.expm1(-55*dt);
+   // A mouse reports distance. Apply the whole batch on the next display frame,
+   // so a short frame followed by a long one cannot redistribute the turn.
+   const blend=smooth?-Math.expm1(-55*dt):1;
    const dx=Math.abs(yawLeft)<.0001?yawLeft:yawLeft*blend;
    const dy=Math.abs(pitchLeft)<.0001?pitchLeft:pitchLeft*blend;
    yawLeft-=dx;pitchLeft-=dy;

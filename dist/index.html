@@ -5,12 +5,29 @@
  <title>Sweet Little House · La tua casa in 3D</title>
  <meta name="description" content="Esplora il modello in scala della tua casa: ambienti arredati, materiali e giardino.">
  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23203140'/%3E%3Cpath d='M7 15L16 7l9 8v11h-7v-8h-4v8H7z' fill='%23e9f0ed'/%3E%3C/svg%3E">
- <link rel="stylesheet" href="./style.css?v=20261115-visit">
+ <link rel="stylesheet" href="./style.css?v=20261123-2">
+ <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&amp;family=Manrope:wght@400;500;600;650;700;750&amp;display=swap" media="print" onload="this.media='all'">
  <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/controls/OrbitControls.js":"./vendor/OrbitControls.js"}}</script>
+ <link rel="modulepreload" href="./app.js?v=20261123-4">
+ <noscript><style>#startup-status,.startup-track{display:none}</style></noscript>
 </head>
-<body>
- <header><div class="brand"><span class="brand-mark">⌂</span><div><strong>Sweet Little House</strong><span>SUB. 4 / IL TUO SPAZIO</span></div></div><div class="header-meta"><span class="version">Prima ricostruzione</span><span>01</span></div><button id="panel-toggle" class="mobile-only" aria-label="Apri o chiudi le impostazioni" aria-expanded="false">Impostazioni</button></header>
- <main>
+<body class="is-starting">
+ <section id="startup" aria-labelledby="startup-title">
+  <div class="startup-layout">
+   <div class="startup-copy">
+    <h1 id="startup-title">Sweet <i>Little</i> <span>House</span></h1>
+    <p id="startup-status" role="status">Apertura del progetto…</p>
+    <div class="startup-track" aria-hidden="true"></div>
+    <button id="startup-retry" type="button" hidden>Ricarica la pagina</button>
+    <noscript><p>Attiva JavaScript per esplorare la casa in 3D.</p></noscript>
+   </div>
+   <div class="startup-model" aria-hidden="true">
+    <img src="./assets/loading-model.webp" width="896" height="611" alt="" fetchpriority="high">
+   </div>
+  </div>
+ </section>
+ <header inert><div class="brand"><span class="brand-mark">⌂</span><div><strong>Sweet Little House</strong><span>SUB. 4 / IL TUO SPAZIO</span></div></div><div class="header-meta"><span class="version">Prima ricostruzione</span><span>01</span></div><button id="panel-toggle" class="mobile-only" aria-label="Apri o chiudi le impostazioni" aria-expanded="false">Impostazioni</button></header>
+ <main inert aria-busy="true">
   <section id="viewer" aria-label="Modello 3D interattivo dell’appartamento">
    <div id="scene"></div>
    <nav class="view-tabs" aria-label="Tipo di vista"><button data-view="orbit" class="active" aria-pressed="true">◈ <span>Panoramica</span></button><button data-view="plan" aria-pressed="false">▦ <span>Pianta</span></button><button data-view="walk" aria-pressed="false">↟ <span>Visita</span></button></nav>
@@ -27,12 +44,17 @@
     <div id="walk-stick" role="group" aria-label="Leva di movimento"><i aria-hidden="true"></i></div>
     <div class="walk-actions"><button data-move="jump" type="button">Salta</button><button data-move="run" type="button" aria-label="Tieni premuto per correre">Corri</button></div>
    </div>
-   <div id="error" role="alert" hidden></div>
   </section>
   <aside id="panel">
    <div class="panel-intro"><span class="eyebrow">LA CASA, IN SCALA</span><h1>Si parte dallo spazio.</h1><p>Ambienti arredati, materiali e luce.<br>La tua casa prende forma.</p></div>
    <div class="facts"><div><strong>2,60 <small>m</small></strong><span>Altezza interna</span></div><div><strong>3</strong><span>Camere</span></div></div>
-   <section class="panel-section kitchen-settings"><h2>La cucina</h2><label class="field" for="kitchen-type">Configurazione<select id="kitchen-type" aria-describedby="kitchen-description"><option value="1">Tipo 1</option><option value="2">Tipo 2</option><option value="3">Tipo 3</option></select></label><p id="kitchen-description" class="note" aria-live="polite">Frigo rosa, forno a colonna e induzione sulla penisola.</p></section>
+   <section class="panel-section kitchen-settings"><h2>La cucina</h2><label class="field" for="kitchen-type">Configurazione<select id="kitchen-type" aria-describedby="kitchen-description"><option value="1">Tipo 1</option><option value="2">Tipo 2</option><option value="3">Tipo 3</option><option value="4" selected>Tipo 4 · Bergamin (definitiva)</option></select></label><p id="kitchen-description" class="note" aria-live="polite">Cucina definitiva Bergamin con frontali tortora, penisola a induzione, bancone in rovere per tre e forno a mezza colonna.</p>
+    <div id="appliance-controls" hidden><div class="door-buttons">
+     <button type="button" data-appliance="fridge" data-label="frigo" aria-pressed="false">Apri frigo</button>
+     <button type="button" data-appliance="dishwasher" data-label="lavastoviglie" aria-pressed="false">Apri lavastoviglie</button>
+     <button type="button" data-appliance="oven" data-label="forno" aria-pressed="false">Apri forno</button>
+    </div><p id="appliance-status" class="note" role="status"></p></div>
+   </section>
    <section class="panel-section tv-settings"><h2>La TV</h2><label class="field">Video in loop<input id="tv-power" type="checkbox" checked></label><label class="field">Audio TV<input id="tv-audio" type="checkbox"></label><p id="tv-status" class="note" role="status">Riproduzione continua, anche fuori inquadratura.</p><button id="tv-play" type="button" hidden>Avvia video</button><a id="tv-external" href="https://www.youtube.com/watch?v=njX2bu-_Vw4" target="_blank" rel="noopener noreferrer" hidden>Apri su YouTube</a></section>
    <section class="panel-section"><div class="section-heading"><h2>Esplora gli ambienti</h2><span>09</span></div><div id="room-list"></div></section>
    <section class="panel-section"><h2>La camera matrimoniale</h2><label class="field" for="bedroom-type">Configurazione<select id="bedroom-type"><option value="1">Tipo 1 · Armadio lineare</option><option value="2" selected>Tipo 2 · Armadio ad angolo</option></select></label><div id="bed-storage-controls"><p class="note">Clicca il letto per aprire o richiudere il contenitore.</p><div class="door-buttons"><button id="bed-lift" type="button" aria-pressed="false">Solleva il letto</button></div></div></section>
@@ -48,5 +70,28 @@
     <div class="panel-footer"><span class="empty-icon">◇</span><span>Arredo in corso<br><strong>Zona giorno, terrazza, locale tecnico, bagni e camere.</strong></span></div>
   </aside>
  </main>
- <script type="module" src="./app.js?v=20261117-3"></script>
+ <script type="module">
+  const screen=document.querySelector('#startup'),status=document.querySelector('#startup-status');
+  const nextPaint=()=>new Promise(requestAnimationFrame);
+  try{
+   // Give the cover a paint before the cached module starts building the house.
+   await nextPaint();await nextPaint();
+   const {firstFrameReady}=await import('./app.js?v=20261123-4');
+   status.textContent='Preparazione della vista 3D…';
+   await firstFrameReady;
+   await nextPaint();
+   if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    await screen.animate([{opacity:1},{opacity:0}],{duration:240,easing:'ease-out',fill:'forwards'}).finished;
+   }
+   const main=document.querySelector('main');
+   main.inert=false;main.removeAttribute('aria-busy');document.querySelector('header').inert=false;
+   document.body.classList.remove('is-starting');screen.remove();
+  }catch(error){
+   console.error(error);
+   status.textContent=error.name==='WebGLUnavailable' ? error.message : 'La vista 3D non è riuscita a caricarsi.';
+   screen.querySelector('.startup-track').hidden=true;
+   const retry=document.querySelector('#startup-retry');
+   retry.hidden=false;retry.onclick=()=>location.reload();
+  }
+ </script>
 </body></html>

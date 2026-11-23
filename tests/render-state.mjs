@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {PerspectiveCamera,OrthographicCamera,Group,Mesh,BoxGeometry,MeshBasicMaterial,Vector3} from '../dist/vendor/three.module.js';
-import {createRenderState,freezeStaticTransforms,indexStaticSurface} from '../dist/render-state.js';
+import {createRenderState,createWalkResolution,freezeStaticTransforms,indexStaticSurface} from '../dist/render-state.js';
 const state=createRenderState(),camera=new PerspectiveCamera();
 assert.equal(state.consume(camera),true);
 for(let i=0;i<120;i++)assert.equal(state.consume(camera),false,'Stationary frames do not render');
@@ -31,3 +31,17 @@ for(let i=0;i<original.index.count;i++)for(let j=0;j<3;j++){
  assert.equal(original.attributes.normal.array[index],normals[i*3+j]);
 }
 console.log('PASS: indexed surfaces expand to identical positions and normals.');
+
+const resolution=createWalkResolution();
+let now=0,scale=1;
+const step=(ms,moving)=>resolution.update(now+=ms,moving);
+for(let i=0;i<100;i++)assert.equal(step(16.7,true),1,'Smooth turns keep full detail');
+for(let i=0;i<100;i++)scale=step(32,true);
+assert.ok(scale>=.65&&scale<1);
+assert.equal(step(16,false),scale);
+assert.equal(step(350,false),1,'A stationary view gets its full resolution back');
+assert.equal(step(5000,true),scale,'Idle time does not penalize the next turn');
+resolution.reset();
+for(let i=0;i<120;i++){assert.equal(step(8,true),1);assert.equal(step(8,false),1);}
+for(let i=0;i<100;i++){step(8,true);scale=step(27,false);}
+assert.ok(scale<1,'Missed frames are measured even when mouse events arrive less often than refreshes');

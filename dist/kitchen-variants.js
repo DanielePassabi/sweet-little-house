@@ -1,4 +1,5 @@
 import {kitchenType1,diningLayout,diningChairs,diningColliders} from './kitchen-layout.js?v=20261012-1';
+import {bergaminLayout} from './bergamin-layout.js?v=20261123-3';
 
 // The sketch is rotated relative to the house plan: its top is the washing run,
 // its right side is the window wall. All dimensions below are metres.
@@ -74,7 +75,8 @@ export const kitchenType3={id:'3',name:'Tipo 3',description:'Frigo integrato, ra
   ...thirdStools.map(c=>circleCollider({...c,r:.25}))],
 };
 export function getDiningConfiguration(variant){return variant.dining??{table:diningLayout,chairs:diningChairs,colliders:diningColliders};}
-export const kitchenVariants=[kitchenType1,kitchenType2,kitchenType3];
+export const kitchenType4={...bergaminLayout,dining:kitchenType3.dining};
+export const kitchenVariants=[kitchenType1,kitchenType2,kitchenType3,kitchenType4];
 export function getKitchenVariant(id){
  const variant=kitchenVariants.find(k=>k.id===String(id));
  if(!variant)throw new RangeError(`Unknown kitchen type: ${id}`);

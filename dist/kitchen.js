@@ -1,16 +1,22 @@
 import * as THREE from './vendor/three.module.js';
 import {kitchenType1} from './kitchen-layout.js?v=20261012-1';
-import {roundedTopPoints} from './kitchen-variants.js?v=20261015-1';
+import {roundedTopPoints} from './kitchen-variants.js?v=20261123-3';
+import {addBergaminKitchen} from './bergamin-kitchen.js?v=20261123-3';
 
 // The same module dimensions drive the rendered kitchen and walking collisions.
 export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass,fabric=front},layout=kitchenType1){
- const {modules:kitchenModules,worktop:kitchenWorktop,sink:kitchenSink,hob:kitchenHob,breakfast:breakfastTop,wallCabinets:kitchenWallCabinets}=layout;
+ const {modules:kitchenModules,breakfast:breakfastTop,wallCabinets:kitchenWallCabinets}=layout;
  const group=new THREE.Group();group.name='kitchen';parent.add(group);
  const block=(w,h,d,material,x,y,z)=>box(w,h,d,material,x,y,z,group);
  const mesh=(geometry,material,x,y,z,name)=>{
   const object=new THREE.Mesh(geometry,material);object.position.set(x,y,z);
   object.name=name;object.castShadow=object.receiveShadow=true;group.add(object);return object;
  };
+ if(layout.id==='4'){
+  const finishes=addBergaminKitchen(group,box,layout,{steel,ceramic});
+  addWorkSurface(layout,block,mesh,finishes);
+  return group;
+ }
  const face=(m,y,h,material=front,inset=0)=>{
   const {x,z,w,d}=m;
   if(m.face==='west'||m.face==='east')return block(.018,h,d-.028,material,x+(m.face==='west'?-1:1)*(w/2-.009-inset),y,z);
@@ -81,38 +87,7 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass,fa
  }else for(const y of [.27,.53,.79])face(m,y,.235);
  }
 
- // Continuous ceramic with a real through-opening for the single inset sink.
- const outline=new THREE.Shape();
- kitchenWorktop.outline.forEach(([x,z],i)=>i?outline.lineTo(x,-z):outline.moveTo(x,-z));outline.closePath();
- const {x:sx,z:sz,w:sw,d:sd,depth}=kitchenSink;
- const hole=new THREE.Path();hole.moveTo(sx-sw/2,-sz-sd/2);hole.lineTo(sx+sw/2,-sz-sd/2);
- hole.lineTo(sx+sw/2,-sz+sd/2);hole.lineTo(sx-sw/2,-sz+sd/2);hole.closePath();outline.holes.push(hole);
- const worktop=mesh(new THREE.ExtrudeGeometry(outline,{depth:kitchenWorktop.thickness,bevelEnabled:false,steps:1}),ceramic,0,kitchenWorktop.y-kitchenWorktop.thickness,0,'ceramic-worktop');worktop.rotation.x=-Math.PI/2;
- const uv=worktop.geometry.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)/2,uv.getY(i)/2);
- const rimY=kitchenWorktop.y+.003;
- for(const sign of [-1,1]){
-  block(.016,.012,sd+.028,steel,sx+sign*(sw/2+.003),rimY,sz);
-  block(sw,.012,.016,steel,sx,rimY,sz+sign*(sd/2+.003));
-  block(.012,depth,sd,steel,sx+sign*(sw/2-.006),rimY-depth/2,sz);
-  block(sw,depth,.012,steel,sx,rimY-depth/2,sz+sign*(sd/2-.006));
- }
- block(sw,.012,sd,steel,sx,rimY-depth,sz);
- mesh(new THREE.CylinderGeometry(.024,.024,.004,24),dark,sx,rimY-depth+.009,sz,'sink-drain');
- const tapPath=new THREE.CatmullRomCurve3([
-  new THREE.Vector3(sx+.235,.945,sz),new THREE.Vector3(sx+.235,1.24,sz),
-  new THREE.Vector3(sx+.17,1.31,sz),new THREE.Vector3(sx+.04,1.26,sz),new THREE.Vector3(sx+.04,1.19,sz),
- ]);
- mesh(new THREE.TubeGeometry(tapPath,28,.013,10,false),steel,0,0,0,'sink-tap');
- block(.025,.08,.015,steel,sx+.235,1.01,sz+.045);
-
- const hob=mesh(new THREE.BoxGeometry(kitchenHob.w,.012,kitchenHob.d),glass,kitchenHob.x,.941,kitchenHob.z,'induction-hob');
- for(const [dx,dz,r] of [[-.13,-.18,.087],[.13,-.18,.095],[-.13,.16,.102],[.13,.16,.088]]){
-  const ring=mesh(new THREE.TorusGeometry(r,.0016,6,48),steel,hob.position.x+(kitchenHob.turned?dz:dx),.948,hob.position.z+(kitchenHob.turned?-dx:dz),'induction-zone');ring.rotation.x=-Math.PI/2;
- }
- for(const dz of [-.10,0,.10]){
-  if(kitchenHob.turned)block(.006,.002,.018,steel,hob.position.x+dz,.948,hob.position.z-.218);
-  else block(.018,.002,.006,steel,hob.position.x+.218,.948,hob.position.z+dz);
- }
+ addWorkSurface(layout,block,mesh,{ceramic,steel,glass,dark});
  // Both breakfast surfaces rest on the ceramic, with no dining pedestal.
  if(breakfastTop.shape==='rounded-square'){
   const shape=new THREE.Shape(roundedTopPoints(breakfastTop).map(([x,z])=>new THREE.Vector2(x,-z)));
@@ -179,4 +154,45 @@ export function createKitchen(parent,box,{front,wood,ceramic,steel,dark,glass,fa
  for(const dx of [-.22,.22])for(const dz of [-.23,.23])block(.055,.08,.055,dark,fridge.x+dx,.04,fridge.z+dz);
  }
  return group;
+}
+
+function addWorkSurface({worktop:kitchenWorktop,sink:kitchenSink,hob:kitchenHob},block,mesh,{ceramic,steel,glass,dark,markings=steel}){
+ // Continuous ceramic with a real through-opening for the single inset sink.
+ const outline=new THREE.Shape();
+ kitchenWorktop.outline.forEach(([x,z],i)=>i?outline.lineTo(x,-z):outline.moveTo(x,-z));outline.closePath();
+ const {x:sx,z:sz,w:sw,d:sd,depth}=kitchenSink;
+ const hole=new THREE.Path();hole.moveTo(sx-sw/2,-sz-sd/2);hole.lineTo(sx+sw/2,-sz-sd/2);
+ hole.lineTo(sx+sw/2,-sz+sd/2);hole.lineTo(sx-sw/2,-sz+sd/2);hole.closePath();outline.holes.push(hole);
+ const worktop=mesh(new THREE.ExtrudeGeometry(outline,{depth:kitchenWorktop.thickness,bevelEnabled:false,steps:1}),ceramic,0,kitchenWorktop.y-kitchenWorktop.thickness,0,'ceramic-worktop');worktop.rotation.x=-Math.PI/2;
+ const uv=worktop.geometry.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)/2,uv.getY(i)/2);
+ const rimY=kitchenWorktop.y+.003;
+ for(const sign of [-1,1]){
+  block(.016,.012,sd+.028,steel,sx+sign*(sw/2+.003),rimY,sz);
+  block(sw,.012,.016,steel,sx,rimY,sz+sign*(sd/2+.003));
+  block(.012,depth,sd,steel,sx+sign*(sw/2-.006),rimY-depth/2,sz);
+  block(sw,depth,.012,steel,sx,rimY-depth/2,sz+sign*(sd/2-.006));
+ }
+ block(sw,.012,sd,steel,sx,rimY-depth,sz);
+ mesh(new THREE.CylinderGeometry(.024,.024,.004,24),dark,sx,rimY-depth+.009,sz,'sink-drain');
+ const squareMixer=kitchenSink.mixer==='square';
+ const tapPath=new THREE.CatmullRomCurve3(squareMixer?[
+  new THREE.Vector3(sx+.238,.94,sz),new THREE.Vector3(sx+.238,1.165,sz),
+  new THREE.Vector3(sx+.232,1.182,sz+.008),new THREE.Vector3(sx+.220,1.185,sz+.020),
+  new THREE.Vector3(sx+.145,1.185,sz+.095),new THREE.Vector3(sx+.14,1.174,sz+.100),
+ ]:[
+  new THREE.Vector3(sx+.235,.945,sz),new THREE.Vector3(sx+.235,1.24,sz),
+  new THREE.Vector3(sx+.17,1.31,sz),new THREE.Vector3(sx+.04,1.26,sz),new THREE.Vector3(sx+.04,1.19,sz),
+ ]);
+ mesh(new THREE.TubeGeometry(tapPath,28,.013,10,false),steel,0,0,0,'sink-tap');
+ if(squareMixer)block(.02,.048,.042,steel,sx+.238,1.005,sz+.021);
+ else block(.025,.08,.015,steel,sx+.235,1.01,sz+.045);
+
+ const hob=mesh(new THREE.BoxGeometry(kitchenHob.w,.012,kitchenHob.d),glass,kitchenHob.x,.941,kitchenHob.z,'induction-hob');
+ for(const [dx,dz,r] of [[-.13,-.18,.087],[.13,-.18,.095],[-.13,.16,.102],[.13,.16,.088]]){
+  const ring=mesh(new THREE.TorusGeometry(r,.0016,6,48),markings,hob.position.x+(kitchenHob.turned?dz:dx),.948,hob.position.z+(kitchenHob.turned?-dx:dz),'induction-zone');ring.rotation.x=-Math.PI/2;
+ }
+ for(const dz of [-.10,0,.10]){
+  if(kitchenHob.turned)block(.006,.002,.018,steel,hob.position.x+dz,.948,hob.position.z-.218);
+  else block(.018,.002,.006,steel,hob.position.x+.218,.948,hob.position.z+dz);
+ }
 }

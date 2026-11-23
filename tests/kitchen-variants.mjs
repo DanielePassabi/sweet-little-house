@@ -4,6 +4,7 @@ import * as THREE from '../dist/vendor/three.module.js';
 import {createKitchen} from '../dist/kitchen.js';
 import {kitchenVariants,getKitchenVariant,getDiningConfiguration} from '../dist/kitchen-variants.js';
 import {createDiningSet} from '../dist/dining.js';
+import {createInteriorLighting} from '../dist/interior-lighting.js';
 import {canWalk,setKitchenCollisionVariant,furnitureColliders,intersects,safeRoomPosition} from '../dist/furniture-collisions.js';
 import {canStand,rooms,walls,point} from '../dist/model.js';
 
@@ -53,7 +54,7 @@ second.traverse(mesh=>{if(!mesh.isMesh)return;for(let i=0;i<mesh.geometry.attrib
 
 // Each configuration must rebuild the index, retain other furnishings, and keep
 // both the rooms and the fronts of the appliances reachable.
-for(const id of ['1','2','3','1','3','2']){
+for(const id of ['1','2','3','4','1','4','3','2']){
  setKitchenCollisionVariant(id);
  assert.equal(canWalk(6.235,14.4),false,'Fridge, shifted peninsula or breakfast stool is solid');
  assert.equal(canWalk(6.99,13.8),id==='2','Former induction peninsula is clear only in Type 2');
@@ -70,7 +71,12 @@ for(const id of ['1','2','3','1','3','2']){
   const nc=c+dc,nr=r+dr,nk=nr*cols+nc;if(nc>=0&&nc<cols&&nr>=0&&nr<rowsCount&&grid[nk]&&!seen.has(nk)){seen.add(nk);queue.push(nk);}
  }}
  for(const room of rooms)assert.ok(seen.has(key(...safeRoomPosition(room))),`${room.id} reachable in Type ${id}`);
- const approaches=id==='1'?[[8.55,12.675],[8.55,13.275],[8.55,13.875],[7.8,13.93],[6.235,13.85]]:id==='2'?[[8.55,12.675],[8.55,13.275],[8.55,13.875],[8.385,13.9],[7.385,13.9],[6.335,13.2]]:[[8.55,12.675],[8.55,13.375],[8.55,14.075],[8.3,14.019],[8.4,14.25],[5.8,13.59],[5.8,14.31]];
+ const approaches={
+  '1':[[8.55,12.675],[8.55,13.275],[8.55,13.875],[7.8,13.93],[6.235,13.85]],
+  '2':[[8.55,12.675],[8.55,13.275],[8.55,13.875],[8.385,13.9],[7.385,13.9],[6.335,13.2]],
+  '3':[[8.55,12.675],[8.55,13.375],[8.55,14.075],[8.3,14.019],[8.4,14.25],[5.8,13.59],[5.8,14.31]],
+  '4':[[8.55,12.675],[8.55,13.33],[8.55,14.03],[8.0,13.73],[6.10,14.01],[6.18,12.69]],
+ }[id];
  for(const p of approaches)assert.ok(seen.has(key(...p)),`Appliance/breakfast approach ${p} reachable in Type ${id}`);
 }
 assert.equal(fingerprint(groups[0]),approved,'Repeated changes never mutate Type 1');
@@ -127,9 +133,83 @@ for(const variant of kitchenVariants){
  assert.ok(Math.abs(topBounds.max.x-topBounds.min.x-2*config.table.r)<1e-6);
  for(const chair of config.chairs)assert.ok(canStand(chair.x,chair.z,.29),'Chairs stay inside the original walls');
 }
-thirdGroup.traverse(mesh=>{if(!mesh.isMesh)return;for(let i=0;i<mesh.geometry.attributes.position.count;i++){
- v.fromBufferAttribute(mesh.geometry.attributes.position,i).applyMatrix4(mesh.matrixWorld);
- assert.ok(canStand(v.x,v.z,0),`Type 3 stays clear of architecture at ${v.x},${v.z}`);
-}});
+const fourth=getKitchenVariant('4'),finalGroup=groups[3];
+assert.equal(getDiningConfiguration(fourth),thirdDining,'Final kitchen retains the previous dining set');
+assert.equal(finalGroup.children.filter(o=>o.name==='breakfast-stool').length,3);
+const finalBounds=name=>new THREE.Box3().setFromObject(finalGroup.getObjectByName(name));
+const bar=finalBounds('oak-breakfast-bar'),cooktop=finalBounds('induction-hob'),tower=finalBounds('oven-door-glass');
+const oakBar=finalGroup.getObjectByName('oak-breakfast-bar');
+assert.ok(hit(oakBar,6.95,fourth.hob.z).length,'Oak overhang sits on the peninsula');
+for(const z of [cooktop.min.z,fourth.hob.z,cooktop.max.z])assert.equal(hit(oakBar,cooktop.min.x,z).length,0,'Oak clears the hob from front to back');
+const niche=fourth.wallCabinets.find(c=>c.id==='oak-shelving');
+for(const x of [niche.x+.02,7.009,7.011,niche.x+niche.w/2-.002]){
+ for(const z of [niche.z-niche.d/2+.002,niche.z+niche.d/2-.002]){
+  const top=hit(oakBar,x,z)[0];assert.ok(top,'Oak supports the back, upright and complete niche floor');
+  close(top.point.y,niche.bottom,'Niche meets the oak bar flush');
+ }
+}
+for(const row of ['upper','lower']){
+ const name='peninsula-'+row+'-drawer';
+ assert.equal(finalGroup.children.filter(o=>o.name===name).length,1);
+ close(finalBounds(name).getSize(new THREE.Vector3()).z,fourth.peninsula.d*2/3-.006,'One wide drawer spans the two marked modules');
+ assert.ok(finalGroup.getObjectByName('peninsula-return-'+row+'-drawer'));
+}
+assert.ok(tower.min.y>.85&&tower.max.y<1.5&&tower.max.x<bar.min.x,'Raised oven opens clear of the bar');
+assert.ok(finalBounds('pendant-shade').intersectsBox(new THREE.Box3(
+ new THREE.Vector3(cooktop.min.x,1.65,cooktop.min.z),new THREE.Vector3(cooktop.max.x,2.15,cooktop.max.z))));
+assert.equal(finalGroup.children.filter(o=>o.name==='oak-niche-back').length,2);
+assert.equal(finalGroup.children.filter(o=>o.name==='oak-display-shelf').length,4);
+for(const upper of fourth.wallVolumes)for(const window of rearWindows){
+ assert.ok(upper.max[0]<window.min||upper.min[0]>window.max,'Upper cabinets clear the window frames');
+}
+const finalSlab=finalGroup.getObjectByName('ceramic-worktop');
+assert.equal(hit(finalSlab,fourth.sink.x,fourth.sink.z).length,0);
+for(const [x,z] of [[7.32,13.73],[8.2,14.7],[9.2,14.15]])assert.ok(hit(finalSlab,x,z).length,'The U has a continuous stone top');
+for(const [i,group] of [thirdGroup,finalGroup].entries())group.traverse(mesh=>{
+ if(!mesh.isMesh)return;
+ for(let j=0;j<mesh.geometry.attributes.position.count;j++){
+  v.fromBufferAttribute(mesh.geometry.attributes.position,j).applyMatrix4(mesh.matrixWorld);
+  assert.ok(canStand(v.x,v.z,0),`Type ${i+3} stays clear of architecture at ${v.x},${v.z}`);
+ }
+});
+setKitchenCollisionVariant('4');
+const appliances=finalGroup.userData.appliances;
+const stepAppliances=(occupants=[])=>{for(let i=0;i<16;i++)appliances.update(.08,occupants);};
+for(const mesh of finalGroup.children)mesh.traverse(p=>{p.updateMatrix();p.matrixAutoUpdate=false;});
+for(const [id,part,inside,approach,obstacle] of [
+ ['fridge','integrated-fridge-door','fridge-liner-back',[8.04,1.47,12.72],[8.54,12.45]],
+ ['dishwasher','dishwasher-front','dishwasher-liner-back',[7.96,.55,14.03],[8.49,14.03]],
+ ['oven','oven-door-glass','oven-cavity-back',[6.26,1.13,13.35],[6.26,14.08]],
+]){
+ const door=finalGroup.getObjectByName(part),target=door.getWorldPosition(new THREE.Vector3());
+ const origin=new THREE.Vector3(...approach);
+ ray.set(origin,target.clone().sub(origin).normalize());
+ const meshes=[];finalGroup.traverse(o=>{if(o.isMesh)meshes.push(o);});
+ assert.equal(appliances.pick(ray,meshes)?.id,id,'Closed front is clickable');
+ const before=door.matrixWorld.clone();
+ appliances.toggle(id);stepAppliances([{x:obstacle[0],z:obstacle[1],r:.18,top:1.8}]);
+ assert.ok(appliances.state.find(d=>d.id===id).obstructed,'Opening pauses before an occupant');
+ stepAppliances();
+ assert.ok(appliances.state.find(d=>d.id===id).open);
+ assert.ok(!door.matrixWorld.equals(before)&&door.userData.dynamicFurniture);
+ assert.ok(appliances.blocksPoint(...obstacle,.18),'Open door participates in walking collisions');
+ const back=finalGroup.getObjectByName(inside);
+ ray.set(origin,back.getWorldPosition(new THREE.Vector3()).sub(origin).normalize());
+ const nearest=ray.intersectObjects(meshes)[0];
+ assert.ok(nearest.object!==door&&nearest.object.userData.appliance!==id,'The interior is exposed');
+ appliances.toggle(id);stepAppliances();
+ assert.ok(door.matrixWorld.equals(before),'Door returns to its exact closed pose after static transforms are frozen');
+}
+for(const {x,z} of [...fourth.modules,...fourth.stools,fourth.breakfast])assert.equal(canWalk(x,z,.05),false);
+const lighting=createInteriorLighting(new THREE.Scene()),pendant=finalGroup.userData.pendant;
+const source=lighting.lights.find(light=>light.name==='living-kitchen'),ceilingPosition=source.position.clone();
+const frames=lighting.group.getObjectByName('square-ceiling-frames');
+lighting.setKitchenPendant(pendant);
+assert.equal(frames.count,lighting.lights.length-1);
+close(source.position.y,fourth.pendant.bottom-.012,'Kitchen light shines from the pendant');
+lighting.setFixturesVisible(false);assert.equal(pendant.visible,false);assert.ok(source.intensity>0);
+lighting.setState(false,4000);assert.equal(source.intensity,0);
+lighting.setKitchenPendant(null);assert.ok(source.position.equals(ceilingPosition));
+assert.equal(frames.count,lighting.lights.length);assert.equal(source.intensity,0);
 setKitchenCollisionVariant('1');
-console.log('PASS: original Type 1 unchanged; three kitchen/dining variants, 40 cm return, six-seat 150 cm table, two stools, appliance access, architecture and nine reachable rooms.');
+console.log('PASS: four kitchen variants, approved original, Bergamin oven tower, three-seat oak bar, pendant lighting, clear windows and reachable rooms and appliances.');

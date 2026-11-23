@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {HEIGHT,footprint,point} from './model.js';
+import {HEIGHT,footprint,insidePolygon,point,rooms} from './model.js';
 
 // Indicative positions, not electrical points surveyed from the architectural PDF.
 export const ceilingLayout=[
@@ -17,6 +17,10 @@ export const ceilingLayout=[
 // Display-balanced approximations; this is a visual preview, not a lux survey.
 export const lightTemperatures={3000:'#ffd1a0',4000:'#fff1df'};
 
+export function createWallPaint(){
+ return new THREE.MeshStandardMaterial({color:'#f6f5ef',roughness:.91});
+}
+
 export function createCeiling(){
  const shape=new THREE.Shape();
  footprint.map(point).forEach(([x,z],i)=>i?shape.lineTo(x,-z):shape.moveTo(x,-z));shape.closePath();
@@ -24,9 +28,44 @@ export function createCeiling(){
  // old coplanar, upward-facing sheet, its bottom has a true downward normal.
  const geometry=new THREE.ExtrudeGeometry(shape,{depth:.08,bevelEnabled:false,steps:1});
  geometry.rotateX(-Math.PI/2);geometry.translate(0,HEIGHT,0);
- const material=new THREE.MeshStandardMaterial({color:'#faf9f3',roughness:1,shadowSide:THREE.FrontSide});
+ const material=createWallPaint();material.shadowSide=THREE.FrontSide;
+ // Map diffuse light reflected from the walls and floor back onto the plaster.
+ // The small linear RGB map changes only when the lighting settings change.
+ geometry.computeBoundingBox();
+ const bounds=geometry.boundingBox,span=bounds.getSize(new THREE.Vector3());
+ const width=Math.ceil(span.x*4),height=Math.ceil(span.z*4),data=new Uint8Array(width*height*4);
+ const map=new THREE.DataTexture(data,width,height);
+ map.minFilter=map.magFilter=THREE.LinearFilter;
+ material.lightMap=map;
+ const {position,uv}=geometry.attributes;
+ for(let i=0;i<uv.count;i++)uv.setXY(i,(position.getX(i)-bounds.min.x)/span.x,(position.getZ(i)-bounds.min.z)/span.z);
+ const samples=Array.from({length:width*height},(_,i)=>{
+  const x=bounds.min.x+(i%width+.5)*span.x/width,z=bounds.min.z+(Math.floor(i/width)+.5)*span.z/height;
+  const room=rooms.find(r=>insidePolygon(x,z,r.polygon));
+  return {x,z,fixtures:ceilingLayout.flatMap((f,index)=>f.room===room?.id?[index]:[])};
+ });
  const roof=new THREE.Mesh(geometry,material);roof.name='closed-ceiling';
  roof.castShadow=true;roof.receiveShadow=true;
+ roof.userData.updateBounce=(sky,lights)=>{
+  // The hemisphere already supplies the ground component to a downward face.
+  // Nearby walls return a mixture of that light and the cooler sky component.
+  const daylight=sky.color.clone().lerp(sky.groundColor,.5).multiplyScalar(.86)
+   .sub(sky.groundColor).multiplyScalar(sky.intensity);
+  const tint=new THREE.Color();
+  samples.forEach(({x,z,fixtures},i)=>{
+   tint.copy(daylight);
+   for(const index of fixtures){
+    const light=lights[index],dx=x-light.position.x,dz=z-light.position.z;
+    const strength=light.intensity*.002/(1+(dx*dx+dz*dz)*.35);
+    tint.r+=light.color.r*strength;tint.g+=light.color.g*strength;tint.b+=light.color.b*strength;
+   }
+   data[i*4]=Math.round(255*THREE.MathUtils.clamp(tint.r,0,1));
+   data[i*4+1]=Math.round(255*THREE.MathUtils.clamp(tint.g,0,1));
+   data[i*4+2]=Math.round(255*THREE.MathUtils.clamp(tint.b,0,1));
+   data[i*4+3]=255;
+  });
+  map.needsUpdate=true;
+ };
  return roof;
 }
 
@@ -41,9 +80,12 @@ export function createInteriorLighting(scene){
  // the top of a wall. The luminaire body itself cannot shadow its own light.
  bodies.receiveShadow=true;diffusers.receiveShadow=false;group.add(bodies,diffusers);
  const dummy=new THREE.Object3D(),lights=[];
+ const kitchenIndex=ceilingLayout.findIndex(f=>f.id==='living-kitchen');
  ceilingLayout.forEach((layout,i)=>{
-  dummy.rotation.set(0,0,0);dummy.position.set(layout.x,HEIGHT-.03,layout.z);dummy.scale.set(layout.size,.06,layout.size);dummy.updateMatrix();bodies.setMatrixAt(i,dummy.matrix);
-  dummy.rotation.x=Math.PI/2;dummy.position.y=HEIGHT-.061;dummy.scale.set(layout.size-.035,layout.size-.035,1);dummy.updateMatrix();diffusers.setMatrixAt(i,dummy.matrix);
+  // Keep the replaceable kitchen fitting at the end of both instance buffers.
+  const slot=i===kitchenIndex?ceilingLayout.length-1:i>kitchenIndex?i-1:i;
+  dummy.rotation.set(0,0,0);dummy.position.set(layout.x,HEIGHT-.03,layout.z);dummy.scale.set(layout.size,.06,layout.size);dummy.updateMatrix();bodies.setMatrixAt(slot,dummy.matrix);
+  dummy.rotation.x=Math.PI/2;dummy.position.y=HEIGHT-.061;dummy.scale.set(layout.size-.035,layout.size-.035,1);dummy.updateMatrix();diffusers.setMatrixAt(slot,dummy.matrix);
   const light=new THREE.SpotLight(lightTemperatures[3000],layout.intensity,7,Math.PI*.38,.62,2);
   light.name=layout.id;light.position.set(layout.x,HEIGHT-.075,layout.z);light.target.position.set(layout.x,0,layout.z);
   // The wide cone covers several metres: 512 px produces visible stair steps
@@ -56,9 +98,28 @@ export function createInteriorLighting(scene){
   light.userData.onIntensity=layout.intensity;group.add(light,light.target);lights.push(light);
  });
  for(const mesh of [bodies,diffusers]){mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();}
- let enabled=true,kelvin=3000,fixturesVisible=true;
+ let enabled=true,kelvin=3000,fixturesVisible=true,kitchenPendant=null;
  return {group,lights,diffuserMaterial,
-  setFixturesVisible(visible){fixturesVisible=!!visible;bodies.visible=diffusers.visible=fixturesVisible;},
+  setKitchenPendant(pendant){
+   kitchenPendant=pendant;
+   bodies.count=diffusers.count=ceilingLayout.length-(pendant?1:0);
+   const light=lights[kitchenIndex],layout=ceilingLayout[kitchenIndex];
+   // The pendant's diffuser sits much closer to the counter than the ceiling panel.
+   light.userData.onIntensity=pendant?3.6:layout.intensity;
+   light.intensity=enabled?light.userData.onIntensity:0;
+   if(pendant){
+    pendant.visible=fixturesVisible;
+    pendant.getObjectByName('pendant-diffuser').material=diffuserMaterial;
+    light.position.copy(pendant.position);light.position.y-=.012;
+   }else light.position.set(layout.x,HEIGHT-.075,layout.z);
+   light.target.position.set(light.position.x,0,light.position.z);
+   for(const object of [light,light.target]){object.updateMatrix();object.updateMatrixWorld(true);}
+   light.shadow.needsUpdate=true;
+  },
+  setFixturesVisible(visible){
+   fixturesVisible=!!visible;bodies.visible=diffusers.visible=fixturesVisible;
+   if(kitchenPendant)kitchenPendant.visible=fixturesVisible;
+  },
   invalidateShadows(){for(const light of lights)light.shadow.needsUpdate=true;},
   setState(on,temperature){
    enabled=!!on;kelvin=Object.hasOwn(lightTemperatures,temperature)?Number(temperature):3000;

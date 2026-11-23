@@ -50,6 +50,14 @@ look.turn(0,-15,.004,pitch);regular.forEach(advance);
 assert.ok(Math.abs(pitch+1.29)<1e-10,'Reverses immediately from the pitch limit');
 look.turn(60,20,.002,pitch);look.reset();
 const paused=[yaw,pitch];advance(.1);assert.deepEqual([yaw,pitch],paused);
+const mouse=createWalkLook();
+for(const dt of [.008,.032,.016]){
+ let turn=0;
+ for(const dx of [4,9,-1])mouse.turn(dx,0,.002,0);
+ mouse.update(dt,dx=>turn+=dx,false);
+ assert.ok(Math.abs(turn+.024)<1e-12,'Mouse travel is applied on the first displayed frame at any cadence');
+ mouse.update(dt,()=>assert.fail('A stationary mouse must not drift'),false);
+}
 const barrier=(x,z)=>!(z<-.9&&z>-1.1);
 assert.ok(travel(['KeyW','ShiftLeft'],10,2,0,barrier).p.z>=-.9,'Sprint cannot tunnel through thin obstacles');
 const slide=travel(['KeyW','KeyD','ShiftLeft'],30,2,0,barrier).p;

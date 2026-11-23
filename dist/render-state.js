@@ -39,3 +39,32 @@ export function freezeStaticTransforms(root){
  root.traverse(object=>{object.matrixAutoUpdate=false;count++;});
  return count;
 }
+
+// Measure consecutive moving frames, excluding idle time and tab suspensions.
+// Keep the learned scale for the next turn and show the full detail at rest.
+export function createWalkResolution(){
+ let scale=1,lastMove=-Infinity,previousMoved=false,elapsed=0,frames=0;
+ return {
+  reset(){scale=1;lastMove=-Infinity;previousMoved=false;elapsed=frames=0;},
+  update(now,moving){
+   const gap=now-lastMove;
+   if(previousMoved&&gap>0&&gap<300){elapsed+=Math.min(gap,100);frames++;}
+   else if(gap>=300){elapsed=frames=0;}
+   previousMoved=moving;
+   if(!moving)return gap<300?scale:1;
+   lastMove=now;
+   if(elapsed>=400&&frames>=8){
+    const average=elapsed/frames;
+    if(average>18.5){
+     // Pixel cost scales with area. Leave headroom for heavier viewing angles.
+     scale=Math.max(.65,Math.floor(scale*Math.sqrt(15/average)*20)/20);
+     elapsed=frames=0;
+    }else if(elapsed>=1500){
+     if(average<14)scale=Math.min(1,scale+.05);
+     elapsed=frames=0;
+    }
+   }
+   return scale;
+  }
+ };
+}

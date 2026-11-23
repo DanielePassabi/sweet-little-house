@@ -44,7 +44,7 @@ function advance(robot,dt=.1){
  assert.ok(Math.hypot(after.x-before.x,after.z-before.z)<=robotLayout.speed*Math.min(dt,.1)+1e-8,'No teleport or tunnelling');
  return after;
 }
-for(const variant of ['1','2','3']){
+for(const variant of ['1','2','3','4']){
  setKitchenCollisionVariant(variant);
  for(const d of doors.state)doors.setOpen(d.id,false);
  for(let i=0;i<20;i++)doors.update(.1);

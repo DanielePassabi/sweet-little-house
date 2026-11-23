@@ -48,7 +48,7 @@ Verifiche: `node tests/spatial.mjs`, `node tests/wall-joints.mjs`, `node tests/l
 
 ### Prestazioni
 
-Nelle impostazioni a destra, **Mostra FPS** attiva un piccolo overlay. A scena ferma appare **A riposo**: l’ultimo fotogramma resta visibile e viene ridisegnato solo quando necessario. Durante le interazioni sono mostrati gli FPS effettivamente renderizzati, le draw call, i triangoli e il tempo CPU di invio (non il tempo GPU). Materiali, luci, ombre e qualità visiva restano invariati. Ulteriori verifiche: `node tests/render-state.mjs`.
+Nelle impostazioni a destra, **Mostra FPS** attiva un piccolo overlay. A scena ferma appare **A riposo**: l’ultimo fotogramma resta visibile e viene ridisegnato solo quando necessario. Durante le interazioni sono mostrati gli FPS effettivamente renderizzati, le draw call, i triangoli e il tempo CPU di invio. In Visita, se i fotogrammi rallentano durante il movimento, il modello viene disegnato a una risoluzione temporaneamente ridotta. Quando la visuale si ferma, torna alla risoluzione piena della Visita. Ulteriori verifiche in `tests/render-state.mjs`.
 
 ### Luce solare
 
@@ -144,6 +144,8 @@ Sostituite le luci omnidirezionali prive di ombre con dieci sorgenti a fascio am
 
 Il soffitto usa una geometria chiusa con normale inferiore rivolta nella stanza; lo spessore tecnico di 8 cm, aggiunto sopra il piano originale, serve a rendere stabile l’occlusione delle ombre. La faccia interna resta a 2,60 m e non cambia la pianta, le pareti o lo spazio abitabile. Ridotto il bias delle ombre solari che contribuiva alle infiltrazioni luminose lungo il bordo superiore dei muri.
 
+In Visita il soffitto ha la stessa pittura opaca delle pareti. Il suo colore segue la luce del giorno e la luce riflessa dalle lampade di ciascuna stanza, inclusa la temperatura selezionata.
+
 `node tests/interior-lighting.mjs` controlla collocazione nei locali, orientamento verso il basso, ombre, budget delle mappe, interruttore e temperatura, altezza interna e normale del soffitto. Verifica visiva nel browser di notte e di giorno, con luci accese/spente e nelle due tonalità.
 
 #### Ottimizzazioni delle luci interne
@@ -165,6 +167,14 @@ Terza configurazione ricostruita dai due schizzi: colonna frigorifero integrata 
 Solo il Tipo 3 sostituisce il tavolo nero da 120 cm con la versione tonda da **150 cm**, misura confermata dall’utente, con sei sedie dello stesso modello. Materiale del piano e basamento incrociato restano nello stile precedente. I Tipi 1 e 2 conservano il tavolo da 120 cm con quattro sedie. Tavolo e sedie vengono disegnati in sei gruppi istanziati, anche nella versione da sei posti; al cambio cucina vengono aggiornati visibilità, collisioni, passaggi, ombre e scelta memorizzata. Pareti, aperture, dimensioni della casa e altri arredi non sono modificati.
 
 I test verificano l’integrità del Tipo 1, tutte e tre le configurazioni, la profondità del raccordo, il lavello aperto nel piano, la separazione fra breakfast e induzione, i sei posti, il budget di gruppi del tavolo e la raggiungibilità di stanze ed elettrodomestici dopo cambi ripetuti. Verifica visiva del Tipo 3 completata nell’anteprima locale.
+
+### Cucina definitiva Bergamin · Tipo 4
+
+In **La cucina → Configurazione**, il Tipo 4 riprende i tre render Bergamin. La parete lavaggio ha frontali tortora opachi e schienale in pietra chiara. La penisola ospita l’induzione sotto la sospensione nera e un bancone in rovere con tre sgabelli. Sulla parete della finestra, il forno a mezza colonna affianca i ripiani a giorno con fondo in rovere e montanti antracite.
+
+Le dimensioni dei mobili sono stimate dai render e adattate alla pianta. La v4 usa la zona pranzo del Tipo 3. Alla prima apertura viene mostrata la v4. Se il browser ha già memorizzato una cucina, riapre la versione scelta.
+
+Sotto l’induzione ci sono due cassettoni sovrapposti, ciascuno con un frontale continuo. Il bancone in rovere prosegue fino al fondo della nicchia. Un clic sullo sportello del frigo, della lavastoviglie o del forno lo apre e lo richiude. Gli stessi comandi sono disponibili nel pannello **La cucina**.
 
 #### Pensile fra le finestre e lavabo più largo — 15 ottobre 2026
 

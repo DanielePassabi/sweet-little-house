@@ -5,6 +5,7 @@ import {rooms,HEIGHT,insidePolygon} from '../dist/model.js';
 import {wallVolumes,unionSurface} from '../dist/wall-geometry.js';
 import {optimizeLightingMaterials,efficientLightingChunk} from '../dist/lighting-performance.js';
 
+const wallPaint=new THREE.MeshStandardMaterial({color:'#f6f5ef',roughness:.91});
 const scene=new THREE.Scene(),system=createInteriorLighting(scene),roof=createCeiling();
 assert.equal(system.lights.length,10);
 assert.ok(system.lights.reduce((sum,l)=>sum+l.shadow.mapSize.x*l.shadow.mapSize.y,0)<=10*1024*1024,'Indoor shadow maps stay within the texel budget');
@@ -50,6 +51,19 @@ system.setFixturesVisible(true);assert.ok(fixtureMeshes.every(m=>m.visible));
 assert.ok(system.lights.every(l=>!l.shadow.needsUpdate),'Fixture visibility reuses existing shadow maps');
 
 roof.geometry.computeBoundingBox();
+assert.ok(roof.material.color.equals(wallPaint.color));
+assert.equal(roof.material.roughness,wallPaint.roughness);
+assert.equal(roof.material.emissive.getHex(),0,'Plaster does not emit light');
+const sky=new THREE.HemisphereLight('#e4f1ff','#b9ad94',0);
+const bounce=()=>{roof.userData.updateBounce(sky,system.lights);return roof.material.lightMap.image.data.slice();};
+system.setState(false,3000);
+const dark=bounce();
+assert.ok(dark.every((v,i)=>i%4===3||v===0),'No bounce without a source');
+system.setState(true,3000);const warmMap=bounce();
+system.setState(true,4000);const coolMap=bounce();
+assert.ok(warmMap.some((v,i)=>i%4===0&&v>0&&warmMap[i+2]<coolMap[i+2]),'Reflected fixture light follows its temperature');
+system.setState(false,3000);sky.intensity=.8;
+assert.ok(bounce().some((v,i)=>i%4===2&&v>0),'Daylight reaches the plaster with the lamps off');
 assert.ok(Math.abs(roof.geometry.boundingBox.min.y-HEIGHT)<1e-6,'Interior height remains exactly 2.60 m');
 assert.ok(roof.castShadow&&roof.receiveShadow);
 roof.updateMatrixWorld();
